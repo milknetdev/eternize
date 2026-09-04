@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  # Blocking: regressions here must stop a merge.
+  test-build:
+    name: test + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit / API tests
+        run: npm test
+      - name: Production build (same steps as Vercel)
+        run: npm run build:ci
+
+  # Non-blocking: surfaces the pre-existing lint/type debt without gating merges.
+  # Flip continue-on-error off once the backlog is cleared (Phase 2).
+  quality:
+    name: lint + typecheck (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: ESLint
+        run: npm run lint
+      - name: TypeScript
+        run: npx tsc -b

@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.12.0",
+    "@electric-sql/pglite": "^0.5.8",
     "@eslint/js": "9.25.1",
     "@getmocha/users-service": "^0.0.4",
     "@getmocha/vite-plugins": "^3.0.19",
@@ -49,14 +50,19 @@
     "typescript": "5.8.3",
     "typescript-eslint": "8.31.0",
     "vite": "^7.1.3",
+    "vitest": "^2.1.9",
     "wrangler": "^4.33.0"
   },
   "scripts": {
     "build": "tsc -b && vite build",
+    "build:api": "esbuild src/worker/index.ts --bundle --platform=node --format=esm --outfile=api/index.mjs --external:@neondatabase/serverless --external:bcryptjs --external:pg --external:@supabase/supabase-js",
+    "build:ci": "npm run build:api && vite build",
     "cf-typegen": "wrangler types",
     "check": "tsc && vite build && wrangler deploy --dry-run",
     "dev": "vite",
     "knip": "knip",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   }
 }
