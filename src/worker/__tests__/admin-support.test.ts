@@ -9,6 +9,9 @@ beforeEach(async () => {
   fx = await makeFixture();
 });
 
+// route handlers return loosely-typed JSON; the tests just assert on it
+const body = (r: Response): Promise<any> => r.json();
+
 const call = (path: string, token?: string, init: RequestInit = {}) =>
   app.request(
     path,
@@ -31,19 +34,19 @@ describe("admin support console", () => {
   });
 
   it("searches couples by e-mail / partner name", async () => {
-    const byEmail = await (await call("/api/admin/couples?q=a@example.com", fx.tokenAdmin)).json();
+    const byEmail = await body(await call("/api/admin/couples?q=a@example.com", fx.tokenAdmin));
     expect(byEmail.couples).toHaveLength(1);
     expect(byEmail.couples[0].partner1_name).toBe("Alice");
 
-    const byName = await (await call("/api/admin/couples?q=bea", fx.tokenAdmin)).json();
+    const byName = await body(await call("/api/admin/couples?q=bea", fx.tokenAdmin));
     expect(byName.couples[0].partner2_name).toBe("Bea");
 
-    const all = await (await call("/api/admin/couples?q=", fx.tokenAdmin)).json();
+    const all = await body(await call("/api/admin/couples?q=", fx.tokenAdmin));
     expect(all.couples.length).toBe(2);
   });
 
   it("returns a full record and lets the admin publish / fix a URL", async () => {
-    const detail = await (await call(`/api/admin/couples/${fx.weddingA}`, fx.tokenAdmin)).json();
+    const detail = await body(await call(`/api/admin/couples/${fx.weddingA}`, fx.tokenAdmin));
     expect(detail.wedding.user_email).toBe("a@example.com");
     expect(detail.counts.guests).toBe(1);
 
@@ -69,7 +72,7 @@ describe("admin support console", () => {
 
   it("issues a temporary password and drops the user's sessions", async () => {
     const res = await call("/api/admin/users/user_a/reset-password", fx.tokenAdmin, { method: "POST" });
-    const data = await res.json();
+    const data = await body(res);
     expect(data.tempPassword).toMatch(/^Et-/);
 
     const session = await fx.db
