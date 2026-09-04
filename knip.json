@@ -6,7 +6,6 @@
   ],
   "project": ["src/**/*.{ts,tsx}"],
   "ignore": [
-    "worker-configuration.d.ts",
     "src/react-app/vite-env.d.ts"
   ]
 }
