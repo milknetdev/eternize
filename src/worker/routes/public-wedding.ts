@@ -12,7 +12,7 @@ r.get("/api/public/wedding/:customUrl", async (c) => {
   const wedding = await c.env.DB.prepare(`
     SELECT id, partner1_name, partner2_name, wedding_date, venue_name, venue_address, pix_key, custom_url,
            template_id, theme_primary_color, theme_secondary_color, theme_accent_color, 
-           theme_background_color, theme_text_color, theme_heading_font, theme_body_font,
+           theme_background_color, theme_text_color, theme_heading_font, theme_body_font, theme_layout,
            show_story, show_gallery, show_timeline, show_location, show_dresscode, 
            show_gifts, show_rsvp, show_messages, show_godparents, show_parents, show_accommodations, hero_image_key, hero_style, our_story,
            ceremony_time, ceremony_venue, reception_time, reception_venue,

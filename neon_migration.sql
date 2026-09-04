@@ -357,3 +357,6 @@ ON CONFLICT DO NOTHING;
 ALTER TABLE weddings ADD COLUMN IF NOT EXISTS show_godparents     BOOLEAN DEFAULT TRUE;
 ALTER TABLE weddings ADD COLUMN IF NOT EXISTS show_parents        BOOLEAN DEFAULT TRUE;
 ALTER TABLE weddings ADD COLUMN IF NOT EXISTS show_accommodations BOOLEAN DEFAULT TRUE;
+
+-- Layout preset (structure of the couple site, independent of colours).
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS theme_layout TEXT DEFAULT 'classico';

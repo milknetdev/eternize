@@ -3,19 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Loader2, Heart, AlertCircle, Clock } from "lucide-react";
 import { WeddingProvider, WeddingData, WeddingPhoto, StoryItem } from "@/react-app/contexts/WeddingContext";
-import DynamicHero from "@/react-app/components/couple-dynamic/DynamicHero";
-import DynamicStory from "@/react-app/components/couple-dynamic/DynamicStory";
-import DynamicGallery from "@/react-app/components/couple-dynamic/DynamicGallery";
-import DynamicTimeline from "@/react-app/components/couple-dynamic/DynamicTimeline";
-import DynamicLocation from "@/react-app/components/couple-dynamic/DynamicLocation";
-import DynamicDressCode from "@/react-app/components/couple-dynamic/DynamicDressCode";
-import DynamicGifts from "@/react-app/components/couple-dynamic/DynamicGifts";
-import DynamicConfirmCTA from "@/react-app/components/couple-dynamic/DynamicConfirmCTA";
-import DynamicGodparents from "@/react-app/components/couple-dynamic/DynamicGodparents";
-import DynamicParents from "@/react-app/components/couple-dynamic/DynamicParents";
-import DynamicAccommodations from "@/react-app/components/couple-dynamic/DynamicAccommodations";
-import DynamicMessages from "@/react-app/components/couple-dynamic/DynamicMessages";
-import DynamicFooter from "@/react-app/components/couple-dynamic/DynamicFooter";
+import CoupleShell from "@/react-app/components/couple-dynamic/CoupleShell";
 import MusicPlayer from "@/react-app/components/couple-dynamic/MusicPlayer";
 
 export default function CouplePage() {
@@ -159,21 +147,9 @@ export default function CouplePage() {
 
 function CouplePageContent() {
   return (
-    <div className="min-h-screen">
-      <DynamicHero />
-      <DynamicStory />
-      <DynamicGallery />
-      <DynamicTimeline />
-      <DynamicParents />
-      <DynamicGodparents />
-      <DynamicLocation />
-      <DynamicDressCode />
-      <DynamicAccommodations />
-      <DynamicGifts />
-      <DynamicConfirmCTA />
-      <DynamicMessages />
-      <DynamicFooter />
+    <>
+      <CoupleShell />
       <MusicPlayer />
-    </div>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import { createContext, useContext, ReactNode } from "react";
+import { layouts, type LayoutId } from "@/data/templates";
 
 export interface WeddingTheme {
   primary: string;
@@ -72,6 +73,7 @@ export interface WeddingData {
   timeline_events?: string | null;
   instagram_url?: string | null;
   music_url?: string | null;
+  theme_layout?: string | null;
 }
 
 /**
@@ -90,6 +92,7 @@ export interface DemoContent {
 interface WeddingContextType {
   wedding: WeddingData;
   theme: WeddingTheme;
+  layout: LayoutId;
   photos: WeddingPhoto[];
   storyItems: StoryItem[];
   demo?: DemoContent;
@@ -130,8 +133,13 @@ export function WeddingProvider({
     bodyFont: wedding.theme_body_font || defaultTheme.bodyFont,
   };
 
+  const layout: LayoutId =
+    wedding.theme_layout && wedding.theme_layout in layouts
+      ? (wedding.theme_layout as LayoutId)
+      : "classico";
+
   return (
-    <WeddingContext.Provider value={{ wedding, theme, photos, storyItems, demo }}>
+    <WeddingContext.Provider value={{ wedding, theme, layout, photos, storyItems, demo }}>
       {children}
     </WeddingContext.Provider>
   );

@@ -1,3 +1,29 @@
+/**
+ * Layout = the *structure* of the couple site (section order, spacing rhythm,
+ * heading treatment). Independent of colours/fonts. "classico" is the original
+ * look; the others restructure the page without touching the palette.
+ */
+export type LayoutId = "classico" | "editorial" | "minimalista" | "moderno";
+
+export const layouts: Record<LayoutId, { name: string; description: string }> = {
+  classico: {
+    name: "Clássico",
+    description: "Seções centralizadas, títulos serifados e divisórias delicadas.",
+  },
+  editorial: {
+    name: "Editorial",
+    description: "Alinhado à esquerda, títulos enormes, ar de revista.",
+  },
+  minimalista: {
+    name: "Minimalista",
+    description: "Muito respiro, tipografia discreta, zero ornamento.",
+  },
+  moderno: {
+    name: "Moderno",
+    description: "Títulos em caixa alta, blocos marcantes, cantos bem arredondados.",
+  },
+};
+
 export interface WeddingTemplate {
   id: string;
   name: string;
@@ -5,6 +31,7 @@ export interface WeddingTemplate {
   category: "aventureiros" | "romanticos" | "modernos" | "artisticos" | "descontraidos" | "glamourosos" | "natureza" | "vintage";
   coupleStyle: string;
   isPremium: boolean;
+  layout: LayoutId;
   colors: {
     primary: string;
     secondary: string;
@@ -31,6 +58,7 @@ export const templates: WeddingTemplate[] = [
     category: "aventureiros",
     coupleStyle: "Viajantes e desbravadores",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#2E5339",
       secondary: "#D4C4A8",
@@ -52,6 +80,7 @@ export const templates: WeddingTemplate[] = [
     category: "aventureiros",
     coupleStyle: "Amantes de montanha",
     isPremium: true,
+    layout: "classico",
     colors: {
       primary: "#4A6572",
       secondary: "#F9F7F4",
@@ -77,6 +106,7 @@ export const templates: WeddingTemplate[] = [
     category: "romanticos",
     coupleStyle: "Sonhadores românticos",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#C9A861",
       secondary: "#FDF8F0",
@@ -98,6 +128,7 @@ export const templates: WeddingTemplate[] = [
     category: "romanticos",
     coupleStyle: "Tradicionalistas elegantes",
     isPremium: true,
+    layout: "classico",
     colors: {
       primary: "#1A1A2E",
       secondary: "#F5E6D3",
@@ -119,6 +150,7 @@ export const templates: WeddingTemplate[] = [
     category: "romanticos",
     coupleStyle: "Românticos apaixonados",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#C77B8B",
       secondary: "#FFF5F7",
@@ -144,6 +176,7 @@ export const templates: WeddingTemplate[] = [
     category: "modernos",
     coupleStyle: "Urbanos sofisticados",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#000000",
       secondary: "#F5F5F5",
@@ -165,6 +198,7 @@ export const templates: WeddingTemplate[] = [
     category: "modernos",
     coupleStyle: "Festeiros modernos",
     isPremium: true,
+    layout: "classico",
     colors: {
       primary: "#FF00FF",
       secondary: "#0A0A0F",
@@ -186,6 +220,7 @@ export const templates: WeddingTemplate[] = [
     category: "modernos",
     coupleStyle: "Minimalistas contemporâneos",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#2C3E50",
       secondary: "#ECF0F1",
@@ -211,6 +246,7 @@ export const templates: WeddingTemplate[] = [
     category: "artisticos",
     coupleStyle: "Artistas e criativos",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#7B68EE",
       secondary: "#FFF8F0",
@@ -232,6 +268,7 @@ export const templates: WeddingTemplate[] = [
     category: "artisticos",
     coupleStyle: "Espíritos livres",
     isPremium: true,
+    layout: "classico",
     colors: {
       primary: "#CD853F",
       secondary: "#FFF5EB",
@@ -253,6 +290,7 @@ export const templates: WeddingTemplate[] = [
     category: "artisticos",
     coupleStyle: "Apreciadores de arte",
     isPremium: true,
+    layout: "classico",
     colors: {
       primary: "#1A1A1A",
       secondary: "#FFFFFF",
@@ -278,6 +316,7 @@ export const templates: WeddingTemplate[] = [
     category: "descontraidos",
     coupleStyle: "Alegres e festeiros",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#FF6B6B",
       secondary: "#FFF9E6",
@@ -299,6 +338,7 @@ export const templates: WeddingTemplate[] = [
     category: "descontraidos",
     coupleStyle: "Casais autênticos",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#5D8AA8",
       secondary: "#F5F5F5",
@@ -320,6 +360,7 @@ export const templates: WeddingTemplate[] = [
     category: "descontraidos",
     coupleStyle: "Amantes de praia",
     isPremium: true,
+    layout: "classico",
     colors: {
       primary: "#00B4D8",
       secondary: "#FFF8E7",
@@ -345,6 +386,7 @@ export const templates: WeddingTemplate[] = [
     category: "glamourosos",
     coupleStyle: "Elegantes refinados",
     isPremium: true,
+    layout: "classico",
     colors: {
       primary: "#D4AF37",
       secondary: "#0D0D0D",
@@ -366,6 +408,7 @@ export const templates: WeddingTemplate[] = [
     category: "glamourosos",
     coupleStyle: "Luxo discreto",
     isPremium: true,
+    layout: "classico",
     colors: {
       primary: "#C9B037",
       secondary: "#1E1E28",
@@ -387,6 +430,7 @@ export const templates: WeddingTemplate[] = [
     category: "glamourosos",
     coupleStyle: "Amantes de realeza",
     isPremium: true,
+    layout: "classico",
     colors: {
       primary: "#4B0082",
       secondary: "#F8F4FF",
@@ -412,6 +456,7 @@ export const templates: WeddingTemplate[] = [
     category: "natureza",
     coupleStyle: "Conectados com a natureza",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#228B22",
       secondary: "#F0FFF0",
@@ -433,6 +478,7 @@ export const templates: WeddingTemplate[] = [
     category: "natureza",
     coupleStyle: "Românticos campestres",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#6B8E23",
       secondary: "#FFF8F5",
@@ -454,6 +500,7 @@ export const templates: WeddingTemplate[] = [
     category: "natureza",
     coupleStyle: "Amantes do campo",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#8B6914",
       secondary: "#FBF8F1",
@@ -479,6 +526,7 @@ export const templates: WeddingTemplate[] = [
     category: "vintage",
     coupleStyle: "Nostálgicos clássicos",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#DC143C",
       secondary: "#FFF8F0",
@@ -500,6 +548,7 @@ export const templates: WeddingTemplate[] = [
     category: "vintage",
     coupleStyle: "Amantes do glamour antigo",
     isPremium: true,
+    layout: "classico",
     colors: {
       primary: "#C9A227",
       secondary: "#1A1A2E",
@@ -521,6 +570,7 @@ export const templates: WeddingTemplate[] = [
     category: "vintage",
     coupleStyle: "Colecionadores de memórias",
     isPremium: false,
+    layout: "classico",
     colors: {
       primary: "#704214",
       secondary: "#FFF8E7",
@@ -534,6 +584,200 @@ export const templates: WeddingTemplate[] = [
     },
     previewImage: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=800&q=80",
     features: ["Efeito polaroid", "Tons sépia", "Molduras de foto", "Estilo álbum"],
+  },
+
+  // ═══════════════════════════════════════════
+  // NOVOS — com layouts alternativos
+  // ═══════════════════════════════════════════
+  {
+    id: "cartorio",
+    name: "Só no Civil",
+    description: "Para quem quer algo enxuto e elegante. Um site direto ao ponto, sem firulas, perfeito para casamento no cartório.",
+    category: "modernos",
+    coupleStyle: "Práticos e discretos",
+    isPremium: false,
+    layout: "minimalista",
+    colors: {
+      primary: "#3F3F46",
+      secondary: "#FAFAFA",
+      accent: "#A1A1AA",
+      background: "#FFFFFF",
+      text: "#18181B",
+    },
+    fonts: { heading: "Work Sans", body: "Inter" },
+    previewImage: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=800&q=80",
+    features: ["Layout minimalista", "Uma coluna", "Tipografia discreta", "Carrega rápido"],
+  },
+  {
+    id: "pride",
+    name: "Amor é Amor",
+    description: "Cores vivas e um layout ousado para celebrar todo tipo de amor, do jeito mais colorido possível.",
+    category: "descontraidos",
+    coupleStyle: "Orgulhosos e sem medo de cor",
+    isPremium: false,
+    layout: "moderno",
+    colors: {
+      primary: "#E4007C",
+      secondary: "#FFF0F6",
+      accent: "#00B4D8",
+      background: "#FFFFFF",
+      text: "#1A1A2E",
+    },
+    fonts: { heading: "Poppins", body: "Poppins" },
+    previewImage: "https://images.unsplash.com/photo-1533228100845-08145b01de14?w=800&q=80",
+    features: ["Layout moderno", "Títulos em caixa alta", "Blocos de cor", "Cantos arredondados"],
+  },
+  {
+    id: "tropical",
+    name: "Pé na Areia",
+    description: "Turquesa, coral e areia. Layout editorial com fotos grandes para casamentos na praia ou destino tropical.",
+    category: "natureza",
+    coupleStyle: "Casamento na praia",
+    isPremium: false,
+    layout: "editorial",
+    colors: {
+      primary: "#0E7C86",
+      secondary: "#EAF7F6",
+      accent: "#FF8C61",
+      background: "#FDFCF7",
+      text: "#173A3A",
+    },
+    fonts: { heading: "Playfair Display", body: "Raleway" },
+    previewImage: "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&q=80",
+    features: ["Layout editorial", "Fotos em destaque", "Paleta praiana", "Títulos grandes"],
+  },
+  {
+    id: "industrial",
+    name: "Loft Urbano",
+    description: "Concreto, cobre e tipografia forte. Para casamentos em galpão, rooftop ou espaço industrial.",
+    category: "modernos",
+    coupleStyle: "Urbanos e despojados",
+    isPremium: false,
+    layout: "moderno",
+    colors: {
+      primary: "#B87333",
+      secondary: "#F0EEEC",
+      accent: "#4B4B4B",
+      background: "#FAFAF9",
+      text: "#1C1C1C",
+    },
+    fonts: { heading: "Oswald", body: "Barlow" },
+    previewImage: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800&q=80",
+    features: ["Layout moderno", "Tipografia condensada", "Tons de metal", "Visual de galpão"],
+  },
+  {
+    id: "boho-campo",
+    name: "Boho de Campo",
+    description: "Terracota, verde-oliva e linho. Clima de casamento ao ar livre, com pampas e luz dourada.",
+    category: "natureza",
+    coupleStyle: "Ao ar livre, descalços",
+    isPremium: false,
+    layout: "classico",
+    colors: {
+      primary: "#C1662F",
+      secondary: "#F3EEE4",
+      accent: "#7C8C5A",
+      background: "#FBF8F1",
+      text: "#3B2F26",
+    },
+    fonts: { heading: "Cormorant Garamond", body: "Nunito Sans" },
+    previewImage: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800&q=80",
+    features: ["Paleta terrosa", "Clima ao ar livre", "Tons de linho", "Romântico e leve"],
+  },
+  {
+    id: "black-tie",
+    name: "Gala Black Tie",
+    description: "Preto, dourado e marfim, com layout editorial. Para recepções formais e festas de gala.",
+    category: "glamourosos",
+    coupleStyle: "Formais e sofisticados",
+    isPremium: true,
+    layout: "editorial",
+    colors: {
+      primary: "#C9A227",
+      secondary: "#F4F1EA",
+      accent: "#1A1A1A",
+      background: "#FFFEFB",
+      text: "#141414",
+    },
+    fonts: { heading: "Playfair Display", body: "Montserrat" },
+    previewImage: "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80",
+    features: ["Layout editorial", "Preto e dourado", "Títulos imponentes", "Ar de gala"],
+  },
+  {
+    id: "fe-classica",
+    name: "Bênção",
+    description: "Azul profundo e dourado, tipografia serifada tradicional. Pensado para cerimônias religiosas.",
+    category: "romanticos",
+    coupleStyle: "Cerimônia na igreja",
+    isPremium: false,
+    layout: "classico",
+    colors: {
+      primary: "#B8912F",
+      secondary: "#EEF1F6",
+      accent: "#22335C",
+      background: "#FDFCF9",
+      text: "#1E2A44",
+    },
+    fonts: { heading: "EB Garamond", body: "Lora" },
+    previewImage: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&q=80",
+    features: ["Tipografia tradicional", "Azul e dourado", "Espaço para leitura", "Sóbrio e afetuoso"],
+  },
+  {
+    id: "jardim-secreto",
+    name: "Jardim Secreto",
+    description: "Rosa empoeirado e musgo, com layout editorial e muitas fotos. Romântico sem ser açucarado.",
+    category: "romanticos",
+    coupleStyle: "Românticos contemporâneos",
+    isPremium: false,
+    layout: "editorial",
+    colors: {
+      primary: "#A56A7A",
+      secondary: "#F3ECEF",
+      accent: "#6B7F5B",
+      background: "#FCFAF8",
+      text: "#3A2E33",
+    },
+    fonts: { heading: "Libre Baskerville", body: "Raleway" },
+    previewImage: "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?w=800&q=80",
+    features: ["Layout editorial", "Rosa e verde", "Fotos grandes", "Romance moderno"],
+  },
+  {
+    id: "retro-70",
+    name: "Setentão",
+    description: "Mostarda, laranja queimado e tipografia gigante. Um throwback aos anos 70, cheio de personalidade.",
+    category: "vintage",
+    coupleStyle: "Nostálgicos e divertidos",
+    isPremium: false,
+    layout: "moderno",
+    colors: {
+      primary: "#D98324",
+      secondary: "#F6EEDD",
+      accent: "#7A4419",
+      background: "#FBF6EC",
+      text: "#3A2A17",
+    },
+    fonts: { heading: "Bebas Neue", body: "Poppins" },
+    previewImage: "https://images.unsplash.com/photo-1519657337289-077653f724ed?w=800&q=80",
+    features: ["Layout moderno", "Cores dos anos 70", "Títulos enormes", "Muito estilo"],
+  },
+  {
+    id: "so-branco",
+    name: "Tudo Branco",
+    description: "Branco sobre branco, com um fio de prata. Minimalismo de luxo para quem quer sofisticação silenciosa.",
+    category: "glamourosos",
+    coupleStyle: "Minimalistas exigentes",
+    isPremium: true,
+    layout: "minimalista",
+    colors: {
+      primary: "#8C8C8C",
+      secondary: "#F7F7F7",
+      accent: "#C0C0C0",
+      background: "#FFFFFF",
+      text: "#2B2B2B",
+    },
+    fonts: { heading: "Cormorant Garamond", body: "Montserrat" },
+    previewImage: "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=800&q=80",
+    features: ["Layout minimalista", "Branco sobre branco", "Muito espaço", "Luxo silencioso"],
   },
 ];
 

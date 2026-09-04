@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { templates, categories, WeddingTemplate } from "@/data/templates";
+import { templates, categories, layouts, WeddingTemplate } from "@/data/templates";
 import { 
   Sparkles, 
   Check, 
@@ -194,6 +194,9 @@ function TemplateCard({
             alt={template.name}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
+          <span className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full bg-black/45 backdrop-blur-sm text-white text-[11px] font-medium">
+            {layouts[template.layout].name}
+          </span>
           
           {/* Color Palette Overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">

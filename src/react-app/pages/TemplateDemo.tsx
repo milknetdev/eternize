@@ -8,19 +8,7 @@ import {
   type StoryItem,
   type DemoContent,
 } from "@/react-app/contexts/WeddingContext";
-import DynamicHero from "@/react-app/components/couple-dynamic/DynamicHero";
-import DynamicStory from "@/react-app/components/couple-dynamic/DynamicStory";
-import DynamicGallery from "@/react-app/components/couple-dynamic/DynamicGallery";
-import DynamicTimeline from "@/react-app/components/couple-dynamic/DynamicTimeline";
-import DynamicParents from "@/react-app/components/couple-dynamic/DynamicParents";
-import DynamicGodparents from "@/react-app/components/couple-dynamic/DynamicGodparents";
-import DynamicLocation from "@/react-app/components/couple-dynamic/DynamicLocation";
-import DynamicDressCode from "@/react-app/components/couple-dynamic/DynamicDressCode";
-import DynamicAccommodations from "@/react-app/components/couple-dynamic/DynamicAccommodations";
-import DynamicGifts from "@/react-app/components/couple-dynamic/DynamicGifts";
-import DynamicConfirmCTA from "@/react-app/components/couple-dynamic/DynamicConfirmCTA";
-import DynamicMessages from "@/react-app/components/couple-dynamic/DynamicMessages";
-import DynamicFooter from "@/react-app/components/couple-dynamic/DynamicFooter";
+import CoupleShell from "@/react-app/components/couple-dynamic/CoupleShell";
 
 const IMG = (id: string, w = 800) =>
   `https://images.unsplash.com/photo-${id}?w=${w}&q=80&fit=crop`;
@@ -88,6 +76,7 @@ export default function TemplateDemo() {
       custom_url: null,
       pix_key: "ana.joao@exemplo.com",
       template_id: template.id,
+      theme_layout: template.layout,
       theme_primary_color: template.colors.primary,
       theme_secondary_color: template.colors.secondary,
       theme_accent_color: template.colors.accent,
@@ -128,19 +117,7 @@ export default function TemplateDemo() {
 
       <div className="pt-10">
         <WeddingProvider wedding={wedding} photos={[]} storyItems={DEMO_STORY} demo={DEMO}>
-          <DynamicHero />
-          <DynamicStory />
-          <DynamicGallery />
-          <DynamicTimeline />
-          <DynamicParents />
-          <DynamicGodparents />
-          <DynamicLocation />
-          <DynamicDressCode />
-          <DynamicAccommodations />
-          <DynamicGifts />
-          <DynamicConfirmCTA />
-          <DynamicMessages />
-          <DynamicFooter />
+          <CoupleShell />
         </WeddingProvider>
       </div>
     </div>

@@ -15,10 +15,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
-import { templates } from "@/data/templates";
+import { templates, layouts } from "@/data/templates";
 
 interface ThemeSettings {
   template_id: string;
+  theme_layout: string;
   theme_primary_color: string;
   theme_secondary_color: string;
   theme_accent_color: string;
@@ -61,6 +62,7 @@ const fontOptions = [
 
 const defaultTheme: ThemeSettings = {
   template_id: "eternal",
+  theme_layout: "classico",
   theme_primary_color: "#C9A962",
   theme_secondary_color: "#F5F0E8",
   theme_accent_color: "#E8D5B7",
@@ -106,6 +108,7 @@ export default function ThemeEditor() {
           if (data) {
             setTheme({
               template_id: data.template_id || defaultTheme.template_id,
+              theme_layout: data.theme_layout || defaultTheme.theme_layout,
               theme_primary_color: data.theme_primary_color || defaultTheme.theme_primary_color,
               theme_secondary_color: data.theme_secondary_color || defaultTheme.theme_secondary_color,
               theme_accent_color: data.theme_accent_color || defaultTheme.theme_accent_color,
@@ -147,6 +150,7 @@ export default function ThemeEditor() {
     if (template) {
       setTheme({
         template_id: templateId,
+        theme_layout: template.layout,
         theme_primary_color: template.colors.primary,
         theme_secondary_color: template.colors.secondary,
         theme_accent_color: template.colors.accent,
@@ -256,7 +260,10 @@ export default function ThemeEditor() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white rounded-xl border p-6"
               >
-                <h3 className="font-serif text-lg font-semibold mb-4">Escolha um Template Base</h3>
+                <h3 className="font-serif text-lg font-semibold mb-1">Escolha um Template Base</h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Layout atual: <span className="font-medium text-foreground">{layouts[(theme.theme_layout as keyof typeof layouts)] ? layouts[theme.theme_layout as keyof typeof layouts].name : "Clássico"}</span> — {layouts[(theme.theme_layout as keyof typeof layouts)]?.description ?? layouts.classico.description}
+                </p>
                 <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2">
                   {templates.map((template) => (
                     <button
@@ -275,8 +282,9 @@ export default function ThemeEditor() {
                         }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <p className="text-white text-sm font-medium text-left">{template.name}</p>
+                      <div className="absolute bottom-0 left-0 right-0 p-3 text-left">
+                        <p className="text-white text-sm font-medium">{template.name}</p>
+                        <p className="text-white/70 text-[10px] uppercase tracking-wide">{layouts[template.layout].name}</p>
                       </div>
                       {theme.template_id === template.id && (
                         <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
