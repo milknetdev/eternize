@@ -160,25 +160,52 @@ export default function Dashboard() {
 
   const userName = user.name || user.email.split("@")[0];
 
-  const tabs = [
-    { id: "overview" as Tab, label: "Visão Geral", icon: BarChart3 },
-    { id: "guests" as Tab, label: "Convidados", icon: Users },
-    { id: "tables" as Tab, label: "Mesas", icon: UtensilsCrossed },
-    { id: "tasks" as Tab, label: "Tarefas", icon: CheckSquare },
-    { id: "budget" as Tab, label: "Orçamento", icon: Wallet },
-    { id: "gifts" as Tab, label: "Presentes", icon: Gift },
-    { id: "photos" as Tab, label: "Fotos", icon: Image },
-    { id: "story" as Tab, label: "Nossa História", icon: BookOpen },
-    { id: "guest-photos" as Tab, label: "Galeria Convidados", icon: Image },
-    { id: "messages" as Tab, label: "Mensagens", icon: MessageCircle },
-    { id: "financeiro" as Tab, label: "Financeiro", icon: Wallet },
-    { id: "gravata" as Tab, label: "Gravata", icon: Sparkles },
-    { id: "invite" as Tab, label: "Convite", icon: Share2 },
-    { id: "godparents" as Tab, label: "Padrinhos", icon: Crown },
-    { id: "parents" as Tab, label: "Pais", icon: Users },
-    { id: "accommodations" as Tab, label: "Estadia", icon: Hotel },
-    { id: "settings" as Tab, label: "Configurações", icon: Settings },
+  const tabGroups: { label: string | null; tabs: { id: Tab; label: string; icon: typeof Heart }[] }[] = [
+    {
+      label: null,
+      tabs: [{ id: "overview", label: "Visão Geral", icon: BarChart3 }],
+    },
+    {
+      label: "Convidados",
+      tabs: [
+        { id: "guests", label: "Lista de Convidados", icon: Users },
+        { id: "tables", label: "Mesas", icon: UtensilsCrossed },
+        { id: "messages", label: "Mensagens", icon: MessageCircle },
+        { id: "invite", label: "Convite", icon: Share2 },
+      ],
+    },
+    {
+      label: "Nosso Site",
+      tabs: [
+        { id: "story", label: "Nossa História", icon: BookOpen },
+        { id: "photos", label: "Fotos do Casal", icon: Image },
+        { id: "guest-photos", label: "Galeria dos Convidados", icon: Image },
+        { id: "gifts", label: "Lista de Presentes", icon: Gift },
+        { id: "godparents", label: "Padrinhos", icon: Crown },
+        { id: "parents", label: "Pais", icon: Users },
+        { id: "accommodations", label: "Hospedagem", icon: Hotel },
+      ],
+    },
+    {
+      label: "Planejamento",
+      tabs: [
+        { id: "tasks", label: "Tarefas", icon: CheckSquare },
+        { id: "budget", label: "Orçamento", icon: Wallet },
+      ],
+    },
+    {
+      label: "Financeiro",
+      tabs: [
+        { id: "financeiro", label: "Recebimentos", icon: Wallet },
+        { id: "gravata", label: "Cofrinho / PIX", icon: Sparkles },
+      ],
+    },
+    {
+      label: "Ajustes",
+      tabs: [{ id: "settings", label: "Configurações", icon: Settings }],
+    },
   ];
+  const tabs = tabGroups.flatMap((g) => g.tabs);
 
   const filteredGuests = guests.filter(g => {
     const matchesSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -249,25 +276,36 @@ export default function Dashboard() {
 
       <div className="flex min-h-[calc(100vh-64px)]">
         {/* Sidebar */}
-        <aside className="w-64 bg-white dark:bg-card border-r border-border flex-shrink-0 hidden md:flex md:flex-col">
-          <nav className="p-4 space-y-1 flex-1">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  {tab.label}
-                </button>
-              );
-            })}
+        <aside className="w-64 bg-white dark:bg-card border-r border-border flex-shrink-0 hidden md:flex md:flex-col overflow-y-auto">
+          <nav className="p-4 flex-1">
+            {tabGroups.map((group, gi) => (
+              <div key={group.label ?? "root"} className={gi > 0 ? "mt-5" : ""}>
+                {group.label && (
+                  <p className="px-4 mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                    {group.label}
+                  </p>
+                )}
+                <div className="space-y-1">
+                  {group.tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
+                          activeTab === tab.id
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        }`}
+                      >
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
           
           {/* Theme Toggle */}
