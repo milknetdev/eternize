@@ -1,4 +1,4 @@
-import { neon, Pool } from '@neondatabase/serverless';
+import { Pool } from '@neondatabase/serverless';
 
 /**
  * NeonDB adapter with D1-compatible API.
@@ -40,13 +40,14 @@ class NeonPreparedStatement {
 
   async run(): Promise<{ success: boolean; meta: { last_row_id: number; changes: number } }> {
     try {
-      const rows = await this.db.query(this.sql, this.params);
+      const { rows, rowCount } = await this.db.exec(this.sql, this.params);
       const result = rows?.[0] || {};
       return {
         success: true,
         meta: {
           last_row_id: result.last_row_id ?? result.id ?? 0,
-          changes: result.changes ?? (Array.isArray(rows) ? rows.length : 1),
+          // Real affected-row count from PostgreSQL (0 when a scoped WHERE matched nothing).
+          changes: rowCount ?? (Array.isArray(rows) ? rows.length : 0),
         },
       };
     } catch (err) {
@@ -63,14 +64,20 @@ export class NeonDB {
     this.pool = new Pool({ connectionString });
   }
 
-  /** Execute a parameterized query */
+  /** Execute a parameterized query, returning just the rows. */
   async query(sql: string, params: any[] = []): Promise<any[]> {
+    const { rows } = await this.exec(sql, params);
+    return rows;
+  }
+
+  /** Execute a parameterized query, returning rows plus the affected-row count. */
+  async exec(sql: string, params: any[] = []): Promise<{ rows: any[]; rowCount: number }> {
     // Convert ? placeholders to $1, $2, etc. for PostgreSQL
     let paramIndex = 0;
     const pgSql = sql.replace(/\?/g, () => `$${++paramIndex}`);
 
     const result = await this.pool.query(pgSql, params);
-    return result.rows;
+    return { rows: result.rows, rowCount: result.rowCount ?? 0 };
   }
 
   prepare(sql: string): NeonPreparedStatement {

@@ -9,11 +9,11 @@ function generateId(): string {
 }
 
 function generateToken(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  // Cryptographically strong 256-bit session token (Math.random() is predictable).
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
   let result = "";
-  for (let i = 0; i < 48; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
+  for (const b of bytes) result += b.toString(16).padStart(2, "0");
   return result;
 }
 
