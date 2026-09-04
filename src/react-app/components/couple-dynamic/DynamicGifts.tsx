@@ -1,6 +1,5 @@
 import { authFetch } from "@/react-app/lib/api";
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router";
 import { useWedding } from "@/react-app/contexts/WeddingContext";
 import { Gift, Heart, Check, Copy, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
@@ -16,7 +15,6 @@ interface GiftItem {
 
 export default function DynamicGifts() {
   const { wedding, theme } = useWedding();
-  const navigate = useNavigate();
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPixModal, setShowPixModal] = useState(false);

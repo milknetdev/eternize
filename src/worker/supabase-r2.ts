@@ -13,12 +13,6 @@ interface R2PutOptions {
   };
 }
 
-interface R2Object {
-  key: string;
-  body: ReadableStream | null;
-  httpMetadata?: { contentType?: string };
-}
-
 class R2ObjectBody {
   key: string;
   private _data: ArrayBuffer;

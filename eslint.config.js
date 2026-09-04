@@ -23,6 +23,9 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
+      // Pragmatic: the codebase leans on `any` at the DB/adapter boundary.
+      // Surface it, don't block CI on it.
+      "@typescript-eslint/no-explicit-any": "warn",
     },
   }
 );

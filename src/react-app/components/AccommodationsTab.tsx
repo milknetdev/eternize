@@ -34,7 +34,7 @@ export function AccommodationsTab() {
       const res = await authFetch('/api/wedding');
       const data = await res.json();
       if (data) setShowOnSite(data.show_accommodations !== 0);
-    } catch {}
+    } catch { /* visibility flag is best-effort */ }
   };
 
   const toggleVisibility = async () => {

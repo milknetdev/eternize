@@ -54,6 +54,9 @@ export interface WeddingData {
   show_gifts?: number;
   show_rsvp?: number;
   show_messages?: number;
+  show_godparents?: number;
+  show_parents?: number;
+  show_accommodations?: number;
   // Content
   hero_image_key?: string | null;
   hero_style?: string | null;

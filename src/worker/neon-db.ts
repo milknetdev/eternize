@@ -24,7 +24,7 @@ class NeonPreparedStatement {
   async first<T = any>(column?: string): Promise<T | null> {
     const result = await this.all<T>();
     if (!result.results || result.results.length === 0) return null;
-    if (column) return result.results[0][column] as T;
+    if (column) return (result.results[0] as Record<string, unknown>)[column] as T;
     return result.results[0] as T;
   }
 

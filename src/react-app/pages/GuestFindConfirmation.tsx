@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Heart, Phone, ArrowRight, Loader2, Search } from "lucide-react";
+import { Heart, Phone, Loader2, Search } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function GuestFindConfirmation() {

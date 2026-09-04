@@ -3119,9 +3119,9 @@ r13.get("/api/public/confirm/:code", async (c) => {
       name: guest.name,
       phoneMask,
       hasPhone: !!guest.phone,
-      isConfirmed: guest.is_confirmed === true,
+      isConfirmed: Boolean(guest.is_confirmed),
       confirmedAt: guest.confirmed_at,
-      isChild: guest.is_child === true
+      isChild: Boolean(guest.is_child)
     },
     companions: companions.results || [],
     wedding: {

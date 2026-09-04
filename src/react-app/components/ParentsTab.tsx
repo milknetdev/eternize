@@ -30,7 +30,7 @@ export function ParentsTab() {
       const res = await authFetch('/api/wedding');
       const data = await res.json();
       if (data) setShowOnSite(data.show_parents !== 0);
-    } catch {}
+    } catch { /* visibility flag is best-effort */ }
   };
 
   const toggleVisibility = async () => {

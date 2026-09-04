@@ -62,7 +62,7 @@ export default function CouplePage() {
         
         // Update page title
         document.title = `${weddingData.wedding.partner1_name} & ${weddingData.wedding.partner2_name} | Eternize`;
-      } catch (err) {
+      } catch {
         setError("Erro ao carregar página");
       } finally {
         setLoading(false);
