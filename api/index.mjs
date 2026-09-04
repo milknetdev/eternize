@@ -1673,26 +1673,47 @@ var setCookie = (c, name, value, opt) => {
 // src/worker/local-auth-backend.ts
 import * as bcrypt from "bcryptjs";
 var SESSION_COOKIE_NAME = "eternize_session";
-var sessions = /* @__PURE__ */ new Map();
 function generateId() {
   return "u_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 }
 function generateToken() {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
   let result = "";
-  for (let i = 0; i < 48; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
+  for (const b of bytes) result += b.toString(16).padStart(2, "0");
   return result;
 }
 async function authMiddleware(c, next) {
   const sessionToken = getCookie(c, SESSION_COOKIE_NAME);
-  if (!sessionToken || !sessions.has(sessionToken)) {
+  if (!sessionToken) {
     return c.json({ error: "N\xE3o autenticado" }, 401);
   }
-  const session = sessions.get(sessionToken);
-  c.set("user", { id: session.userId, email: session.email, name: session.name });
+  const db = c.env.DB;
+  if (!db) {
+    return c.json({ error: "Banco de dados n\xE3o configurado" }, 500);
+  }
+  const session = await db.prepare(
+    "SELECT user_id, email, name FROM sessions WHERE token = ? AND expires_at > NOW()"
+  ).bind(sessionToken).first();
+  if (!session) {
+    return c.json({ error: "Sess\xE3o expirada ou inv\xE1lida" }, 401);
+  }
+  c.set("user", { id: session.user_id, email: session.email, name: session.name });
   await next();
+}
+async function createSession(db, userId, email, name, c) {
+  const token = generateToken();
+  await db.prepare(
+    "INSERT INTO sessions (token, user_id, email, name, expires_at) VALUES (?, ?, ?, ?, NOW() + INTERVAL '60 days')"
+  ).bind(token, userId, email, name).run();
+  setCookie(c, SESSION_COOKIE_NAME, token, {
+    httpOnly: true,
+    path: "/",
+    sameSite: "lax",
+    secure: true,
+    maxAge: 60 * 24 * 60 * 60
+  });
+  return token;
 }
 async function handleRegister(c) {
   const body = await c.req.json();
@@ -1720,15 +1741,7 @@ async function handleRegister(c) {
   await db.prepare(
     "INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)"
   ).bind(userId, email.toLowerCase().trim(), passwordHash, name.trim()).run();
-  const token = generateToken();
-  sessions.set(token, { userId, email: email.toLowerCase().trim(), name: name.trim() });
-  setCookie(c, SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax",
-    secure: false,
-    maxAge: 60 * 24 * 60 * 60
-  });
+  await createSession(db, userId, email.toLowerCase().trim(), name.trim(), c);
   return c.json({ success: true, user: { id: userId, email: email.toLowerCase().trim(), name: name.trim() } }, 201);
 }
 async function handleLogin(c) {
@@ -1751,15 +1764,7 @@ async function handleLogin(c) {
   if (!valid) {
     return c.json({ error: "Email ou senha incorretos" }, 401);
   }
-  const token = generateToken();
-  sessions.set(token, { userId: user.id, email: user.email, name: user.name });
-  setCookie(c, SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax",
-    secure: false,
-    maxAge: 60 * 24 * 60 * 60
-  });
+  await createSession(db, user.id, user.email, user.name, c);
   return c.json({ success: true, user: { id: user.id, email: user.email, name: user.name } });
 }
 async function handleGetUser(c) {
@@ -1767,14 +1772,15 @@ async function handleGetUser(c) {
 }
 async function handleLogout(c) {
   const sessionToken = getCookie(c, SESSION_COOKIE_NAME);
-  if (sessionToken) {
-    sessions.delete(sessionToken);
+  const db = c.env.DB;
+  if (sessionToken && db) {
+    await db.prepare("DELETE FROM sessions WHERE token = ?").bind(sessionToken).run();
   }
   setCookie(c, SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     path: "/",
     sameSite: "lax",
-    secure: false,
+    secure: true,
     maxAge: 0
   });
   return c.json({ success: true });
@@ -1812,13 +1818,14 @@ var NeonPreparedStatement = class {
   }
   async run() {
     try {
-      const rows = await this.db.query(this.sql, this.params);
+      const { rows, rowCount } = await this.db.exec(this.sql, this.params);
       const result = rows?.[0] || {};
       return {
         success: true,
         meta: {
           last_row_id: result.last_row_id ?? result.id ?? 0,
-          changes: result.changes ?? (Array.isArray(rows) ? rows.length : 1)
+          // Real affected-row count from PostgreSQL (0 when a scoped WHERE matched nothing).
+          changes: rowCount ?? (Array.isArray(rows) ? rows.length : 0)
         }
       };
     } catch (err) {
@@ -1832,12 +1839,17 @@ var NeonDB = class {
   constructor(connectionString) {
     this.pool = new Pool({ connectionString });
   }
-  /** Execute a parameterized query */
+  /** Execute a parameterized query, returning just the rows. */
   async query(sql, params = []) {
+    const { rows } = await this.exec(sql, params);
+    return rows;
+  }
+  /** Execute a parameterized query, returning rows plus the affected-row count. */
+  async exec(sql, params = []) {
     let paramIndex = 0;
     const pgSql = sql.replace(/\?/g, () => `$${++paramIndex}`);
     const result = await this.pool.query(pgSql, params);
-    return result.rows;
+    return { rows: result.rows, rowCount: result.rowCount ?? 0 };
   }
   prepare(sql) {
     return new NeonPreparedStatement(this, sql);
@@ -1927,6 +1939,14 @@ app.use("*", async (c, next) => {
   }
   await next();
 });
+async function getWeddingId(c) {
+  const user = c.get("user");
+  if (!user) return null;
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE user_id = ?"
+  ).bind(user.id).first();
+  return wedding?.id ?? null;
+}
 app.post("/api/auth/register", handleRegister);
 app.post("/api/auth/login", handleLogin);
 app.get("/api/users/me", authMiddleware, handleGetUser);
@@ -2161,7 +2181,7 @@ app.get("/api/guests", authMiddleware, async (c) => {
   const { results: guests } = await c.env.DB.prepare(
     "SELECT * FROM guests WHERE wedding_id = ? ORDER BY created_at DESC"
   ).bind(wedding.id).all();
-  const guestIds = (guests || []).map((g) => g.id);
+  const guestIds = (guests || []).map((g) => Number(g.id)).filter((n) => Number.isInteger(n));
   if (guestIds.length === 0) return c.json([]);
   const { results: companions } = await c.env.DB.prepare(
     `SELECT * FROM guest_companions WHERE guest_id IN (${guestIds.join(",")})`
@@ -2219,12 +2239,14 @@ app.post("/api/guests", authMiddleware, async (c) => {
 });
 app.put("/api/guests/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
   const body = await c.req.json();
-  await c.env.DB.prepare(`
-    UPDATE guests SET 
+  const res = await c.env.DB.prepare(`
+    UPDATE guests SET
       name = ?, email = ?, phone = ?, guests_count = ?, rsvp_status = ?,
       dietary_restrictions = ?, label = ?, is_child = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
+    WHERE id = ? AND wedding_id = ?
   `).bind(
     body.name,
     body.email,
@@ -2234,8 +2256,10 @@ app.put("/api/guests/:id", authMiddleware, async (c) => {
     body.dietary_restrictions,
     body.label || null,
     body.is_child ? true : false,
-    id
+    id,
+    weddingId
   ).run();
+  if (!res.meta.changes) return c.json({ error: "Guest not found" }, 404);
   await c.env.DB.prepare("DELETE FROM guest_companions WHERE guest_id = ?").bind(id).run();
   if (body.companions && Array.isArray(body.companions)) {
     for (const comp of body.companions) {
@@ -2254,16 +2278,31 @@ app.put("/api/guests/:id", authMiddleware, async (c) => {
 });
 app.delete("/api/guests/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const guest = await c.env.DB.prepare(
+    "SELECT id FROM guests WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).first();
+  if (!guest) return c.json({ error: "Guest not found" }, 404);
   await c.env.DB.prepare("DELETE FROM guest_companions WHERE guest_id = ?").bind(id).run();
-  await c.env.DB.prepare("DELETE FROM guests WHERE id = ?").bind(id).run();
+  await c.env.DB.prepare("DELETE FROM guests WHERE id = ? AND wedding_id = ?").bind(id, weddingId).run();
   return c.json({ success: true });
 });
 app.put("/api/guests/:id/table", authMiddleware, async (c) => {
   const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
   const body = await c.req.json();
-  await c.env.DB.prepare(`
-    UPDATE guests SET table_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-  `).bind(body.table_id, id).run();
+  if (body.table_id) {
+    const table = await c.env.DB.prepare(
+      "SELECT id FROM wedding_tables WHERE id = ? AND wedding_id = ?"
+    ).bind(body.table_id, weddingId).first();
+    if (!table) return c.json({ error: "Table not found" }, 404);
+  }
+  const res = await c.env.DB.prepare(`
+    UPDATE guests SET table_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND wedding_id = ?
+  `).bind(body.table_id, id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Guest not found" }, 404);
   return c.json({ success: true });
 });
 app.get("/api/tables", authMiddleware, async (c) => {
@@ -2300,18 +2339,31 @@ app.post("/api/tables", authMiddleware, async (c) => {
 });
 app.put("/api/tables/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
   const body = await c.req.json();
-  await c.env.DB.prepare(`
-    UPDATE wedding_tables SET 
+  const res = await c.env.DB.prepare(`
+    UPDATE wedding_tables SET
       name = ?, capacity = ?, shape = ?, table_number = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(body.name, body.capacity, body.shape, body.table_number || null, id).run();
+    WHERE id = ? AND wedding_id = ?
+  `).bind(body.name, body.capacity, body.shape, body.table_number || null, id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Table not found" }, 404);
   return c.json({ success: true });
 });
 app.delete("/api/tables/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
-  await c.env.DB.prepare("UPDATE guests SET table_id = NULL WHERE table_id = ?").bind(id).run();
-  await c.env.DB.prepare("DELETE FROM wedding_tables WHERE id = ?").bind(id).run();
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const table = await c.env.DB.prepare(
+    "SELECT id FROM wedding_tables WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).first();
+  if (!table) return c.json({ error: "Table not found" }, 404);
+  await c.env.DB.prepare(
+    "UPDATE guests SET table_id = NULL WHERE table_id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
+  await c.env.DB.prepare(
+    "DELETE FROM wedding_tables WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
   return c.json({ success: true });
 });
 app.get("/api/tasks", authMiddleware, async (c) => {
@@ -2341,31 +2393,43 @@ app.post("/api/tasks", authMiddleware, async (c) => {
 });
 app.put("/api/tasks/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
   const body = await c.req.json();
   const { title, description, category, due_date, is_completed } = body;
   const completedAt = is_completed ? (/* @__PURE__ */ new Date()).toISOString() : null;
-  await c.env.DB.prepare(
-    `UPDATE wedding_tasks SET 
+  const res = await c.env.DB.prepare(
+    `UPDATE wedding_tasks SET
      title = ?, description = ?, category = ?, due_date = ?, is_completed = ?, completed_at = ?,
      updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`
-  ).bind(title, description || null, category || null, due_date || null, is_completed ? true : false, completedAt, id).run();
+     WHERE id = ? AND wedding_id = ?`
+  ).bind(title, description || null, category || null, due_date || null, is_completed ? true : false, completedAt, id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Task not found" }, 404);
   return c.json({ success: true });
 });
 app.put("/api/tasks/:id/toggle", authMiddleware, async (c) => {
   const id = c.req.param("id");
-  const task = await c.env.DB.prepare("SELECT is_completed FROM wedding_tasks WHERE id = ?").bind(id).first();
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const task = await c.env.DB.prepare(
+    "SELECT is_completed FROM wedding_tasks WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).first();
   if (!task) return c.json({ error: "Task not found" }, 404);
-  const newStatus = task.is_completed ? 0 : 1;
+  const newStatus = task.is_completed ? false : true;
   const completedAt = newStatus ? (/* @__PURE__ */ new Date()).toISOString() : null;
   await c.env.DB.prepare(
-    `UPDATE wedding_tasks SET is_completed = ?, completed_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
-  ).bind(newStatus, completedAt, id).run();
+    `UPDATE wedding_tasks SET is_completed = ?, completed_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND wedding_id = ?`
+  ).bind(newStatus, completedAt, id, weddingId).run();
   return c.json({ success: true, is_completed: newStatus });
 });
 app.delete("/api/tasks/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
-  await c.env.DB.prepare("DELETE FROM wedding_tasks WHERE id = ?").bind(id).run();
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const res = await c.env.DB.prepare(
+    "DELETE FROM wedding_tasks WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Task not found" }, 404);
   return c.json({ success: true });
 });
 app.post("/api/tasks/seed", authMiddleware, async (c) => {
@@ -2459,20 +2523,28 @@ app.post("/api/expenses", authMiddleware, async (c) => {
 });
 app.put("/api/expenses/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
   const body = await c.req.json();
   const { name, description, category, vendor_name, estimated_amount, paid_amount, is_paid, due_date, notes } = body;
   const paidAt = is_paid ? (/* @__PURE__ */ new Date()).toISOString() : null;
-  await c.env.DB.prepare(
-    `UPDATE wedding_expenses SET 
+  const res = await c.env.DB.prepare(
+    `UPDATE wedding_expenses SET
      name = ?, description = ?, category = ?, vendor_name = ?, estimated_amount = ?, paid_amount = ?, is_paid = ?, due_date = ?, paid_at = ?, notes = ?,
      updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`
-  ).bind(name, description || null, category || null, vendor_name || null, estimated_amount, paid_amount || 0, is_paid ? true : false, due_date || null, paidAt, notes || null, id).run();
+     WHERE id = ? AND wedding_id = ?`
+  ).bind(name, description || null, category || null, vendor_name || null, estimated_amount, paid_amount || 0, is_paid ? true : false, due_date || null, paidAt, notes || null, id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Expense not found" }, 404);
   return c.json({ success: true });
 });
 app.delete("/api/expenses/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
-  await c.env.DB.prepare("DELETE FROM wedding_expenses WHERE id = ?").bind(id).run();
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const res = await c.env.DB.prepare(
+    "DELETE FROM wedding_expenses WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Expense not found" }, 404);
   return c.json({ success: true });
 });
 app.post("/api/expenses/seed", authMiddleware, async (c) => {
@@ -2549,13 +2621,15 @@ app.post("/api/gifts", authMiddleware, async (c) => {
 });
 app.put("/api/gifts/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
   const body = await c.req.json();
-  await c.env.DB.prepare(`
-    UPDATE wedding_gifts SET 
+  const res = await c.env.DB.prepare(`
+    UPDATE wedding_gifts SET
       name = ?, description = ?, price = ?, image_url = ?,
       category = ?, is_available = ?, quota_total = ?,
       updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
+    WHERE id = ? AND wedding_id = ?
   `).bind(
     body.name,
     body.description,
@@ -2564,13 +2638,20 @@ app.put("/api/gifts/:id", authMiddleware, async (c) => {
     body.category,
     body.is_available ? true : false,
     body.quota_total,
-    id
+    id,
+    weddingId
   ).run();
+  if (!res.meta.changes) return c.json({ error: "Gift not found" }, 404);
   return c.json({ success: true });
 });
 app.delete("/api/gifts/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
-  await c.env.DB.prepare("DELETE FROM wedding_gifts WHERE id = ?").bind(id).run();
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const res = await c.env.DB.prepare(
+    "DELETE FROM wedding_gifts WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Gift not found" }, 404);
   return c.json({ success: true });
 });
 app.get("/api/messages", authMiddleware, async (c) => {
@@ -2586,21 +2667,32 @@ app.get("/api/messages", authMiddleware, async (c) => {
 });
 app.put("/api/messages/:id/approve", authMiddleware, async (c) => {
   const id = c.req.param("id");
-  await c.env.DB.prepare(
-    "UPDATE guest_messages SET is_approved = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-  ).bind(id).run();
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const res = await c.env.DB.prepare(
+    "UPDATE guest_messages SET is_approved = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Message not found" }, 404);
   return c.json({ success: true });
 });
 app.put("/api/messages/:id/reject", authMiddleware, async (c) => {
   const id = c.req.param("id");
-  await c.env.DB.prepare(
-    "UPDATE guest_messages SET is_approved = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-  ).bind(id).run();
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const res = await c.env.DB.prepare(
+    "UPDATE guest_messages SET is_approved = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Message not found" }, 404);
   return c.json({ success: true });
 });
 app.delete("/api/messages/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
-  await c.env.DB.prepare("DELETE FROM guest_messages WHERE id = ?").bind(id).run();
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const res = await c.env.DB.prepare(
+    "DELETE FROM guest_messages WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Message not found" }, 404);
   return c.json({ success: true });
 });
 app.get("/api/photos", authMiddleware, async (c) => {
@@ -2632,16 +2724,16 @@ app.post("/api/photos", authMiddleware, async (c) => {
   if (!allowedTypes.includes(file.type)) {
     return c.json({ error: "Invalid file type. Only JPEG, PNG, WebP and GIF are allowed." }, 400);
   }
-  if (file.size > 10 * 1024 * 1024) {
-    return c.json({ error: "File too large. Maximum size is 10MB." }, 400);
+  if (file.size > 5 * 1024 * 1024) {
+    return c.json({ error: "File too large. Maximum size is 5MB." }, 400);
   }
   const timestamp = Date.now();
   const storageKey = `weddings/${wedding.id}/photos/${timestamp}-${file.name}`;
-  await c.env.R2_BUCKET.put(storageKey, file.stream(), {
-    httpMetadata: {
-      contentType: file.type
-    }
-  });
+  const arrayBuffer = await file.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString("base64");
+  await c.env.DB.prepare(
+    "INSERT INTO files (key, data, content_type, size) VALUES (?, ?, ?, ?)"
+  ).bind(storageKey, base64, file.type, file.size).run();
   const maxOrder = await c.env.DB.prepare(
     "SELECT MAX(sort_order) as max_order FROM wedding_photos WHERE wedding_id = ?"
   ).bind(wedding.id).first();
@@ -2660,6 +2752,8 @@ app.post("/api/photos", authMiddleware, async (c) => {
 });
 app.put("/api/photos/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
   const body = await c.req.json();
   const updates = [];
   const values = [];
@@ -2675,10 +2769,11 @@ app.put("/api/photos/:id", authMiddleware, async (c) => {
     return c.json({ error: "No fields to update" }, 400);
   }
   updates.push("updated_at = CURRENT_TIMESTAMP");
-  values.push(id);
-  await c.env.DB.prepare(
-    `UPDATE wedding_photos SET ${updates.join(", ")} WHERE id = ?`
+  values.push(id, weddingId);
+  const res = await c.env.DB.prepare(
+    `UPDATE wedding_photos SET ${updates.join(", ")} WHERE id = ? AND wedding_id = ?`
   ).bind(...values).run();
+  if (!res.meta.changes) return c.json({ error: "Photo not found" }, 404);
   return c.json({ success: true });
 });
 app.delete("/api/photos/:id", authMiddleware, async (c) => {
@@ -2692,7 +2787,7 @@ app.delete("/api/photos/:id", authMiddleware, async (c) => {
   if (!photo) {
     return c.json({ error: "Photo not found" }, 404);
   }
-  await c.env.R2_BUCKET.delete(photo.storage_key);
+  await c.env.DB.prepare("DELETE FROM files WHERE key = ?").bind(photo.storage_key).run();
   await c.env.DB.prepare("DELETE FROM wedding_photos WHERE id = ?").bind(id).run();
   return c.json({ success: true });
 });
@@ -2713,18 +2808,18 @@ app.post("/api/upload", authMiddleware, async (c) => {
   if (!allowedTypes.includes(file.type)) {
     return c.json({ error: "Invalid file type. Only JPEG, PNG, WebP and GIF are allowed." }, 400);
   }
-  if (file.size > 10 * 1024 * 1024) {
-    return c.json({ error: "File too large. Maximum size is 10MB." }, 400);
+  if (file.size > 5 * 1024 * 1024) {
+    return c.json({ error: "File too large. Maximum size is 5MB." }, 400);
   }
   const timestamp = Date.now();
   const randomId = Math.random().toString(36).substring(2, 8);
   const storageKey = `weddings/${wedding.id}/uploads/${timestamp}-${randomId}-${file.name}`;
-  await c.env.R2_BUCKET.put(storageKey, file.stream(), {
-    httpMetadata: {
-      contentType: file.type
-    }
-  });
-  const url = `/api/photos/file/${storageKey}`;
+  const arrayBuffer = await file.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString("base64");
+  await c.env.DB.prepare(
+    "INSERT INTO files (key, data, content_type, size) VALUES (?, ?, ?, ?)"
+  ).bind(storageKey, base64, file.type, file.size).run();
+  const url = `/api/files/${storageKey}`;
   return c.json({
     success: true,
     url,
@@ -2732,17 +2827,21 @@ app.post("/api/upload", authMiddleware, async (c) => {
     storage_key: storageKey
   });
 });
-app.get("/api/photos/file/:key{.+}", async (c) => {
+app.get("/api/files/:key{.+}", async (c) => {
   const key = c.req.param("key");
-  const object = await c.env.R2_BUCKET.get(key);
-  if (!object) {
-    return c.json({ error: "Photo not found" }, 404);
+  const file = await c.env.DB.prepare(
+    "SELECT data, content_type FROM files WHERE key = ?"
+  ).bind(key).first();
+  if (!file) {
+    return c.json({ error: "File not found" }, 404);
   }
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set("etag", object.httpEtag);
-  headers.set("Cache-Control", "public, max-age=31536000");
-  return c.body(object.body, { headers });
+  const buffer = Buffer.from(file.data, "base64");
+  return new Response(buffer, {
+    headers: {
+      "Content-Type": file.content_type,
+      "Cache-Control": "public, max-age=31536000"
+    }
+  });
 });
 app.get("/api/story-items", authMiddleware, async (c) => {
   const user = c.get("user");
@@ -2823,7 +2922,7 @@ app.get("/api/public/wedding/:customUrl", async (c) => {
            template_id, theme_primary_color, theme_secondary_color, theme_accent_color, 
            theme_background_color, theme_text_color, theme_heading_font, theme_body_font,
            show_story, show_gallery, show_timeline, show_location, show_dresscode, 
-           show_gifts, show_rsvp, show_messages, hero_image_key, hero_style, our_story,
+           show_gifts, show_rsvp, show_messages, show_godparents, show_parents, show_accommodations, hero_image_key, hero_style, our_story,
            ceremony_time, ceremony_venue, reception_time, reception_venue,
            dress_code, dress_code_description, dress_code_allowed_colors, dress_code_avoid_colors,
            timeline_events, instagram_url, music_url, is_published,
@@ -2941,6 +3040,27 @@ app.post("/api/public/wedding/:customUrl/messages", async (c) => {
     VALUES (?, ?, ?, NULL)
   `).bind(wedding.id, body.author_name, body.content).run();
   return c.json({ success: true });
+});
+app.post("/api/public/wedding/:customUrl/find-guest", async (c) => {
+  const customUrl = c.req.param("customUrl");
+  const body = await c.req.json();
+  const { phoneLast4 } = body;
+  if (!phoneLast4 || phoneLast4.length !== 4) {
+    return c.json({ found: false, error: "Digite os 4 \xFAltimos d\xEDgitos do telefone" }, 400);
+  }
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE custom_url = ? AND is_published = TRUE"
+  ).bind(customUrl).first();
+  if (!wedding) {
+    return c.json({ found: false, error: "Casamento n\xE3o encontrado" }, 404);
+  }
+  const guest = await c.env.DB.prepare(
+    "SELECT confirmation_code, name FROM guests WHERE wedding_id = ? AND phone LIKE ? AND confirmation_code IS NOT NULL"
+  ).bind(wedding.id, `%${phoneLast4}`).first();
+  if (!guest) {
+    return c.json({ found: false, error: "N\xE3o encontramos um convite com esse telefone. Verifique os n\xFAmeros e tente novamente." }, 404);
+  }
+  return c.json({ found: true, confirmation_code: guest.confirmation_code, name: guest.name });
 });
 app.get("/api/public/confirm/:code", async (c) => {
   const code = c.req.param("code");
@@ -3400,6 +3520,245 @@ app.get("/api/public/gift-templates/:listId", async (c) => {
   `).bind(listId).all();
   return c.json({ templates: templates || [], categories: categories || [] });
 });
+app.get("/api/godparents", authMiddleware, async (c) => {
+  const user = c.get("user");
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE user_id = ?"
+  ).bind(user.id).first();
+  if (!wedding) return c.json([]);
+  const { results } = await c.env.DB.prepare(
+    "SELECT * FROM wedding_godparents WHERE wedding_id = ? ORDER BY sort_order ASC, id ASC"
+  ).bind(wedding.id).all();
+  return c.json(results);
+});
+app.post("/api/godparents", authMiddleware, async (c) => {
+  const user = c.get("user");
+  const body = await c.req.json();
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE user_id = ?"
+  ).bind(user.id).first();
+  if (!wedding) {
+    return c.json({ error: "Wedding not found" }, 404);
+  }
+  const result = await c.env.DB.prepare(`
+    INSERT INTO wedding_godparents (wedding_id, name, role, description, image_url, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).bind(
+    wedding.id,
+    body.name,
+    body.role,
+    body.description,
+    body.image_url,
+    body.sort_order || 0
+  ).run();
+  return c.json({ success: true, id: result.meta.last_row_id });
+});
+app.put("/api/godparents/:id", authMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const body = await c.req.json();
+  const res = await c.env.DB.prepare(`
+    UPDATE wedding_godparents SET
+      name = ?, role = ?, description = ?, image_url = ?, sort_order = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND wedding_id = ?
+  `).bind(
+    body.name,
+    body.role,
+    body.description,
+    body.image_url,
+    body.sort_order || 0,
+    id,
+    weddingId
+  ).run();
+  if (!res.meta.changes) return c.json({ error: "Godparent not found" }, 404);
+  return c.json({ success: true });
+});
+app.delete("/api/godparents/:id", authMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const res = await c.env.DB.prepare(
+    "DELETE FROM wedding_godparents WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Godparent not found" }, 404);
+  return c.json({ success: true });
+});
+app.get("/api/public/wedding/:customUrl/godparents", async (c) => {
+  const customUrl = c.req.param("customUrl");
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE custom_url = ?"
+  ).bind(customUrl).first();
+  if (!wedding) {
+    return c.json({ error: "Wedding not found" }, 404);
+  }
+  const { results } = await c.env.DB.prepare(
+    "SELECT id, name, role, description, image_url, sort_order FROM wedding_godparents WHERE wedding_id = ? ORDER BY sort_order ASC, id ASC"
+  ).bind(wedding.id).all();
+  return c.json({ godparents: results || [] });
+});
+app.get("/api/parents", authMiddleware, async (c) => {
+  const user = c.get("user");
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE user_id = ?"
+  ).bind(user.id).first();
+  if (!wedding) return c.json([]);
+  const { results } = await c.env.DB.prepare(
+    "SELECT * FROM wedding_parents WHERE wedding_id = ? ORDER BY sort_order ASC, id ASC"
+  ).bind(wedding.id).all();
+  return c.json(results);
+});
+app.post("/api/parents", authMiddleware, async (c) => {
+  const user = c.get("user");
+  const body = await c.req.json();
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE user_id = ?"
+  ).bind(user.id).first();
+  if (!wedding) {
+    return c.json({ error: "Wedding not found" }, 404);
+  }
+  const result = await c.env.DB.prepare(`
+    INSERT INTO wedding_parents (wedding_id, name, role, image_url, sort_order)
+    VALUES (?, ?, ?, ?, ?)
+  `).bind(
+    wedding.id,
+    body.name,
+    body.role,
+    body.image_url,
+    body.sort_order || 0
+  ).run();
+  return c.json({ success: true, id: result.meta.last_row_id });
+});
+app.put("/api/parents/:id", authMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const body = await c.req.json();
+  const res = await c.env.DB.prepare(`
+    UPDATE wedding_parents SET
+      name = ?, role = ?, image_url = ?, sort_order = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND wedding_id = ?
+  `).bind(
+    body.name,
+    body.role,
+    body.image_url,
+    body.sort_order || 0,
+    id,
+    weddingId
+  ).run();
+  if (!res.meta.changes) return c.json({ error: "Parent not found" }, 404);
+  return c.json({ success: true });
+});
+app.delete("/api/parents/:id", authMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const res = await c.env.DB.prepare(
+    "DELETE FROM wedding_parents WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Parent not found" }, 404);
+  return c.json({ success: true });
+});
+app.get("/api/public/wedding/:customUrl/parents", async (c) => {
+  const customUrl = c.req.param("customUrl");
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE custom_url = ?"
+  ).bind(customUrl).first();
+  if (!wedding) {
+    return c.json({ error: "Wedding not found" }, 404);
+  }
+  const { results } = await c.env.DB.prepare(
+    "SELECT id, name, role, image_url, sort_order FROM wedding_parents WHERE wedding_id = ? ORDER BY sort_order ASC, id ASC"
+  ).bind(wedding.id).all();
+  return c.json({ parents: results || [] });
+});
+app.get("/api/accommodations", authMiddleware, async (c) => {
+  const user = c.get("user");
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE user_id = ?"
+  ).bind(user.id).first();
+  if (!wedding) return c.json([]);
+  const { results } = await c.env.DB.prepare(
+    "SELECT * FROM wedding_accommodations WHERE wedding_id = ? ORDER BY sort_order ASC, id ASC"
+  ).bind(wedding.id).all();
+  return c.json(results);
+});
+app.post("/api/accommodations", authMiddleware, async (c) => {
+  const user = c.get("user");
+  const body = await c.req.json();
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE user_id = ?"
+  ).bind(user.id).first();
+  if (!wedding) {
+    return c.json({ error: "Wedding not found" }, 404);
+  }
+  const result = await c.env.DB.prepare(`
+    INSERT INTO wedding_accommodations (wedding_id, name, description, address, phone, website, price_range, image_url, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    wedding.id,
+    body.name,
+    body.description,
+    body.address,
+    body.phone,
+    body.website,
+    body.price_range,
+    body.image_url,
+    body.sort_order || 0
+  ).run();
+  return c.json({ success: true, id: result.meta.last_row_id });
+});
+app.put("/api/accommodations/:id", authMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const body = await c.req.json();
+  const res = await c.env.DB.prepare(`
+    UPDATE wedding_accommodations SET
+      name = ?, description = ?, address = ?, phone = ?, website = ?,
+      price_range = ?, image_url = ?, sort_order = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND wedding_id = ?
+  `).bind(
+    body.name,
+    body.description,
+    body.address,
+    body.phone,
+    body.website,
+    body.price_range,
+    body.image_url,
+    body.sort_order || 0,
+    id,
+    weddingId
+  ).run();
+  if (!res.meta.changes) return c.json({ error: "Accommodation not found" }, 404);
+  return c.json({ success: true });
+});
+app.delete("/api/accommodations/:id", authMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const res = await c.env.DB.prepare(
+    "DELETE FROM wedding_accommodations WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Accommodation not found" }, 404);
+  return c.json({ success: true });
+});
+app.get("/api/public/wedding/:customUrl/accommodations", async (c) => {
+  const customUrl = c.req.param("customUrl");
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE custom_url = ?"
+  ).bind(customUrl).first();
+  if (!wedding) {
+    return c.json({ error: "Wedding not found" }, 404);
+  }
+  const { results } = await c.env.DB.prepare(
+    "SELECT id, name, description, address, phone, website, price_range, image_url, sort_order FROM wedding_accommodations WHERE wedding_id = ? ORDER BY sort_order ASC, id ASC"
+  ).bind(wedding.id).all();
+  return c.json({ accommodations: results || [] });
+});
 app.get("/api/contributions", authMiddleware, async (c) => {
   const user = c.get("user");
   const wedding = await c.env.DB.prepare(
@@ -3413,16 +3772,24 @@ app.get("/api/contributions", authMiddleware, async (c) => {
 });
 app.put("/api/contributions/:id/confirm", authMiddleware, async (c) => {
   const id = c.req.param("id");
-  await c.env.DB.prepare(`
-    UPDATE pix_contributions 
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const res = await c.env.DB.prepare(`
+    UPDATE pix_contributions
     SET payment_status = 'paid', paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(id).run();
+    WHERE id = ? AND wedding_id = ?
+  `).bind(id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Contribution not found" }, 404);
   return c.json({ success: true });
 });
 app.delete("/api/contributions/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
-  await c.env.DB.prepare("DELETE FROM pix_contributions WHERE id = ?").bind(id).run();
+  const weddingId = await getWeddingId(c);
+  if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
+  const res = await c.env.DB.prepare(
+    "DELETE FROM pix_contributions WHERE id = ? AND wedding_id = ?"
+  ).bind(id, weddingId).run();
+  if (!res.meta.changes) return c.json({ error: "Contribution not found" }, 404);
   return c.json({ success: true });
 });
 app.get("/api/public/wedding/:customUrl/contributions", async (c) => {
@@ -3523,11 +3890,11 @@ app.post("/api/public/wedding/:customUrl/guest-photos", async (c) => {
   const timestamp = Date.now();
   const randomId = Math.random().toString(36).substring(2, 8);
   const storageKey = `weddings/${wedding.id}/guest-photos/${timestamp}-${randomId}-${file.name}`;
-  await c.env.R2_BUCKET.put(storageKey, file.stream(), {
-    httpMetadata: {
-      contentType: file.type
-    }
-  });
+  const arrayBuffer = await file.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString("base64");
+  await c.env.DB.prepare(
+    "INSERT INTO files (key, data, content_type, size) VALUES (?, ?, ?, ?)"
+  ).bind(storageKey, base64, file.type, file.size).run();
   const result = await c.env.DB.prepare(`
     INSERT INTO guest_photos (wedding_id, guest_name, filename, storage_key, caption, is_approved)
     VALUES (?, ?, ?, ?, ?, NULL)
@@ -3580,7 +3947,7 @@ app.delete("/api/guest-photos/:id", authMiddleware, async (c) => {
     "SELECT storage_key FROM guest_photos WHERE id = ? AND wedding_id = ?"
   ).bind(id, wedding.id).first();
   if (!photo) return c.json({ error: "Photo not found" }, 404);
-  await c.env.R2_BUCKET.delete(photo.storage_key);
+  await c.env.DB.prepare("DELETE FROM files WHERE key = ?").bind(photo.storage_key).run();
   await c.env.DB.prepare("DELETE FROM guest_photos WHERE id = ?").bind(id).run();
   return c.json({ success: true });
 });
