@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx esbuild src/worker/index.ts --bundle --platform=node --format=esm --outfile=api/index.mjs --external:@neondatabase/serverless --external:bcryptjs --external:pg --external:@supabase/supabase-js && npx vite build",
+  "buildCommand": "npm run build:ci",
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [

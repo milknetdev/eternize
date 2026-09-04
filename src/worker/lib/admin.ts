@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono";
 
-export const ADMIN_EMAILS = ["osvaldog.lfilho@gmail.com"];
+const ADMIN_EMAILS = ["osvaldog.lfilho@gmail.com"];
 
 // Admin middleware - checks if user is admin
 export const adminMiddleware = async (c: Context, next: Next) => {

@@ -2,7 +2,7 @@ import type { Context, Next } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import * as bcrypt from "bcryptjs";
 
-export const SESSION_COOKIE_NAME = "eternize_session";
+const SESSION_COOKIE_NAME = "eternize_session";
 
 function generateId(): string {
   return "u_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
