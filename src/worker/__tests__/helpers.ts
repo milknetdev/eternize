@@ -186,6 +186,49 @@ CREATE TABLE wedding_tables (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE wedding_gifts (
+  id SERIAL PRIMARY KEY,
+  wedding_id INTEGER NOT NULL REFERENCES weddings(id),
+  name TEXT, price DOUBLE PRECISION DEFAULT 0
+);
+
+CREATE TABLE wedding_photos (
+  id SERIAL PRIMARY KEY,
+  wedding_id INTEGER NOT NULL REFERENCES weddings(id),
+  storage_key TEXT
+);
+
+CREATE TABLE guest_messages (
+  id SERIAL PRIMARY KEY,
+  wedding_id INTEGER NOT NULL REFERENCES weddings(id),
+  guest_name TEXT, message TEXT, is_approved BOOLEAN,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE gift_orders (
+  id SERIAL PRIMARY KEY,
+  wedding_id INTEGER NOT NULL REFERENCES weddings(id),
+  gift_id INTEGER,
+  guest_name TEXT,
+  amount DOUBLE PRECISION DEFAULT 0,
+  payment_status TEXT DEFAULT 'pending',
+  is_converted BOOLEAN DEFAULT FALSE,
+  converted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE cash_withdrawals (
+  id SERIAL PRIMARY KEY,
+  wedding_id INTEGER NOT NULL REFERENCES weddings(id),
+  amount DOUBLE PRECISION,
+  pix_key TEXT, pix_key_type TEXT,
+  status TEXT DEFAULT 'pending',
+  processed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 `;
 
 export interface Fixture {
@@ -194,6 +237,8 @@ export interface Fixture {
   tokenA: string;
   /** session token for the owner of wedding B */
   tokenB: string;
+  /** session token for the platform admin */
+  tokenAdmin: string;
   weddingA: number;
   weddingB: number;
   /** a guest that belongs to wedding A */
@@ -215,11 +260,13 @@ export async function makeFixture(): Promise<Fixture> {
   await pg.exec(`
     INSERT INTO users (id, email, password_hash, name) VALUES
       ('user_a', 'a@example.com', 'x', 'Alice'),
-      ('user_b', 'b@example.com', 'x', 'Bob');
+      ('user_b', 'b@example.com', 'x', 'Bob'),
+      ('user_admin', 'osvaldog.lfilho@gmail.com', 'x', 'Admin');
 
     INSERT INTO sessions (token, user_id, email, name, expires_at) VALUES
       ('token_a', 'user_a', 'a@example.com', 'Alice', NOW() + INTERVAL '1 day'),
-      ('token_b', 'user_b', 'b@example.com', 'Bob',   NOW() + INTERVAL '1 day');
+      ('token_b', 'user_b', 'b@example.com', 'Bob',   NOW() + INTERVAL '1 day'),
+      ('token_admin', 'user_admin', 'osvaldog.lfilho@gmail.com', 'Admin', NOW() + INTERVAL '1 day');
 
     INSERT INTO weddings (user_id, partner1_name, partner2_name, custom_url) VALUES
       ('user_a', 'Alice', 'Alex', 'alice-alex'),
@@ -236,6 +283,7 @@ export async function makeFixture(): Promise<Fixture> {
     db: new TestDB(pg),
     tokenA: "token_a",
     tokenB: "token_b",
+    tokenAdmin: "token_admin",
     weddingA: 1,
     weddingB: 2,
     guestA: 1,

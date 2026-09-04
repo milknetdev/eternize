@@ -16,8 +16,10 @@ import {
   Heart,
   Wallet,
   Package,
+  LifeBuoy,
 } from "lucide-react";
 import GiftTemplatesAdmin from "../components/GiftTemplatesAdmin";
+import SupportConsole from "../components/admin/SupportConsole";
 
 interface AdminStats {
   totalWeddings: number;
@@ -61,7 +63,7 @@ const ADMIN_EMAILS = ["osvaldog.lfilho@gmail.com"];
 export default function AdminDashboard() {
   const { user, isPending } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"overview" | "weddings" | "withdrawals" | "templates">("overview");
+  const [activeTab, setActiveTab] = useState<"support" | "overview" | "weddings" | "withdrawals" | "templates">("support");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [weddings, setWeddings] = useState<Wedding[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
@@ -203,6 +205,7 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex gap-2 mb-6">
           {[
+            { id: "support", label: "Suporte", icon: LifeBuoy },
             { id: "overview", label: "Visão Geral", icon: TrendingUp },
             { id: "weddings", label: "Casamentos", icon: Heart },
             { id: "withdrawals", label: "Saques", icon: Wallet },
@@ -227,6 +230,8 @@ export default function AdminDashboard() {
             </button>
           ))}
         </div>
+
+        {activeTab === "support" && <SupportConsole />}
 
         {/* Overview Tab */}
         {activeTab === "overview" && (
