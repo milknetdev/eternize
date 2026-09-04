@@ -14,7 +14,7 @@ interface GiftItem {
 }
 
 export default function DynamicGifts() {
-  const { wedding, theme } = useWedding();
+  const { wedding, theme, demo } = useWedding();
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPixModal, setShowPixModal] = useState(false);
@@ -24,6 +24,7 @@ export default function DynamicGifts() {
   const shouldShow = wedding.show_gifts !== 0;
 
   useEffect(() => {
+    if (demo) { setGifts((demo.gifts as GiftItem[]) ?? []); setLoading(false); return; }
     if (!wedding.custom_url) return;
 
     const fetchGifts = async () => {

@@ -16,13 +16,14 @@ interface Accommodation {
 }
 
 export default function DynamicAccommodations() {
-  const { wedding, theme } = useWedding();
+  const { wedding, theme, demo } = useWedding();
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [loading, setLoading] = useState(true);
 
   const shouldShow = wedding.show_accommodations !== 0;
 
   useEffect(() => {
+    if (demo) { setAccommodations((demo.accommodations as Accommodation[]) ?? []); setLoading(false); return; }
     if (!wedding.custom_url) return;
 
     const fetchAccommodations = async () => {

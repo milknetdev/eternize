@@ -12,13 +12,14 @@ interface Parent {
 }
 
 export default function DynamicParents() {
-  const { wedding, theme } = useWedding();
+  const { wedding, theme, demo } = useWedding();
   const [parents, setParents] = useState<Parent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const shouldShow = wedding.show_parents !== 0;
 
   useEffect(() => {
+    if (demo) { setParents((demo.parents as Parent[]) ?? []); setLoading(false); return; }
     if (!wedding.custom_url) return;
 
     const fetchParents = async () => {

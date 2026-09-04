@@ -13,13 +13,14 @@ interface Godparent {
 }
 
 export default function DynamicGodparents() {
-  const { wedding, theme } = useWedding();
+  const { wedding, theme, demo } = useWedding();
   const [godparents, setGodparents] = useState<Godparent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const shouldShow = wedding.show_godparents !== 0;
 
   useEffect(() => {
+    if (demo) { setGodparents((demo.godparents as Godparent[]) ?? []); setLoading(false); return; }
     if (!wedding.custom_url) return;
 
     const fetchGodparents = async () => {

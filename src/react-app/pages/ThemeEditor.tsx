@@ -60,7 +60,7 @@ const fontOptions = [
 ];
 
 const defaultTheme: ThemeSettings = {
-  template_id: "classic-elegance",
+  template_id: "eternal",
   theme_primary_color: "#C9A962",
   theme_secondary_color: "#F5F0E8",
   theme_accent_color: "#E8D5B7",

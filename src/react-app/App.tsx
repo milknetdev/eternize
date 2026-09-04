@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router";
 import { AuthProvider } from "@/local-auth/react";
 import HomePage from "@/react-app/pages/Home";
-import CoupleDemo from "@/react-app/pages/CoupleDemo";
+import TemplateDemo from "@/react-app/pages/TemplateDemo";
 import LoginPage from "@/react-app/pages/Login";
 import RegisterPage from "@/react-app/pages/Register";
 import Dashboard from "@/react-app/pages/Dashboard";
@@ -31,7 +31,8 @@ export default function App() {
       <Router>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/demo/ana-e-joao" element={<CoupleDemo />} />
+          <Route path="/demo/:templateId" element={<TemplateDemo />} />
+          <Route path="/demo" element={<TemplateDemo />} />
           <Route path="/entrar" element={<LoginPage />} />
           <Route path="/cadastro" element={<RegisterPage />} />
           <Route path="/dashboard" element={<Dashboard />} />

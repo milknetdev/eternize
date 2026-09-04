@@ -25,7 +25,7 @@ const placeholderPhotos = [
 ];
 
 export default function DynamicGallery() {
-  const { theme, wedding } = useWedding();
+  const { theme, wedding, demo } = useWedding();
   const weddingPhotos = useWeddingPhotos();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [guestPhotos, setGuestPhotos] = useState<GuestPhoto[]>([]);
@@ -34,6 +34,10 @@ export default function DynamicGallery() {
 
   // Fetch approved guest photos
   useEffect(() => {
+    if (demo) {
+      setGuestPhotos((demo.guestPhotos as GuestPhoto[]) ?? []);
+      return;
+    }
     if (wedding.custom_url) {
       authFetch(`/api/public/wedding/${wedding.custom_url}/guest-photos`)
         .then(res => res.json())

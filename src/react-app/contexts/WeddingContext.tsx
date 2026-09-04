@@ -74,11 +74,25 @@ export interface WeddingData {
   music_url?: string | null;
 }
 
+/**
+ * When present, the couple-site sections render this canned content instead of
+ * fetching from the API. Used by the template demo pages (/demo/:templateId).
+ */
+export interface DemoContent {
+  gifts?: unknown[];
+  messages?: unknown[];
+  parents?: unknown[];
+  godparents?: unknown[];
+  accommodations?: unknown[];
+  guestPhotos?: unknown[];
+}
+
 interface WeddingContextType {
   wedding: WeddingData;
   theme: WeddingTheme;
   photos: WeddingPhoto[];
   storyItems: StoryItem[];
+  demo?: DemoContent;
 }
 
 const defaultTheme: WeddingTheme = {
@@ -97,11 +111,13 @@ export function WeddingProvider({
   wedding,
   photos = [],
   storyItems = [],
+  demo,
   children,
 }: {
   wedding: WeddingData;
   photos?: WeddingPhoto[];
   storyItems?: StoryItem[];
+  demo?: DemoContent;
   children: ReactNode;
 }) {
   const theme: WeddingTheme = {
@@ -115,7 +131,7 @@ export function WeddingProvider({
   };
 
   return (
-    <WeddingContext.Provider value={{ wedding, theme, photos, storyItems }}>
+    <WeddingContext.Provider value={{ wedding, theme, photos, storyItems, demo }}>
       {children}
     </WeddingContext.Provider>
   );

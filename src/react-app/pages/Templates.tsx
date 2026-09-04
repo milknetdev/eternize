@@ -423,7 +423,7 @@ function TemplatePreviewModal({ template, onClose, onSelect }: TemplatePreviewMo
                 <ArrowRight className="w-4 h-4" />
               </button>
               <Link
-                to="/demo/ana-e-joao"
+                to={`/demo/${template.id}`}
                 className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
               >
                 <Eye className="w-4 h-4" />

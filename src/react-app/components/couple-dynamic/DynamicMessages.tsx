@@ -12,7 +12,7 @@ interface Message {
 }
 
 export default function DynamicMessages() {
-  const { wedding, theme } = useWedding();
+  const { wedding, theme, demo } = useWedding();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -24,6 +24,7 @@ export default function DynamicMessages() {
   const shouldShow = wedding.show_messages !== 0;
 
   useEffect(() => {
+    if (demo) { setMessages((demo.messages as Message[]) ?? []); setLoading(false); return; }
     if (!wedding.custom_url) return;
 
     const fetchMessages = async () => {
