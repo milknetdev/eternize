@@ -73,12 +73,12 @@ r.put("/api/wedding/theme", authMiddleware, async (c) => {
     UPDATE weddings SET 
       template_id = ?, theme_primary_color = ?, theme_secondary_color = ?,
       theme_accent_color = ?, theme_background_color = ?, theme_text_color = ?,
-      theme_heading_font = ?, theme_body_font = ?, theme_layout = ?, updated_at = CURRENT_TIMESTAMP
+      theme_heading_font = ?, theme_body_font = ?, updated_at = CURRENT_TIMESTAMP
     WHERE user_id = ?
   `).bind(
     body.template_id, body.theme_primary_color, body.theme_secondary_color,
     body.theme_accent_color, body.theme_background_color, body.theme_text_color,
-    body.theme_heading_font, body.theme_body_font, body.theme_layout || 'classico', user!.id
+    body.theme_heading_font, body.theme_body_font, user!.id
   ).run();
 
   return c.json({ success: true });

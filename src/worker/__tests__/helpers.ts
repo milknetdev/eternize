@@ -91,7 +91,6 @@ CREATE TABLE weddings (
   theme_text_color TEXT,
   theme_heading_font TEXT,
   theme_body_font TEXT,
-  theme_layout TEXT DEFAULT 'classico',
   show_story BOOLEAN DEFAULT TRUE,
   show_gallery BOOLEAN DEFAULT TRUE,
   show_timeline BOOLEAN DEFAULT TRUE,

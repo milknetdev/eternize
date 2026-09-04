@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from "react";
-import { layouts, type LayoutId } from "@/data/templates";
+import { templates, type LayoutId } from "@/data/templates";
 
 export interface WeddingTheme {
   primary: string;
@@ -73,7 +73,6 @@ export interface WeddingData {
   timeline_events?: string | null;
   instagram_url?: string | null;
   music_url?: string | null;
-  theme_layout?: string | null;
 }
 
 /**
@@ -133,10 +132,10 @@ export function WeddingProvider({
     bodyFont: wedding.theme_body_font || defaultTheme.bodyFont,
   };
 
+  // Layout is a property of the chosen template (structure only, not colours),
+  // so it's derived from template_id rather than stored on the wedding row.
   const layout: LayoutId =
-    wedding.theme_layout && wedding.theme_layout in layouts
-      ? (wedding.theme_layout as LayoutId)
-      : "classico";
+    templates.find((t) => t.id === wedding.template_id)?.layout ?? "classico";
 
   return (
     <WeddingContext.Provider value={{ wedding, theme, layout, photos, storyItems, demo }}>

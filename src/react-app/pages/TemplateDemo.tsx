@@ -76,7 +76,6 @@ export default function TemplateDemo() {
       custom_url: null,
       pix_key: "ana.joao@exemplo.com",
       template_id: template.id,
-      theme_layout: template.layout,
       theme_primary_color: template.colors.primary,
       theme_secondary_color: template.colors.secondary,
       theme_accent_color: template.colors.accent,
