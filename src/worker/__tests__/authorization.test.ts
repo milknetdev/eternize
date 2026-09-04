@@ -8,8 +8,6 @@ beforeEach(async () => {
   // The worker's bootstrap middleware only builds its own NeonDB when a
   // connection string is present; with none, the injected test binding wins.
   delete process.env.NEON_DATABASE_URL;
-  delete process.env.SUPABASE_URL;
-  delete process.env.SUPABASE_SERVICE_KEY;
   fx = await makeFixture();
 });
 

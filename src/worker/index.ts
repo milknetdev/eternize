@@ -1,7 +1,5 @@
 import { Hono } from "hono";
 import { NeonDB } from "./neon-db";
-import { SupabaseR2 } from "./supabase-r2";
-import { createClient } from "@supabase/supabase-js";
 import type { AppEnv } from "./lib/types";
 import authRoutes from "./routes/auth";
 import ogRoutes from "./routes/og";
@@ -28,28 +26,15 @@ import dashboardRoutes from "./routes/dashboard";
 
 const app = new Hono<AppEnv>();
 
-// Initialize Neon DB + Supabase Storage
+// Attach the Neon DB handle to every request.
 app.use("*", async (c, next) => {
   const neonUrl = (c.env as any)?.NEON_DATABASE_URL || process.env.NEON_DATABASE_URL || '';
-  const supaUrl = (c.env as any)?.SUPABASE_URL || process.env.SUPABASE_URL || '';
-  const supaKey = (c.env as any)?.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
-
   if (neonUrl) {
     if (!c.env) (c as any).env = {};
     (c.env as any).DB = new NeonDB(neonUrl);
   }
-
-  // Supabase Storage for file uploads
-  if (supaUrl && supaKey) {
-    const supabase = createClient(supaUrl, supaKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-    (c.env as any).R2_BUCKET = new SupabaseR2(supabase);
-  }
-
   await next();
 });
-
 
 // =====================
 // ROUTES

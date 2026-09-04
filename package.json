@@ -5,7 +5,6 @@
   "type": "module",
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
-    "@supabase/supabase-js": "^2.108.2",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -47,7 +46,7 @@
   },
   "scripts": {
     "build": "tsc -b && vite build",
-    "build:api": "esbuild src/worker/index.ts --bundle --platform=node --format=esm --outfile=api/index.mjs --external:@neondatabase/serverless --external:bcryptjs --external:@supabase/supabase-js",
+    "build:api": "esbuild src/worker/index.ts --bundle --platform=node --format=esm --outfile=api/index.mjs --external:@neondatabase/serverless --external:bcryptjs",
     "build:ci": "npm run build:api && vite build",
     "cf-typegen": "wrangler types",
     "check": "tsc && vite build && wrangler deploy --dry-run",

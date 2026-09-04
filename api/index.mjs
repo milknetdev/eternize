@@ -1606,73 +1606,6 @@ var NeonDB = class {
   }
 };
 
-// src/worker/supabase-r2.ts
-var R2ObjectBody = class {
-  key;
-  _data;
-  httpMetadata;
-  httpEtag;
-  constructor(key, data, contentType) {
-    this.key = key;
-    this._data = data;
-    this.httpMetadata = { contentType };
-    this.httpEtag = '"' + Math.random().toString(36).substring(2) + '"';
-  }
-  writeHttpMetadata(headers) {
-    headers.set("Content-Type", this.httpMetadata.contentType);
-  }
-  get body() {
-    return new Response(this._data).body;
-  }
-  async arrayBuffer() {
-    return this._data;
-  }
-  async text() {
-    return new TextDecoder().decode(this._data);
-  }
-};
-var SupabaseR2 = class {
-  client;
-  bucket;
-  constructor(client, bucket = "photos") {
-    this.client = client;
-    this.bucket = bucket;
-  }
-  async put(key, body, options) {
-    let data;
-    if (body instanceof ReadableStream) {
-      data = await new Response(body).arrayBuffer();
-    } else if (typeof body === "string") {
-      data = new TextEncoder().encode(body);
-    } else {
-      data = body;
-    }
-    const contentType = options?.httpMetadata?.contentType || "application/octet-stream";
-    const { error } = await this.client.storage.from(this.bucket).upload(key, data, { contentType, upsert: true });
-    if (error) {
-      console.error("[SupabaseR2] Upload error:", error);
-      throw new Error(`R2 put error: ${error.message}`);
-    }
-  }
-  async get(key) {
-    const { data, error } = await this.client.storage.from(this.bucket).download(key);
-    if (error || !data) {
-      return null;
-    }
-    const arrayBuffer = await data.arrayBuffer();
-    return new R2ObjectBody(key, arrayBuffer, data.type || "application/octet-stream");
-  }
-  async delete(key) {
-    const { error } = await this.client.storage.from(this.bucket).remove([key]);
-    if (error) {
-      console.error("[SupabaseR2] Delete error:", error);
-    }
-  }
-};
-
-// src/worker/index.ts
-import { createClient } from "@supabase/supabase-js";
-
 // node_modules/hono/dist/utils/cookie.js
 var validCookieNameRegEx = /^[\w!#$%&'*.^`|~+-]+$/;
 var validCookieValueRegEx = /^[ !#-:<-[\]-~]*$/;
@@ -1933,88 +1866,59 @@ var auth_default = r;
 
 // src/worker/routes/og.ts
 var r2 = new Hono2();
-r2.get("/c/:customUrl", async (c) => {
+var escapeHtml = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function renderCoupleShell(opts) {
+  const { origin, title, description, image } = opts;
+  const t = escapeHtml(title);
+  const d = escapeHtml(description);
+  const img = escapeHtml(image);
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta property="og:title" content="${t}" />
+    <meta property="og:description" content="${d}" />
+    <meta property="og:image" content="${img}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Eternize" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${t}" />
+    <meta name="twitter:description" content="${d}" />
+    <meta name="twitter:image" content="${img}" />
+    <link rel="icon" href="${origin}/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="${origin}/favicon.ico" />
+    <title>${t} - Eternize</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/react-app/main.tsx"></script>
+  </body>
+</html>`;
+}
+async function coupleShell(c) {
   const customUrl = c.req.param("customUrl");
-  const wedding = await c.env.DB.prepare(`
-    SELECT partner1_name, partner2_name, wedding_date, og_title, og_description, og_image, hero_image_key, is_published
-    FROM weddings WHERE custom_url = ?
-  `).bind(customUrl).first();
-  let ogTitle = "Eternize - Casamento";
-  let ogDescription = "Celebre conosco este momento especial!";
-  let ogImage = "https://static.getmocha.com/og.png";
+  const origin = new URL(c.req.url).origin;
+  const wedding = await c.env.DB.prepare(
+    `SELECT partner1_name, partner2_name, og_title, og_description, og_image, hero_image_key
+     FROM weddings WHERE custom_url = ?`
+  ).bind(customUrl).first();
+  let title = "Eternize - Casamento";
+  let description = "Celebre conosco este momento especial!";
+  let image = `${origin}/og.png`;
   if (wedding) {
-    ogTitle = wedding.og_title || `${wedding.partner1_name} & ${wedding.partner2_name}`;
-    ogDescription = wedding.og_description || `Voc\xEA est\xE1 convidado(a) para o casamento de ${wedding.partner1_name} e ${wedding.partner2_name}!`;
+    title = wedding.og_title || `${wedding.partner1_name} & ${wedding.partner2_name}`;
+    description = wedding.og_description || `Voc\xEA est\xE1 convidado(a) para o casamento de ${wedding.partner1_name} e ${wedding.partner2_name}!`;
     if (wedding.og_image) {
-      ogImage = wedding.og_image;
+      image = wedding.og_image;
     } else if (wedding.hero_image_key) {
-      ogImage = wedding.hero_image_key.startsWith("http") ? wedding.hero_image_key : `https://static.getmocha.com/og.png`;
+      image = wedding.hero_image_key.startsWith("http") ? wedding.hero_image_key : `${origin}/api/files/${wedding.hero_image_key}`;
     }
   }
-  const escapeHtml = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta property="og:title" content="${escapeHtml(ogTitle)}" />
-    <meta property="og:description" content="${escapeHtml(ogDescription)}" />
-    <meta property="og:image" content="${escapeHtml(ogImage)}" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Eternize" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${escapeHtml(ogTitle)}" />
-    <meta name="twitter:description" content="${escapeHtml(ogDescription)}" />
-    <meta name="twitter:image" content="${escapeHtml(ogImage)}" />
-    <link rel="shortcut icon" href="https://static.getmocha.com/favicon.ico" type="image/x-icon" />
-    <title>${escapeHtml(ogTitle)} - Eternize</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/react-app/main.tsx"></script>
-  </body>
-</html>`;
-  return c.html(html);
-});
-r2.get("/c/:customUrl/*", async (c) => {
-  const customUrl = c.req.param("customUrl");
-  const wedding = await c.env.DB.prepare(`
-    SELECT partner1_name, partner2_name, og_title, og_description, og_image
-    FROM weddings WHERE custom_url = ?
-  `).bind(customUrl).first();
-  let ogTitle = "Eternize - Casamento";
-  let ogDescription = "Celebre conosco este momento especial!";
-  let ogImage = "https://static.getmocha.com/og.png";
-  if (wedding) {
-    ogTitle = wedding.og_title || `${wedding.partner1_name} & ${wedding.partner2_name}`;
-    ogDescription = wedding.og_description || `Voc\xEA est\xE1 convidado(a) para o casamento de ${wedding.partner1_name} e ${wedding.partner2_name}!`;
-    if (wedding.og_image) ogImage = wedding.og_image;
-  }
-  const escapeHtml = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta property="og:title" content="${escapeHtml(ogTitle)}" />
-    <meta property="og:description" content="${escapeHtml(ogDescription)}" />
-    <meta property="og:image" content="${escapeHtml(ogImage)}" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Eternize" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${escapeHtml(ogTitle)}" />
-    <meta name="twitter:description" content="${escapeHtml(ogDescription)}" />
-    <meta name="twitter:image" content="${escapeHtml(ogImage)}" />
-    <link rel="shortcut icon" href="https://static.getmocha.com/favicon.ico" type="image/x-icon" />
-    <title>${escapeHtml(ogTitle)} - Eternize</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/react-app/main.tsx"></script>
-  </body>
-</html>`;
-  return c.html(html);
-});
+  return c.html(renderCoupleShell({ origin, title, description, image }));
+}
+r2.get("/c/:customUrl", coupleShell);
+r2.get("/c/:customUrl/*", coupleShell);
 var og_default = r2;
 
 // src/worker/routes/weddings.ts
@@ -4080,17 +3984,9 @@ var dashboard_default = r22;
 var app = new Hono2();
 app.use("*", async (c, next) => {
   const neonUrl = c.env?.NEON_DATABASE_URL || process.env.NEON_DATABASE_URL || "";
-  const supaUrl = c.env?.SUPABASE_URL || process.env.SUPABASE_URL || "";
-  const supaKey = c.env?.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY || "";
   if (neonUrl) {
     if (!c.env) c.env = {};
     c.env.DB = new NeonDB(neonUrl);
-  }
-  if (supaUrl && supaKey) {
-    const supabase = createClient(supaUrl, supaKey, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    });
-    c.env.R2_BUCKET = new SupabaseR2(supabase);
   }
   await next();
 });
