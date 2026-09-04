@@ -29,7 +29,7 @@ export function ParentsTab() {
     try {
       const res = await authFetch('/api/wedding');
       const data = await res.json();
-      if (data) setShowOnSite(data.show_parents !== 0);
+      if (data) setShowOnSite(!(data.show_parents === 0 || data.show_parents === false));
     } catch { /* visibility flag is best-effort */ }
   };
 

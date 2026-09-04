@@ -8,7 +8,7 @@ interface Parent {
   id: number;
   name: string;
   role: string;
-  photo_url: string | null;
+  image_url: string | null;
 }
 
 export default function DynamicParents() {
@@ -105,9 +105,9 @@ export default function DynamicParents() {
               >
                 {/* Photo */}
                 <div className="relative w-36 h-36 mx-auto mb-6">
-                  {parent.photo_url ? (
+                  {parent.image_url ? (
                     <img
-                      src={parent.photo_url}
+                      src={parent.image_url}
                       alt={parent.name}
                       className="w-full h-full object-cover rounded-full"
                       style={{ border: `3px solid ${theme.primary}` }}

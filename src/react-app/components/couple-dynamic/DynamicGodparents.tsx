@@ -8,7 +8,7 @@ interface Godparent {
   id: number;
   name: string;
   role: string;
-  photo_url: string | null;
+  image_url: string | null;
   description: string | null;
 }
 
@@ -96,9 +96,9 @@ export default function DynamicGodparents() {
               >
                 {/* Photo */}
                 <div className="relative w-32 h-32 mx-auto mb-6">
-                  {godparent.photo_url ? (
+                  {godparent.image_url ? (
                     <img
-                      src={godparent.photo_url}
+                      src={godparent.image_url}
                       alt={godparent.name}
                       className="w-full h-full object-cover rounded-full"
                       style={{ border: `3px solid ${theme.primary}` }}

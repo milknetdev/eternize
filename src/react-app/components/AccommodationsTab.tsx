@@ -33,7 +33,7 @@ export function AccommodationsTab() {
     try {
       const res = await authFetch('/api/wedding');
       const data = await res.json();
-      if (data) setShowOnSite(data.show_accommodations !== 0);
+      if (data) setShowOnSite(!(data.show_accommodations === 0 || data.show_accommodations === false));
     } catch { /* visibility flag is best-effort */ }
   };
 

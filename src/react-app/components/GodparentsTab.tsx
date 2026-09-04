@@ -30,7 +30,7 @@ export function GodparentsTab() {
     try {
       const res = await authFetch('/api/wedding');
       const data = await res.json();
-      if (data) setShowOnSite(data.show_godparents !== 0);
+      if (data) setShowOnSite(!(data.show_godparents === 0 || data.show_godparents === false));
     } catch { /* visibility flag is best-effort */ }
   };
 

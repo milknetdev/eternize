@@ -103,30 +103,44 @@ r.put("/api/wedding/settings", authMiddleware, async (c) => {
     if (!wedding) {
       return c.json({ success: false, error: "Você precisa criar seu casamento primeiro no Painel (aba Dados)" }, 400);
     }
-    
-    await c.env.DB.prepare(`
-      UPDATE weddings SET 
-        show_story = ?, show_gallery = ?, show_timeline = ?, show_location = ?,
-        show_dresscode = ?, show_gifts = ?, show_rsvp = ?, show_messages = ?,
-        hero_image_key = ?, hero_style = ?, our_story = ?,
-        ceremony_time = ?, ceremony_venue = ?, reception_time = ?, reception_venue = ?,
-        dress_code = ?, dress_code_description = ?, dress_code_allowed_colors = ?, dress_code_avoid_colors = ?,
-        timeline_events = ?, instagram_url = ?, music_url = ?,
-        og_title = ?, og_description = ?, og_image = ?,
-        invitation_message = ?,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE user_id = ?
-    `).bind(
-      body.show_story ?? 1, body.show_gallery ?? 1, body.show_timeline ?? 1, body.show_location ?? 1,
-      body.show_dresscode ?? 1, body.show_gifts ?? 1, body.show_rsvp ?? 1, body.show_messages ?? 1,
-      body.hero_image_key || null, body.hero_style || null, body.our_story || null,
-      body.ceremony_time || null, body.ceremony_venue || null, body.reception_time || null, body.reception_venue || null,
-      body.dress_code || null, body.dress_code_description || null, body.dress_code_allowed_colors || null, body.dress_code_avoid_colors || null,
-      body.timeline_events || null, body.instagram_url || null, body.music_url || null,
-      body.og_title || null, body.og_description || null, body.og_image || null,
-      body.invitation_message || null,
-      user.id
-    ).run();
+
+    // Partial update: only touch the columns the caller actually sent.
+    // (The old full-replace reset every other section to its default whenever
+    //  a single toggle or the invitation message was saved.)
+    const BOOL_COLS = [
+      "show_story", "show_gallery", "show_timeline", "show_location",
+      "show_dresscode", "show_gifts", "show_rsvp", "show_messages",
+      "show_godparents", "show_parents", "show_accommodations",
+    ];
+    const TEXT_COLS = [
+      "hero_image_key", "hero_style", "our_story",
+      "ceremony_time", "ceremony_venue", "reception_time", "reception_venue",
+      "dress_code", "dress_code_description", "dress_code_allowed_colors", "dress_code_avoid_colors",
+      "timeline_events", "instagram_url", "music_url",
+      "og_title", "og_description", "og_image", "invitation_message",
+    ];
+
+    const sets: string[] = [];
+    const values: unknown[] = [];
+    for (const col of BOOL_COLS) {
+      if (body[col] === undefined) continue;
+      sets.push(`${col} = ?`);
+      const v = body[col];
+      values.push(!(v === 0 || v === false || v === "0" || v === "false"));
+    }
+    for (const col of TEXT_COLS) {
+      if (body[col] === undefined) continue;
+      sets.push(`${col} = ?`);
+      values.push(body[col] || null);
+    }
+
+    if (sets.length === 0) return c.json({ success: true });
+
+    sets.push("updated_at = CURRENT_TIMESTAMP");
+    values.push(user.id);
+    await c.env.DB.prepare(
+      `UPDATE weddings SET ${sets.join(", ")} WHERE user_id = ?`
+    ).bind(...values).run();
 
     return c.json({ success: true });
   } catch (error) {

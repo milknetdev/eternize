@@ -52,6 +52,17 @@ export default function CouplePage() {
         }
         
         const weddingData = await weddingRes.json();
+        // Section visibility comes back as boolean, 0/1 or null depending on the
+        // column type — normalise to 0 | 1 so the `show_x === 0` checks work.
+        const w = weddingData.wedding as Record<string, unknown>;
+        if (w) {
+          for (const k of Object.keys(w)) {
+            if (!k.startsWith("show_")) continue;
+            const v = w[k];
+            if (v === null || v === undefined) continue;
+            w[k] = v === 0 || v === false || v === "0" || v === "false" ? 0 : 1;
+          }
+        }
         setWedding(weddingData.wedding);
         setStoryItems(weddingData.storyItems || []);
         

@@ -351,3 +351,9 @@ INSERT INTO gift_templates (list_type_id, name, description, price, category, so
   (2, 'Pé de Meia do Casamento', 'Começar vida de casados com pé direito', 500, 'Finanças', 4),
   (2, 'Fundo de Viagem dos Sonhos', 'Aquela viagem que sempre quiseram', 2000, 'Futuro', 5)
 ON CONFLICT DO NOTHING;
+
+-- Added later: per-section visibility for godparents / parents / accommodations.
+-- Safe to re-run on an existing database.
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS show_godparents     BOOLEAN DEFAULT TRUE;
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS show_parents        BOOLEAN DEFAULT TRUE;
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS show_accommodations BOOLEAN DEFAULT TRUE;
