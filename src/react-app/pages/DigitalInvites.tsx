@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router";
 import {
   Mail,
   Send,
@@ -7,7 +6,6 @@ import {
   Smartphone,
   Share2,
   Heart,
-  ArrowRight,
   Check,
   QrCode,
   MessageCircle,
@@ -22,6 +20,13 @@ import { Button } from "@/react-app/components/ui/button";
 import Header from "@/react-app/components/layout/Header";
 import Footer from "@/react-app/components/layout/Footer";
 import MoreFeatures from "@/react-app/components/marketing/MoreFeatures";
+import {
+  HeroBg,
+  Reveal,
+  SectionHeading,
+  CtaButton,
+  ClosingCTA,
+} from "@/react-app/components/marketing/kit";
 
 const inviteStyles = [
   { id: "classic", name: "Clássico", colors: ["#D4AF37", "#FFF8E7", "#2C1810"] },
@@ -54,7 +59,7 @@ const benefits = [
 ];
 
 const features = [
-  { icon: Palette, title: "20+ Templates", desc: "Designs exclusivos para cada estilo" },
+  { icon: Palette, title: "Templates variados", desc: "Designs exclusivos para cada estilo" },
   { icon: Edit3, title: "Personalização Total", desc: "Cores, fontes e textos customizáveis" },
   { icon: QrCode, title: "QR Code", desc: "Acesso rápido ao site do casamento" },
   { icon: MessageCircle, title: "RSVP Integrado", desc: "Confirmação direto no convite" },
@@ -86,13 +91,10 @@ export default function DigitalInvites() {
 
       {/* Hero */}
       <section className="relative pt-32 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-primary blur-3xl" />
-          <div className="absolute bottom-10 right-20 w-80 h-80 rounded-full bg-gold-light blur-3xl" />
-        </div>
+        <HeroBg />
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
+            <Reveal>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
                 <Mail className="w-4 h-4" />
                 Convites Digitais
@@ -105,22 +107,17 @@ export default function DigitalInvites() {
                 Envio instantâneo, confirmação automática e zero desperdício de papel.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/cadastro">
-                  <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-8 py-6 rounded-xl font-semibold text-lg">
-                    Criar Meus Convites
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </Link>
-                <Link to="/templates">
-                  <Button variant="outline" className="px-8 py-6 rounded-xl font-medium text-lg border-2">
-                    Ver Templates
-                  </Button>
-                </Link>
+                <CtaButton to="/cadastro" withArrow>
+                  Criar Meus Convites
+                </CtaButton>
+                <CtaButton to="/templates" variant="outline">
+                  Ver Templates
+                </CtaButton>
               </div>
-            </div>
+            </Reveal>
 
             {/* Demo Invite */}
-            <div className="relative">
+            <Reveal delay={0.1} className="relative">
               <div 
                 className="rounded-3xl shadow-2xl p-8 border-2 transition-all duration-500"
                 style={{ 
@@ -162,7 +159,7 @@ export default function DigitalInvites() {
                     className="text-lg font-medium mb-1"
                     style={{ color: currentStyle.colors[2] }}
                   >
-                    15 de Março de 2025
+                    15 de Março de 2026
                   </p>
                   <p 
                     className="text-sm mb-6"
@@ -234,7 +231,7 @@ export default function DigitalInvites() {
                   <p className="text-sm font-semibold text-green-600">João confirmou!</p>
                 </div>
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -242,23 +239,21 @@ export default function DigitalInvites() {
       {/* Benefits */}
       <section className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Por que escolher convites digitais?
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Modernize seu casamento com convites que impressionam
-            </p>
-          </div>
+          <SectionHeading
+            icon={Mail}
+            eyebrow="Papel? Só se você quiser"
+            title="Por que escolher convites digitais?"
+            subtitle="Modernize seu casamento com convites que impressionam"
+          />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, i) => (
-              <div key={i} className="text-center">
+              <Reveal key={i} delay={i * 0.05} className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/10 to-gold-light/10 flex items-center justify-center">
                   <benefit.icon className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">{benefit.title}</h3>
                 <p className="text-sm text-muted-foreground">{benefit.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -281,22 +276,19 @@ export default function DigitalInvites() {
       {/* How It Works */}
       <section className="py-20 bg-cream">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Crie e envie em minutos
-            </h2>
-            <p className="text-muted-foreground">
-              Processo simples para convites incríveis
-            </p>
-          </div>
+          <SectionHeading
+            eyebrow="Rápido"
+            title="Crie e envie em minutos"
+            subtitle="Processo simples para convites incríveis"
+          />
           <div className="grid md:grid-cols-4 gap-6">
             {[
-              { step: 1, title: "Escolha o Template", desc: "Selecione entre mais de 20 designs exclusivos para seu estilo." },
+              { step: 1, title: "Escolha o Template", desc: "Selecione um dos designs exclusivos para o seu estilo." },
               { step: 2, title: "Personalize", desc: "Adicione seus nomes, data, local e escolha as cores perfeitas." },
               { step: 3, title: "Visualize", desc: "Veja exatamente como seu convite ficará antes de enviar." },
               { step: 4, title: "Envie", desc: "Compartilhe por WhatsApp, email ou gere um link único." },
-            ].map((item) => (
-              <div key={item.step} className="relative">
+            ].map((item, i) => (
+              <Reveal key={item.step} delay={i * 0.05} className="relative">
                 <div className="bg-white rounded-2xl p-6 border border-border text-center hover:shadow-lg transition-shadow h-full">
                   <div className="w-10 h-10 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-gold-light text-white flex items-center justify-center font-semibold">
                     {item.step}
@@ -304,7 +296,7 @@ export default function DigitalInvites() {
                   <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
                   <p className="text-sm text-muted-foreground">{item.desc}</p>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -313,14 +305,11 @@ export default function DigitalInvites() {
       {/* Comparison */}
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Digital vs. Tradicional
-            </h2>
-            <p className="text-muted-foreground">
-              Veja por que os convites digitais são a escolha inteligente
-            </p>
-          </div>
+          <SectionHeading
+            eyebrow="Comparativo"
+            title="Digital vs. Tradicional"
+            subtitle="Veja por que os convites digitais são a escolha inteligente"
+          />
           <div className="grid md:grid-cols-2 gap-8">
             {/* Digital */}
             <div className="bg-gradient-to-br from-primary/5 via-blush/30 to-champagne rounded-2xl p-8 border-2 border-primary">
@@ -389,23 +378,21 @@ export default function DigitalInvites() {
       {/* Features Grid */}
       <section className="py-20 bg-gradient-to-br from-primary/5 via-blush/30 to-champagne">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Recursos completos
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Tudo que você precisa para criar convites perfeitos
-            </p>
-          </div>
+          <SectionHeading
+            icon={Palette}
+            eyebrow="Recursos"
+            title="Recursos completos"
+            subtitle="Tudo que você precisa para criar convites perfeitos"
+          />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 border border-border hover:shadow-lg transition-shadow">
+              <Reveal key={i} delay={(i % 3) * 0.05} className="bg-white rounded-2xl p-6 border border-border hover:shadow-lg transition-shadow">
                 <div className="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-primary/10 to-gold-light/10 flex items-center justify-center">
                   <feature.icon className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground">{feature.desc}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -485,32 +472,13 @@ export default function DigitalInvites() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 bg-cream">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <Mail className="w-12 h-12 text-primary mx-auto mb-6" />
-          <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-6">
-            Comece a criar seus convites
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Impressione seus convidados com convites digitais elegantes e modernos. 
-            Crie gratuitamente e envie em minutos.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/cadastro">
-              <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-10 py-6 rounded-xl font-semibold text-lg">
-                Criar Meus Convites Grátis
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-            <Link to="/templates">
-              <Button variant="outline" className="px-10 py-6 rounded-xl font-medium text-lg border-2">
-                Ver Templates
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <ClosingCTA
+        title="Comece a criar seus convites"
+        sub="Impressione seus convidados com convites digitais elegantes e modernos. Crie gratuitamente e envie em minutos."
+        primaryLabel="Criar meus convites grátis"
+        secondaryTo="/templates"
+        secondaryLabel="Ver templates"
+      />
 
       <MoreFeatures current="convites" />
 
