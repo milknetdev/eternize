@@ -1,4 +1,3 @@
-import { Link } from "react-router";
 import {
   Heart,
   Sparkles,
@@ -6,15 +5,19 @@ import {
   Zap,
   Globe,
   Star,
-  ArrowRight,
   MessageCircle,
   Lightbulb,
   Target,
   Check,
 } from "lucide-react";
-import { Button } from "@/react-app/components/ui/button";
 import Header from "@/react-app/components/layout/Header";
 import Footer from "@/react-app/components/layout/Footer";
+import {
+  HeroBg,
+  Reveal,
+  SectionHeading,
+  ClosingCTA,
+} from "@/react-app/components/marketing/kit";
 
 const values = [
   {
@@ -60,11 +63,8 @@ export default function About() {
 
       {/* Hero */}
       <section className="relative pt-32 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-primary blur-3xl" />
-          <div className="absolute bottom-10 right-20 w-80 h-80 rounded-full bg-gold-light blur-3xl" />
-        </div>
-        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+        <HeroBg />
+        <Reveal className="max-w-4xl mx-auto px-4 text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
             <Heart className="w-4 h-4" />
             Sobre o Eternize
@@ -77,7 +77,7 @@ export default function About() {
             O Eternize nasceu da bagunça de organizar um casamento de verdade — planilhas,
             grupos de WhatsApp, listas espalhadas. A ideia foi juntar tudo num lugar bonito e fácil.
           </p>
-        </div>
+        </Reveal>
       </section>
 
       {/* Mission */}
@@ -134,20 +134,17 @@ export default function About() {
       {/* Values */}
       <section className="py-20 bg-cream">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 text-primary text-sm font-medium mb-4">
-              <Lightbulb className="w-4 h-4" />
-              O que nos guia
-            </div>
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">Nossos princípios</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Presentes em cada decisão sobre o produto
-            </p>
-          </div>
+          <SectionHeading
+            icon={Lightbulb}
+            eyebrow="O que nos guia"
+            title="Nossos princípios"
+            subtitle="Presentes em cada decisão sobre o produto"
+          />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {values.map((value) => (
-              <div
+            {values.map((value, i) => (
+              <Reveal
                 key={value.title}
+                delay={i * 0.05}
                 className="bg-white rounded-2xl p-6 border border-border text-center hover:shadow-lg transition-shadow"
               >
                 <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/10 to-gold-light/10 flex items-center justify-center">
@@ -155,7 +152,7 @@ export default function About() {
                 </div>
                 <h3 className="font-semibold text-lg mb-2">{value.title}</h3>
                 <p className="text-sm text-muted-foreground">{value.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -221,31 +218,13 @@ export default function About() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <Heart className="w-12 h-12 text-primary mx-auto mb-6" />
-          <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-6">
-            Bora começar?
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Crie seu site de casamento de graça e monte tudo no seu ritmo.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/cadastro">
-              <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-10 py-6 rounded-xl font-semibold text-lg">
-                Criar meu site grátis
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-            <Link to="/templates">
-              <Button variant="outline" className="px-10 py-6 rounded-xl font-medium text-lg border-2">
-                Ver templates
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <ClosingCTA
+        title="Bora começar?"
+        sub="Crie seu site de casamento de graça e monte tudo no seu ritmo."
+        primaryLabel="Criar meu site grátis"
+        secondaryTo="/templates"
+        secondaryLabel="Ver templates"
+      />
 
       <Footer />
     </div>
