@@ -71,8 +71,8 @@ export default function CTASection() {
           </h2>
 
           <p className="text-muted-foreground text-lg md:text-xl mb-10 max-w-2xl mx-auto">
-            Junte-se a mais de 50.000 casais que já criaram sites incríveis e
-            organizaram casamentos inesquecíveis com o Eternize.
+            Crie o site, monte a lista de presentes e acompanhe as confirmações —
+            tudo num lugar só, começando de graça.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

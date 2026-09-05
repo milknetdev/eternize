@@ -46,7 +46,7 @@ export default function HeroSection() {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-border/50 shadow-lg mb-8">
             <Star className="w-4 h-4 text-primary fill-primary" />
             <span className="text-sm font-medium text-muted-foreground">
-              +50.000 casais já realizaram seus sonhos
+              Grátis para começar · site no ar em minutos
             </span>
           </div>
 
@@ -90,7 +90,7 @@ export default function HeroSection() {
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
                 {FACE_IMGS.map((src, i) => (
@@ -103,17 +103,15 @@ export default function HeroSection() {
                   />
                 ))}
               </div>
-              <span>+50k casais</span>
-            </div>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Star key={i} className="w-4 h-4 text-primary fill-primary" />
-              ))}
-              <span className="ml-1">4.9/5</span>
+              <span>Feito para casais brasileiros</span>
             </div>
             <div className="flex items-center gap-2">
               <Heart className="w-4 h-4 text-rose fill-rose" />
-              <span>100% gratuito para começar</span>
+              <span>Sem cartão de crédito</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Star className="w-4 h-4 text-primary fill-primary" />
+              <span>33 templates prontos</span>
             </div>
           </div>
         </div>

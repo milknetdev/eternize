@@ -1,56 +1,30 @@
 import { useEffect, useRef, useState } from "react";
-import { Heart, Users, Gift, Globe } from "lucide-react";
+import { LayoutGrid, Layers, Gift, Timer } from "lucide-react";
 
-const stats = [
-  {
-    icon: Heart,
-    value: 50000,
-    suffix: "+",
-    label: "Casais felizes",
-    color: "text-rose",
-  },
-  {
-    icon: Users,
-    value: 2,
-    suffix: "M+",
-    label: "Convidados gerenciados",
-    color: "text-blue-500",
-  },
-  {
-    icon: Gift,
-    value: 500000,
-    suffix: "+",
-    label: "Presentes entregues",
-    color: "text-primary",
-  },
-  {
-    icon: Globe,
-    value: 100,
-    suffix: "+",
-    label: "Cidades atendidas",
-    color: "text-green-500",
-  },
+type Stat = {
+  icon: typeof Gift;
+  value: number | null;
+  display?: string;
+  suffix?: string;
+  label: string;
+};
+
+const stats: Stat[] = [
+  { icon: LayoutGrid, value: 33, suffix: "", label: "Templates prontos" },
+  { icon: Layers, value: 13, suffix: "", label: "Seções personalizáveis" },
+  { icon: Gift, value: null, display: "PIX", label: "Presentes em dinheiro" },
+  { icon: Timer, value: 5, suffix: " min", label: "Do zero ao site no ar" },
 ];
 
-function AnimatedCounter({
-  value,
-  suffix,
-  isVisible,
-}: {
-  value: number;
-  suffix: string;
-  isVisible: boolean;
-}) {
+function AnimatedCounter({ value, suffix, isVisible }: { value: number; suffix: string; isVisible: boolean }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (!isVisible) return;
-
-    const duration = 2000;
-    const steps = 60;
+    const duration = 1200;
+    const steps = 40;
     const stepValue = value / steps;
     const stepTime = duration / steps;
-
     let current = 0;
     const timer = setInterval(() => {
       current += stepValue;
@@ -58,26 +32,15 @@ function AnimatedCounter({
         setCount(value);
         clearInterval(timer);
       } else {
-        setCount(Math.floor(current));
+        setCount(Math.ceil(current));
       }
     }, stepTime);
-
     return () => clearInterval(timer);
   }, [isVisible, value]);
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(0);
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(0) + "k";
-    }
-    return num.toString();
-  };
-
   return (
     <span>
-      {value >= 1000000 ? formatNumber(count) : count.toLocaleString("pt-BR")}
+      {count}
       {suffix}
     </span>
   );
@@ -90,17 +53,11 @@ export default function StatsSection() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
+        if (entry.isIntersecting) setIsVisible(true);
       },
-      { threshold: 0.3 }
+      { threshold: 0.3 },
     );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
+    if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, []);
 
@@ -109,7 +66,6 @@ export default function StatsSection() {
       ref={sectionRef}
       className="py-20 bg-gradient-to-r from-primary via-gold-light to-primary relative overflow-hidden"
     >
-      {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div
           className="absolute inset-0"
@@ -128,19 +84,17 @@ export default function StatsSection() {
               <div
                 key={stat.label}
                 className={`text-center text-white transition-all duration-700 ${
-                  isVisible
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-8"
+                  isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                 }`}
                 style={{ transitionDelay: `${index * 100}ms` }}
               >
                 <Icon className="w-8 h-8 mx-auto mb-4 opacity-80" />
                 <div className="font-serif text-4xl md:text-5xl font-bold mb-2">
-                  <AnimatedCounter
-                    value={stat.value}
-                    suffix={stat.suffix}
-                    isVisible={isVisible}
-                  />
+                  {stat.value === null ? (
+                    stat.display
+                  ) : (
+                    <AnimatedCounter value={stat.value} suffix={stat.suffix ?? ""} isVisible={isVisible} />
+                  )}
                 </div>
                 <p className="text-white/80 font-medium">{stat.label}</p>
               </div>

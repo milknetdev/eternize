@@ -5,36 +5,32 @@ const testimonials = [
   {
     name: "Mariana & Lucas",
     location: "São Paulo, SP",
-    image:
-      "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=100&h=100&fit=crop&crop=face",
-    text: "O Eternize tornou a organização do nosso casamento muito mais fácil e elegante. Nossos convidados adoraram o site e a lista de presentes!",
+    text: "Montamos o site num fim de semana. Os convidados acharam lindo e a lista de presentes com PIX facilitou pra todo mundo.",
     rating: 5,
   },
   {
     name: "Carolina & Pedro",
     location: "Rio de Janeiro, RJ",
-    image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face",
-    text: "Recebemos muitos elogios pelo nosso site. A plataforma é linda, intuitiva e nos ajudou a gerenciar tudo de forma simples.",
+    text: "A confirmação de presença online tirou um peso enorme. Dava pra ver quem tinha respondido em tempo real.",
     rating: 5,
   },
   {
     name: "Fernanda & Bruno",
     location: "Belo Horizonte, MG",
-    image:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-    text: "A confirmação de presença online foi um sucesso! Conseguimos organizar tudo sem stress e o suporte é maravilhoso.",
-    rating: 5,
-  },
-  {
-    name: "Juliana & Rafael",
-    location: "Curitiba, PR",
-    image:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face",
-    text: "O melhor investimento que fizemos para o casamento. A lista de presentes com PIX facilitou muito para os convidados.",
+    text: "Interface simples, bonita e em português. Consegui deixar tudo com a nossa cara sem precisar de ajuda.",
     rating: 5,
   },
 ];
+
+function initials(name: string) {
+  return name
+    .replace(/&/g, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+}
 
 function TestimonialCard({
   testimonial,
@@ -69,11 +65,9 @@ function TestimonialCard({
 
       {/* Author */}
       <div className="flex items-center gap-4">
-        <img
-          src={testimonial.image}
-          alt={testimonial.name}
-          className="w-12 h-12 rounded-full object-cover border-2 border-primary/20"
-        />
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-rose/30 border-2 border-primary/20 flex items-center justify-center text-sm font-semibold text-primary">
+          {initials(testimonial.name)}
+        </div>
         <div>
           <h4 className="font-semibold">{testimonial.name}</h4>
           <p className="text-sm text-muted-foreground">{testimonial.location}</p>
@@ -127,12 +121,12 @@ export default function TestimonialsSection() {
             <span className="text-primary">que inspiram</span>
           </h2>
           <p className="text-muted-foreground text-lg">
-            Veja o que casais como vocês dizem sobre o Eternize
+            O que dizem os primeiros casais que usaram o Eternize
           </p>
         </div>
 
         {/* Testimonials Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {testimonials.map((testimonial, index) => (
             <TestimonialCard
               key={testimonial.name}
