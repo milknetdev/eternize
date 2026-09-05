@@ -233,7 +233,7 @@ export default function FAQ() {
       {/* Hero */}
       <section className="relative pt-32 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
         <HeroBg />
-        <Reveal className="max-w-4xl mx-auto px-4 relative z-10 text-center">
+        <Reveal immediate className="max-w-4xl mx-auto px-4 relative z-10 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
             <HelpCircle className="w-4 h-4" />
             Central de Ajuda

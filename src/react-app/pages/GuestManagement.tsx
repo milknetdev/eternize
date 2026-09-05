@@ -126,7 +126,7 @@ export default function GuestManagement() {
         <HeroBg />
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <Reveal>
+            <Reveal immediate>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
                 <Users className="w-4 h-4" />
                 Gestão Inteligente
@@ -150,7 +150,7 @@ export default function GuestManagement() {
             </Reveal>
 
             {/* Guest List Preview */}
-            <Reveal delay={0.1} className="relative">
+            <Reveal immediate delay={0.1} className="relative">
               <div className="relative bg-white rounded-3xl shadow-2xl border border-border overflow-hidden">
                 {/* Header */}
                 <div className="p-4 border-b bg-muted/30">

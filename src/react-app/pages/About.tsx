@@ -64,7 +64,7 @@ export default function About() {
       {/* Hero */}
       <section className="relative pt-32 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
         <HeroBg />
-        <Reveal className="max-w-4xl mx-auto px-4 text-center relative z-10">
+        <Reveal immediate className="max-w-4xl mx-auto px-4 text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
             <Heart className="w-4 h-4" />
             Sobre o Eternize

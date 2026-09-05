@@ -47,17 +47,22 @@ export function Reveal({
   children,
   delay = 0,
   className,
+  immediate = false,
 }: {
   children: ReactNode;
   delay?: number;
   className?: string;
+  /** Animate on mount instead of on scroll — use for above-the-fold content. */
+  immediate?: boolean;
 }) {
+  const anim = { opacity: 1, y: 0 };
   return (
     <motion.div
       className={className}
       initial={{ opacity: 0, y: 22 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
+      {...(immediate
+        ? { animate: anim }
+        : { whileInView: anim, viewport: { once: true, amount: 0.2 } })}
       transition={{ duration: 0.5, delay, ease: "easeOut" }}
     >
       {children}
@@ -132,7 +137,7 @@ export function CtaButton({
   return (
     <Link
       to={to}
-      className={`group inline-flex items-center justify-center gap-2 rounded-xl font-semibold ${pad} ${
+      className={`group inline-flex items-center justify-center gap-2 rounded-xl font-semibold whitespace-nowrap ${pad} ${
         variant === "solid" ? SOLID : OUTLINE
       } ${className}`}
     >

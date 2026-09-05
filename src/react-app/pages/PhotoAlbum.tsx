@@ -101,7 +101,7 @@ export default function PhotoAlbum() {
         <HeroBg />
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <Reveal>
+            <Reveal immediate>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
                 <Camera className="w-4 h-4" />
                 Galeria de Fotos
@@ -124,7 +124,7 @@ export default function PhotoAlbum() {
             </Reveal>
 
             {/* Demo Gallery */}
-            <Reveal delay={0.1} className="relative">
+            <Reveal immediate delay={0.1} className="relative">
               <div className="bg-white rounded-3xl shadow-2xl p-6 border border-border">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
