@@ -325,14 +325,14 @@ export function DashboardHome({
 
       {/* Countdown Timer */}
       {wedding?.wedding_date && (
-        <div className="bg-gradient-to-br from-rose-50 via-pink-50 to-amber-50 rounded-2xl p-6 md:p-8 border border-rose-100 relative overflow-hidden">
-          <div className="absolute top-4 right-4 text-rose-200">
-            <Heart className="w-24 h-24 fill-current opacity-20" />
+        <div className="bg-gradient-to-br from-primary/10 via-blush/40 to-champagne rounded-2xl p-6 md:p-8 border border-primary/15 relative overflow-hidden">
+          <div className="absolute -top-6 -right-6 text-primary/15">
+            <Heart className="w-40 h-40 fill-current" />
           </div>
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-4">
-              <Clock className="w-5 h-5 text-rose-500" />
-              <span className="text-sm font-medium text-rose-600 uppercase tracking-wider">
+              <Clock className="w-5 h-5 text-primary" />
+              <span className="text-sm font-medium text-primary uppercase tracking-wider">
                 Contagem Regressiva
               </span>
             </div>
@@ -344,18 +344,18 @@ export function DashboardHome({
                 { value: countdown.seconds, label: "Segundos" },
               ].map((item) => (
                 <div key={item.label} className="text-center">
-                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 shadow-sm border border-white/50">
-                    <span className="font-serif text-3xl md:text-5xl font-bold text-rose-600">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 shadow-sm border border-white/60">
+                    <span className="font-serif text-3xl md:text-5xl font-bold text-primary tabular-nums">
                       {item.value.toString().padStart(2, "0")}
                     </span>
                   </div>
-                  <span className="text-xs md:text-sm text-rose-500 mt-2 block font-medium">
+                  <span className="text-xs md:text-sm text-muted-foreground mt-2 block font-medium">
                     {item.label}
                   </span>
                 </div>
               ))}
             </div>
-            <p className="text-rose-600/70 text-sm mt-4">
+            <p className="text-muted-foreground text-sm mt-4 capitalize">
               {new Date(wedding.wedding_date).toLocaleDateString("pt-BR", {
                 weekday: "long",
                 day: "numeric",
@@ -375,7 +375,7 @@ export function DashboardHome({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-5 border border-border/50 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl p-5 border border-border shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2 rounded-lg bg-blue-50">
               <Users className="w-5 h-5 text-blue-500" />
@@ -390,7 +390,7 @@ export function DashboardHome({
           <p className="font-serif text-3xl font-semibold">{stats?.totalGuests || 0}</p>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border border-border/50 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl p-5 border border-border shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2 rounded-lg bg-green-50">
               <UserCheck className="w-5 h-5 text-green-500" />
@@ -403,7 +403,7 @@ export function DashboardHome({
           <p className="font-serif text-3xl font-semibold text-green-600">{stats?.confirmedGuests || 0}</p>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border border-border/50 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl p-5 border border-border shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2 rounded-lg bg-purple-50">
               <MessageCircle className="w-5 h-5 text-purple-500" />
@@ -418,7 +418,7 @@ export function DashboardHome({
           <p className="font-serif text-3xl font-semibold">{stats?.totalMessages || 0}</p>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border border-border/50 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl p-5 border border-border shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2 rounded-lg bg-pink-50">
               <Gift className="w-5 h-5 text-pink-500" />
@@ -464,7 +464,7 @@ export function DashboardHome({
       {/* Two Column Layout */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Task Progress */}
-        <div className="bg-white rounded-xl p-5 border border-border/50">
+        <div className="bg-white rounded-2xl p-5 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <CheckSquare className="w-5 h-5 text-primary" />
@@ -515,7 +515,7 @@ export function DashboardHome({
         </div>
 
         {/* Budget Summary */}
-        <div className="bg-white rounded-xl p-5 border border-border/50">
+        <div className="bg-white rounded-2xl p-5 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-primary" />
@@ -565,7 +565,7 @@ export function DashboardHome({
 
       {/* Activity Feed */}
       {activities.length > 0 && (
-        <div className="bg-white rounded-xl p-5 border border-border/50">
+        <div className="bg-white rounded-2xl p-5 border border-border shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-5 h-5 text-primary" />
             <h3 className="font-semibold">Atividade Recente</h3>
@@ -591,7 +591,7 @@ export function DashboardHome({
       )}
 
       {/* Quick Actions */}
-      <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-5 border border-border/50">
+      <div className="bg-white rounded-2xl p-5 border border-border shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-5 h-5 text-primary" />
           <h3 className="font-semibold">Ações Rápidas</h3>
