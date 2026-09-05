@@ -83,7 +83,7 @@ const features = [
 ];
 
 const stats = [
-  { value: "95%", label: "Taxa de resposta" },
+  { value: "Pelo celular", label: "Confirma em segundos" },
   { value: "2 min", label: "Tempo médio para confirmar" },
   { value: "0", label: "Papel desperdiçado" },
   { value: "24/7", label: "Disponível sempre" },
@@ -99,17 +99,6 @@ const mockGuests = [
 
 export default function RSVPOnline() {
   const [demoStep, setDemoStep] = useState(0);
-
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {

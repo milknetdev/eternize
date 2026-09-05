@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Link } from "react-router";
 import {
   Users,
@@ -83,8 +82,8 @@ const features = [
 ];
 
 const stats = [
-  { value: "500+", label: "Convidados por evento" },
-  { value: "10x", label: "Mais rápido que planilhas" },
+  { value: "Sem limite", label: "De convidados" },
+  { value: "Adeus", label: "Planilhas soltas" },
   { value: "100%", label: "Organizado" },
   { value: "0", label: "Convidados esquecidos" },
 ];
@@ -105,17 +104,6 @@ const groupColors: Record<string, string> = {
 };
 
 export default function GuestManagement() {
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
-
   const confirmedCount = mockGuests.filter((g) => g.status === "confirmed").length;
   const pendingCount = mockGuests.filter((g) => g.status === "pending").length;
   const declinedCount = mockGuests.filter((g) => g.status === "declined").length;

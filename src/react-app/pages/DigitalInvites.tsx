@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import {
   Mail,
@@ -62,26 +62,15 @@ const features = [
 ];
 
 const stats = [
-  { value: "100K+", label: "Convites enviados" },
-  { value: "95%", label: "Taxa de abertura" },
-  { value: "3x", label: "Mais respostas" },
-  { value: "R$0", label: "Custo de envio" },
+  { value: "WhatsApp", label: "Envio direto" },
+  { value: "Link único", label: "Por convidado" },
+  { value: "1 clique", label: "Para confirmar" },
+  { value: "R$ 0", label: "Custo de envio" },
 ];
 
 export default function DigitalInvites() {
   const [selectedStyle, setSelectedStyle] = useState("classic");
   const [isAnimating, setIsAnimating] = useState(false);
-
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Great+Vibes&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
 
   const handleSendDemo = () => {
     setIsAnimating(true);

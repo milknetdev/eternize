@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import {
   Camera,
@@ -66,7 +66,7 @@ const features = [
 ];
 
 const stats = [
-  { value: "5M+", label: "Fotos compartilhadas" },
+  { value: "Ilimitado", label: "Fotos no álbum" },
   { value: "500MB", label: "Por foto (máx)" },
   { value: "100%", label: "Gratuito" },
   { value: "4K", label: "Resolução suportada" },
@@ -75,17 +75,6 @@ const stats = [
 export default function PhotoAlbum() {
   const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null);
   const [likedPhotos, setLikedPhotos] = useState<Set<number>>(new Set([1, 3, 5]));
-
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
 
   const toggleLike = (id: number) => {
     setLikedPhotos(prev => {

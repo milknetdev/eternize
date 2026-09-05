@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import {
   Search,
@@ -50,36 +50,25 @@ const benefits = [
   {
     icon: Shield,
     title: "100% Seguro",
-    description: "Plataforma protegida com criptografia e sistema antifraude.",
+    description: "O dinheiro cai direto na sua conta pelo PIX, sem intermediário segurando o valor.",
   },
   {
     icon: CreditCard,
-    title: "Sem Taxas Abusivas",
-    description: "Taxa única de apenas 3.5% sobre os valores recebidos.",
+    title: "Sem taxas",
+    description: "Você recebe o valor cheio dos presentes. O Eternize não cobra comissão.",
   },
 ];
 
 const stats = [
-  { value: "R$ 2M+", label: "Em presentes movimentados" },
-  { value: "15K+", label: "Casais atendidos" },
-  { value: "98%", label: "Satisfação dos noivos" },
-  { value: "0%", label: "Fraudes registradas" },
+  { value: "PIX", label: "Pagamento instantâneo" },
+  { value: "0%", label: "De comissão" },
+  { value: "R$ 0", label: "Para montar a lista" },
+  { value: "Ilimitado", label: "Itens na lista" },
 ];
 
 export default function GiftCatalog() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
 
   const filteredGifts = gifts.filter((gift) => {
     const matchesCategory =
