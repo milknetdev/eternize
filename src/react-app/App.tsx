@@ -6,7 +6,6 @@ import LoginPage from "@/react-app/pages/Login";
 import RegisterPage from "@/react-app/pages/Register";
 import Dashboard from "@/react-app/pages/Dashboard";
 import GiftCatalog from "@/react-app/pages/GiftCatalog";
-import Checkout from "@/react-app/pages/Checkout";
 import Templates from "@/react-app/pages/Templates";
 import ThemeEditor from "@/react-app/pages/ThemeEditor";
 import SiteSettings from "@/react-app/pages/SiteSettings";
@@ -47,7 +46,6 @@ export default function App() {
           <Route path="/album" element={<PhotoAlbum />} />
           <Route path="/convites" element={<DigitalInvites />} />
           <Route path="/faq" element={<FAQ />} />
-          <Route path="/checkout" element={<Checkout />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/dashboard/tema" element={<ThemeEditor />} />
           <Route path="/dashboard/configuracoes" element={<SiteSettings />} />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import {
   HelpCircle,
@@ -71,8 +71,8 @@ const faqData: FAQCategory[] = [
         answer: "Não! Você não precisa comprar nada. Basta adicionar os itens que deseja à lista (podem ser itens reais ou simbólicos). Os convidados pagam pelo presente e você recebe o dinheiro para usar como quiser."
       },
       {
-        question: "Qual a taxa cobrada sobre os presentes?",
-        answer: "No plano gratuito, cobramos uma taxa de 5% sobre cada presente recebido. Nos planos Premium e Luxo, a taxa é reduzida para 3% e 0%, respectivamente."
+        question: "O Eternize cobra taxa sobre os presentes?",
+        answer: "Não. Você recebe o valor cheio de cada presente. O pagamento é feito por PIX e cai direto na sua conta Eternize, de onde você transfere para o banco sem custo."
       },
       {
         question: "Como recebo o dinheiro dos presentes?",
@@ -201,17 +201,6 @@ export default function FAQ() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("geral");
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
 
   const toggleItem = (id: string) => {
     setOpenItems(prev => {
