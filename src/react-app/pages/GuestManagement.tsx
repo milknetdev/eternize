@@ -1,4 +1,3 @@
-import { Link } from "react-router";
 import {
   Users,
   UserPlus,
@@ -10,7 +9,6 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
-  ArrowRight,
   BarChart3,
   Tag,
   Table2,
@@ -25,6 +23,13 @@ import { Button } from "@/react-app/components/ui/button";
 import Header from "@/react-app/components/layout/Header";
 import Footer from "@/react-app/components/layout/Footer";
 import MoreFeatures from "@/react-app/components/marketing/MoreFeatures";
+import {
+  HeroBg,
+  Reveal,
+  SectionHeading,
+  CtaButton,
+  ClosingCTA,
+} from "@/react-app/components/marketing/kit";
 
 const benefits = [
   {
@@ -118,13 +123,10 @@ export default function GuestManagement() {
 
       {/* Hero */}
       <section className="relative pt-32 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-primary blur-3xl" />
-          <div className="absolute bottom-10 right-20 w-80 h-80 rounded-full bg-gold-light blur-3xl" />
-        </div>
+        <HeroBg />
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
+            <Reveal>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
                 <Users className="w-4 h-4" />
                 Gestão Inteligente
@@ -138,22 +140,17 @@ export default function GuestManagement() {
                 acompanhe confirmações e planeje mesas com facilidade.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/cadastro">
-                  <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-8 py-6 rounded-xl font-semibold text-lg w-full sm:w-auto">
-                    Começar a Organizar
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </Link>
-                <Link to="/demo/ana-e-joao">
-                  <Button variant="outline" className="px-8 py-6 rounded-xl font-medium text-lg w-full sm:w-auto border-2">
-                    Ver Demonstração
-                  </Button>
-                </Link>
+                <CtaButton to="/cadastro" withArrow>
+                  Começar a Organizar
+                </CtaButton>
+                <CtaButton to="/demo/ana-e-joao" variant="outline">
+                  Ver Demonstração
+                </CtaButton>
               </div>
-            </div>
+            </Reveal>
 
             {/* Guest List Preview */}
-            <div className="relative">
+            <Reveal delay={0.1} className="relative">
               <div className="relative bg-white rounded-3xl shadow-2xl border border-border overflow-hidden">
                 {/* Header */}
                 <div className="p-4 border-b bg-muted/30">
@@ -271,7 +268,7 @@ export default function GuestManagement() {
                   <p className="text-sm font-semibold text-green-600">+12 importados!</p>
                 </div>
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -279,23 +276,21 @@ export default function GuestManagement() {
       {/* Benefits */}
       <section className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Organize seu casamento com facilidade
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Ferramentas pensadas para simplificar o planejamento do seu grande dia
-            </p>
-          </div>
+          <SectionHeading
+            icon={Users}
+            eyebrow="Fim das planilhas soltas"
+            title="Organize seu casamento com facilidade"
+            subtitle="Ferramentas pensadas para simplificar o planejamento do seu grande dia"
+          />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, i) => (
-              <div key={i} className="text-center group">
+              <Reveal key={i} delay={i * 0.05} className="text-center group">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/10 to-gold-light/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <benefit.icon className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="font-semibold mb-2">{benefit.title}</h3>
                 <p className="text-sm text-muted-foreground">{benefit.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -318,16 +313,13 @@ export default function GuestManagement() {
       {/* How it Works */}
       <section className="py-20 bg-cream">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Como funciona?
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Em poucos passos você tem total controle da sua lista
-            </p>
-          </div>
+          <SectionHeading
+            eyebrow="Simples assim"
+            title="Como funciona?"
+            subtitle="Em poucos passos você tem total controle da sua lista"
+          />
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-2xl p-8 border border-border relative">
+            <Reveal className="bg-white rounded-2xl p-8 border border-border relative">
               <div className="absolute -top-4 left-8 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
                 1
               </div>
@@ -336,8 +328,8 @@ export default function GuestManagement() {
               <p className="text-muted-foreground">
                 Cadastre manualmente ou importe de uma planilha Excel ou Google Sheets.
               </p>
-            </div>
-            <div className="bg-white rounded-2xl p-8 border border-border relative">
+            </Reveal>
+            <Reveal delay={0.08} className="bg-white rounded-2xl p-8 border border-border relative">
               <div className="absolute -top-4 left-8 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
                 2
               </div>
@@ -346,8 +338,8 @@ export default function GuestManagement() {
               <p className="text-muted-foreground">
                 Separe família, amigos e colegas de trabalho para facilitar o gerenciamento.
               </p>
-            </div>
-            <div className="bg-white rounded-2xl p-8 border border-border relative">
+            </Reveal>
+            <Reveal delay={0.16} className="bg-white rounded-2xl p-8 border border-border relative">
               <div className="absolute -top-4 left-8 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
                 3
               </div>
@@ -356,7 +348,7 @@ export default function GuestManagement() {
               <p className="text-muted-foreground">
                 Veja estatísticas de confirmação e exporte relatórios para fornecedores.
               </p>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -435,50 +427,34 @@ export default function GuestManagement() {
       {/* Features Grid */}
       <section className="py-20 bg-gradient-to-br from-primary/5 via-blush/30 to-champagne">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <Sparkles className="w-8 h-8 text-primary mx-auto mb-4" />
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Recursos completos
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Tudo que você precisa para gerenciar seus convidados com eficiência
-            </p>
-          </div>
+          <SectionHeading
+            icon={Sparkles}
+            eyebrow="Recursos"
+            title="Recursos completos"
+            subtitle="Tudo que você precisa para gerenciar seus convidados com eficiência"
+          />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 border border-border hover:shadow-lg hover:border-primary/30 transition-all">
+              <Reveal key={i} delay={(i % 3) * 0.05} className="bg-white rounded-2xl p-6 border border-border hover:shadow-lg hover:border-primary/30 transition-all">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-gold-light/10 flex items-center justify-center mb-4">
                   <feature.icon className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="font-semibold mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-6">
-            Pronto para organizar seus convidados?
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Crie sua conta gratuita e comece a gerenciar sua lista de convidados hoje mesmo.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/cadastro">
-              <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-10 py-6 rounded-xl font-semibold text-lg">
-                Criar Minha Lista Grátis
-              </Button>
-            </Link>
-          </div>
-          <p className="mt-6 text-sm text-muted-foreground">
-            Incluso em todos os planos • Importe sua planilha em segundos
-          </p>
-        </div>
-      </section>
+      <ClosingCTA
+        title="Pronto para organizar seus convidados?"
+        sub="Crie sua conta gratuita e comece a gerenciar sua lista de convidados hoje mesmo."
+        primaryLabel="Criar minha lista grátis"
+        note="Incluso em todos os planos · importe sua planilha em segundos"
+        secondaryTo="/demo/ana-e-joao"
+        secondaryLabel="Ver demonstração"
+      />
 
       <MoreFeatures current="convidados" />
 
