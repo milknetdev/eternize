@@ -25,6 +25,7 @@ import {
 import { Button } from "@/react-app/components/ui/button";
 import Header from "@/react-app/components/layout/Header";
 import Footer from "@/react-app/components/layout/Footer";
+import MoreFeatures from "@/react-app/components/marketing/MoreFeatures";
 
 const benefits = [
   {
@@ -117,7 +118,7 @@ export default function RSVPOnline() {
       <Header />
 
       {/* Hero */}
-      <section className="relative pt-24 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
+      <section className="relative pt-32 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-primary blur-3xl" />
           <div className="absolute bottom-10 right-20 w-80 h-80 rounded-full bg-gold-light blur-3xl" />
@@ -566,6 +567,8 @@ export default function RSVPOnline() {
           </p>
         </div>
       </section>
+
+      <MoreFeatures current="rsvp" />
 
       <Footer />
     </div>

@@ -21,6 +21,7 @@ import {
 import { Button } from "@/react-app/components/ui/button";
 import Header from "@/react-app/components/layout/Header";
 import Footer from "@/react-app/components/layout/Footer";
+import MoreFeatures from "@/react-app/components/marketing/MoreFeatures";
 
 const demoPhotos = [
   { id: 1, src: "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop", caption: "Nossa história começa" },
@@ -90,7 +91,7 @@ export default function PhotoAlbum() {
       <Header />
 
       {/* Hero */}
-      <section className="relative pt-24 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
+      <section className="relative pt-32 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-primary blur-3xl" />
           <div className="absolute bottom-10 right-20 w-80 h-80 rounded-full bg-gold-light blur-3xl" />
@@ -431,6 +432,8 @@ export default function PhotoAlbum() {
           </div>
         </div>
       </section>
+
+      <MoreFeatures current="album" />
 
       <Footer />
     </div>
