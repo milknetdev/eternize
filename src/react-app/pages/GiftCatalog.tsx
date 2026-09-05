@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router";
 import {
   Search,
   Gift,
@@ -12,7 +11,6 @@ import {
   Wallet,
   Sparkles,
   Check,
-  ArrowRight,
   CreditCard,
   Shield,
   Banknote,
@@ -24,6 +22,13 @@ import { Button } from "@/react-app/components/ui/button";
 import Header from "@/react-app/components/layout/Header";
 import Footer from "@/react-app/components/layout/Footer";
 import MoreFeatures from "@/react-app/components/marketing/MoreFeatures";
+import {
+  HeroBg,
+  Reveal,
+  SectionHeading,
+  CtaButton,
+  ClosingCTA,
+} from "@/react-app/components/marketing/kit";
 import { gifts, categories, formatPrice, type Gift as GiftType } from "@/data/gifts";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -88,13 +93,10 @@ export default function GiftCatalog() {
 
       {/* Hero */}
       <section className="relative pt-32 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-primary blur-3xl" />
-          <div className="absolute bottom-10 right-20 w-80 h-80 rounded-full bg-gold-light blur-3xl" />
-        </div>
+        <HeroBg />
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
+            <Reveal>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
                 <Gift className="w-4 h-4" />
                 Lista de Presentes Inteligente
@@ -109,20 +111,15 @@ export default function GiftCatalog() {
                 recebe o valor na sua conta.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/cadastro">
-                  <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-8 py-6 rounded-xl font-semibold text-lg w-full sm:w-auto">
-                    Criar Minha Lista
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </Link>
-                <Link to="/demo/ana-e-joao">
-                  <Button variant="outline" className="px-8 py-6 rounded-xl font-medium text-lg w-full sm:w-auto border-2">
-                    Ver Demonstração
-                  </Button>
-                </Link>
+                <CtaButton to="/cadastro" withArrow>
+                  Criar Minha Lista
+                </CtaButton>
+                <CtaButton to="/demo/ana-e-joao" variant="outline">
+                  Ver Demonstração
+                </CtaButton>
               </div>
-            </div>
-            <div className="relative">
+            </Reveal>
+            <Reveal delay={0.1} className="relative">
               <div className="relative bg-white rounded-3xl shadow-2xl p-6 border border-border">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-gold-light flex items-center justify-center">
@@ -181,7 +178,7 @@ export default function GiftCatalog() {
                   <p className="text-sm font-semibold">23 presentearam</p>
                 </div>
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -189,23 +186,21 @@ export default function GiftCatalog() {
       {/* Benefits */}
       <section className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Por que escolher nossa lista?
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              A forma mais moderna e prática de receber presentes de casamento
-            </p>
-          </div>
+          <SectionHeading
+            icon={Sparkles}
+            eyebrow="Feito para o Brasil"
+            title="Por que escolher nossa lista?"
+            subtitle="A forma mais moderna e prática de receber presentes de casamento"
+          />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, i) => (
-              <div key={i} className="text-center group">
+              <Reveal key={i} delay={i * 0.05} className="text-center group">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/10 to-gold-light/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <benefit.icon className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="font-semibold mb-2">{benefit.title}</h3>
                 <p className="text-sm text-muted-foreground">{benefit.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -228,16 +223,13 @@ export default function GiftCatalog() {
       {/* How it Works */}
       <section className="py-20 bg-cream">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Como funciona?
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Em 3 passos simples você cria sua lista e começa a receber
-            </p>
-          </div>
+          <SectionHeading
+            eyebrow="Simples assim"
+            title="Como funciona?"
+            subtitle="Em 3 passos simples você cria sua lista e começa a receber"
+          />
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-2xl p-8 border border-border relative">
+            <Reveal className="bg-white rounded-2xl p-8 border border-border relative">
               <div className="absolute -top-4 left-8 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
                 1
               </div>
@@ -246,8 +238,8 @@ export default function GiftCatalog() {
               <p className="text-muted-foreground">
                 Escolha presentes do nosso catálogo ou adicione itens personalizados com valores livres.
               </p>
-            </div>
-            <div className="bg-white rounded-2xl p-8 border border-border relative">
+            </Reveal>
+            <Reveal delay={0.08} className="bg-white rounded-2xl p-8 border border-border relative">
               <div className="absolute -top-4 left-8 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
                 2
               </div>
@@ -256,8 +248,8 @@ export default function GiftCatalog() {
               <p className="text-muted-foreground">
                 Envie o link da sua lista para os convidados. Eles escolhem e pagam via PIX instantâneo.
               </p>
-            </div>
-            <div className="bg-white rounded-2xl p-8 border border-border relative">
+            </Reveal>
+            <Reveal delay={0.16} className="bg-white rounded-2xl p-8 border border-border relative">
               <div className="absolute -top-4 left-8 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
                 3
               </div>
@@ -266,7 +258,7 @@ export default function GiftCatalog() {
               <p className="text-muted-foreground">
                 Converta os presentes em dinheiro e saque direto para sua conta quando quiser.
               </p>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -274,14 +266,11 @@ export default function GiftCatalog() {
       {/* Gift Catalog Preview */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Explore nosso catálogo
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Centenas de opções de presentes para todos os gostos e bolsos
-            </p>
-          </div>
+          <SectionHeading
+            eyebrow="Catálogo"
+            title="Explore nosso catálogo"
+            subtitle="Dezenas de opções de presentes para todos os gostos e bolsos"
+          />
 
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-4 mb-8">
@@ -360,38 +349,20 @@ export default function GiftCatalog() {
             <p className="text-muted-foreground mb-4">
               E muito mais! Crie sua conta para acessar o catálogo completo.
             </p>
-            <Link to="/cadastro">
-              <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-8 py-6 rounded-xl font-semibold">
-                Criar Minha Lista Grátis
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
+            <CtaButton to="/cadastro" withArrow>
+              Criar Minha Lista Grátis
+            </CtaButton>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-primary/5 via-blush/30 to-champagne">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-6">
-            Pronto para criar sua lista?
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Junte-se a milhares de casais que já estão usando o Eternize para 
-            receber presentes de forma moderna e prática.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/cadastro">
-              <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-10 py-6 rounded-xl font-semibold text-lg">
-                Começar Agora — É Grátis
-              </Button>
-            </Link>
-          </div>
-          <p className="mt-6 text-sm text-muted-foreground">
-            Não precisa de cartão de crédito • Configure em minutos
-          </p>
-        </div>
-      </section>
+      <ClosingCTA
+        title="Pronto para criar sua lista?"
+        sub="Monte sua lista de presentes, compartilhe o link e receba tudo por PIX — sem taxa e sem complicação."
+        primaryLabel="Começar agora — é grátis"
+        secondaryTo="/demo/ana-e-joao"
+        secondaryLabel="Ver demonstração"
+      />
 
       <MoreFeatures current="presentes" />
 
