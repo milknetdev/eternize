@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router";
 import {
   Camera,
   Upload,
@@ -22,6 +21,13 @@ import { Button } from "@/react-app/components/ui/button";
 import Header from "@/react-app/components/layout/Header";
 import Footer from "@/react-app/components/layout/Footer";
 import MoreFeatures from "@/react-app/components/marketing/MoreFeatures";
+import {
+  HeroBg,
+  Reveal,
+  SectionHeading,
+  CtaButton,
+  ClosingCTA,
+} from "@/react-app/components/marketing/kit";
 
 const demoPhotos = [
   { id: 1, src: "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop", caption: "Nossa história começa" },
@@ -68,9 +74,9 @@ const features = [
 
 const stats = [
   { value: "Ilimitado", label: "Fotos no álbum" },
-  { value: "500MB", label: "Por foto (máx)" },
-  { value: "100%", label: "Gratuito" },
-  { value: "4K", label: "Resolução suportada" },
+  { value: "Original", label: "Qualidade preservada" },
+  { value: "R$ 0", label: "Para criar o álbum" },
+  { value: "Colaborativo", label: "Convidados também enviam" },
 ];
 
 export default function PhotoAlbum() {
@@ -92,13 +98,10 @@ export default function PhotoAlbum() {
 
       {/* Hero */}
       <section className="relative pt-32 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-primary blur-3xl" />
-          <div className="absolute bottom-10 right-20 w-80 h-80 rounded-full bg-gold-light blur-3xl" />
-        </div>
+        <HeroBg />
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
+            <Reveal>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
                 <Camera className="w-4 h-4" />
                 Galeria de Fotos
@@ -111,22 +114,17 @@ export default function PhotoAlbum() {
                 elegante e fácil de usar. Upload ilimitado, alta qualidade e total privacidade.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/cadastro">
-                  <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-8 py-6 rounded-xl font-semibold text-lg">
-                    Criar Meu Álbum
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </Link>
-                <Link to="/demo/ana-e-joao">
-                  <Button variant="outline" className="px-8 py-6 rounded-xl font-medium text-lg border-2">
-                    Ver Exemplo
-                  </Button>
-                </Link>
+                <CtaButton to="/cadastro" withArrow>
+                  Criar Meu Álbum
+                </CtaButton>
+                <CtaButton to="/demo/ana-e-joao" variant="outline">
+                  Ver Exemplo
+                </CtaButton>
               </div>
-            </div>
+            </Reveal>
 
             {/* Demo Gallery */}
-            <div className="relative">
+            <Reveal delay={0.1} className="relative">
               <div className="bg-white rounded-3xl shadow-2xl p-6 border border-border">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -183,7 +181,7 @@ export default function PhotoAlbum() {
                   <p className="text-sm font-semibold text-green-600">+24 fotos enviadas!</p>
                 </div>
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -232,23 +230,21 @@ export default function PhotoAlbum() {
       {/* Benefits */}
       <section className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Tudo que você precisa para suas fotos
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Uma galeria completa para guardar e compartilhar os melhores momentos
-            </p>
-          </div>
+          <SectionHeading
+            icon={Camera}
+            eyebrow="Memórias sem limite"
+            title="Tudo que você precisa para suas fotos"
+            subtitle="Uma galeria completa para guardar e compartilhar os melhores momentos"
+          />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, i) => (
-              <div key={i} className="text-center">
+              <Reveal key={i} delay={i * 0.05} className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/10 to-gold-light/10 flex items-center justify-center">
                   <benefit.icon className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">{benefit.title}</h3>
                 <p className="text-sm text-muted-foreground">{benefit.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -271,21 +267,18 @@ export default function PhotoAlbum() {
       {/* How It Works */}
       <section className="py-20 bg-cream">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Simples de usar
-            </h2>
-            <p className="text-muted-foreground">
-              Em poucos passos suas fotos estarão prontas para compartilhar
-            </p>
-          </div>
+          <SectionHeading
+            eyebrow="Simples assim"
+            title="Simples de usar"
+            subtitle="Em poucos passos suas fotos estarão prontas para compartilhar"
+          />
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { step: 1, title: "Faça Upload", desc: "Arraste suas fotos ou selecione do seu dispositivo. Aceita JPG, PNG e até vídeos curtos." },
               { step: 2, title: "Organize", desc: "Adicione legendas, organize por categorias e escolha as fotos de destaque." },
               { step: 3, title: "Compartilhe", desc: "Seus convidados acessam a galeria pelo link do seu site de casamento." },
-            ].map((item) => (
-              <div key={item.step} className="relative">
+            ].map((item, idx) => (
+              <Reveal key={item.step} delay={idx * 0.06} className="relative">
                 <div className="bg-white rounded-2xl p-8 border border-border text-center hover:shadow-lg transition-shadow h-full">
                   <div className="w-12 h-12 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary to-gold-light text-white flex items-center justify-center font-semibold text-xl">
                     {item.step}
@@ -298,7 +291,7 @@ export default function PhotoAlbum() {
                     <ArrowRight className="w-8 h-8 text-primary/30" />
                   </div>
                 )}
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -360,23 +353,21 @@ export default function PhotoAlbum() {
       {/* Features Grid */}
       <section className="py-20 bg-gradient-to-br from-primary/5 via-blush/30 to-champagne">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              Recursos completos
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Tudo que você precisa para gerenciar suas fotos de casamento
-            </p>
-          </div>
+          <SectionHeading
+            icon={Sparkles}
+            eyebrow="Recursos"
+            title="Recursos completos"
+            subtitle="Tudo que você precisa para gerenciar suas fotos de casamento"
+          />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 border border-border hover:shadow-lg transition-shadow">
+              <Reveal key={i} delay={(i % 3) * 0.05} className="bg-white rounded-2xl p-6 border border-border hover:shadow-lg transition-shadow">
                 <div className="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-primary/10 to-gold-light/10 flex items-center justify-center">
                   <feature.icon className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground">{feature.desc}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -406,32 +397,13 @@ export default function PhotoAlbum() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 bg-cream">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <Camera className="w-12 h-12 text-primary mx-auto mb-6" />
-          <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-6">
-            Comece a criar seu álbum
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Crie seu site de casamento grátis e tenha uma galeria de fotos elegante 
-            para compartilhar com seus convidados.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/cadastro">
-              <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-10 py-6 rounded-xl font-semibold text-lg">
-                Criar Meu Site Grátis
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-            <Link to="/demo/ana-e-joao">
-              <Button variant="outline" className="px-10 py-6 rounded-xl font-medium text-lg border-2">
-                Ver Demonstração
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <ClosingCTA
+        title="Comece a criar seu álbum"
+        sub="Crie seu site de casamento grátis e tenha uma galeria de fotos elegante para compartilhar com seus convidados."
+        primaryLabel="Criar meu site grátis"
+        secondaryTo="/demo/ana-e-joao"
+        secondaryLabel="Ver demonstração"
+      />
 
       <MoreFeatures current="album" />
 
