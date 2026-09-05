@@ -25,11 +25,13 @@ import GravataPage from "@/react-app/pages/GravataPage";
 import GuestGalleryUpload from "@/react-app/pages/GuestGalleryUpload";
 import GiftCheckout from "@/react-app/pages/GiftCheckout";
 import SupportBanner from "@/react-app/components/SupportBanner";
+import ScrollToTop from "@/react-app/components/ScrollToTop";
 
 export default function App() {
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop />
         <SupportBanner />
         <Routes>
           <Route path="/" element={<HomePage />} />

@@ -17,11 +17,13 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // All are real navigations now — hash items resolve to the homepage section
+  // (handled by <ScrollToTop />), so they work from any page.
   const navLinks = [
-    { label: "Funcionalidades", href: "#features" },
-    { label: "Templates", href: "/templates", isRoute: true },
-    { label: "Como Funciona", href: "#how-it-works" },
-    { label: "Planos", href: "#pricing" },
+    { label: "Funcionalidades", to: "/#features" },
+    { label: "Templates", to: "/templates" },
+    { label: "Como Funciona", to: "/#how-it-works" },
+    { label: "Planos", to: "/#pricing" },
   ];
 
   return (
@@ -47,25 +49,14 @@ export default function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              link.isRoute ? (
-                <Link
-                  key={link.href}
-                  to={link.href}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
-                >
-                  {link.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
-                </Link>
-              ) : (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
-                >
-                  {link.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
-                </a>
-              )
+              <Link
+                key={link.to}
+                to={link.to}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
+              >
+                {link.label}
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+              </Link>
             ))}
           </nav>
 
@@ -117,25 +108,14 @@ export default function Header() {
       >
         <nav className="flex flex-col p-4 gap-2">
           {navLinks.map((link) => (
-            link.isRoute ? (
-              <Link
-                key={link.href}
-                to={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-3 text-sm font-medium hover:bg-muted rounded-lg transition-colors"
-              >
-                {link.label}
-              </Link>
-            ) : (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-3 text-sm font-medium hover:bg-muted rounded-lg transition-colors"
-              >
-                {link.label}
-              </a>
-            )
+            <Link
+              key={link.to}
+              to={link.to}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="px-4 py-3 text-sm font-medium hover:bg-muted rounded-lg transition-colors"
+            >
+              {link.label}
+            </Link>
           ))}
           <div className="flex flex-col gap-2 mt-4 pt-4 border-t">
             {user ? (
