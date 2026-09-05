@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { useAuth } from "@/local-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
-import AuthShell, { AuthInput } from "@/react-app/components/auth/AuthShell";
+import AuthShell, { AuthInput, AuthSubmit } from "@/react-app/components/auth/AuthShell";
 
 export default function LoginPage() {
   const { login, user, isPending } = useAuth();
@@ -128,20 +128,7 @@ export default function LoginPage() {
           </AnimatePresence>
         </div>
 
-        <motion.button
-          type="submit"
-          disabled={loading}
-          whileTap={{ scale: 0.985 }}
-          className="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-primary to-gold-light shadow-lg shadow-primary/25 hover:shadow-primary/35 hover:brightness-[1.03] transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" /> Entrando…
-            </>
-          ) : (
-            "Entrar"
-          )}
-        </motion.button>
+        <AuthSubmit loading={loading} loadingLabel="Entrando…">Entrar</AuthSubmit>
       </form>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">

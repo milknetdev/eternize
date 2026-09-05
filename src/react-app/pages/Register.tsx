@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { useAuth } from "@/local-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Mail, Lock, User, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
-import AuthShell, { AuthInput } from "@/react-app/components/auth/AuthShell";
+import AuthShell, { AuthInput, AuthSubmit } from "@/react-app/components/auth/AuthShell";
 
 const FEATURES = [
   "Site personalizado do casamento",
@@ -131,20 +131,7 @@ export default function RegisterPage() {
           )}
         </div>
 
-        <motion.button
-          type="submit"
-          disabled={loading}
-          whileTap={{ scale: 0.985 }}
-          className="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-primary to-gold-light shadow-lg shadow-primary/25 hover:shadow-primary/35 hover:brightness-[1.03] transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" /> Criando conta…
-            </>
-          ) : (
-            "Criar minha conta"
-          )}
-        </motion.button>
+        <AuthSubmit loading={loading} loadingLabel="Criando conta…">Criar minha conta</AuthSubmit>
       </form>
 
       <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2">

@@ -1,7 +1,27 @@
 import { useEffect, type ReactNode, type InputHTMLAttributes, type ComponentType } from "react";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
-import { Heart, ArrowLeft, Star, Sparkles, ShieldCheck, Gift } from "lucide-react";
+import { Heart, ArrowLeft, Star, Sparkles, ShieldCheck, Gift, Loader2 } from "lucide-react";
+
+/** The gold gradient submit button shared by both auth forms. */
+export function AuthSubmit({ loading, loadingLabel, children }: { loading: boolean; loadingLabel: string; children: ReactNode }) {
+  return (
+    <motion.button
+      type="submit"
+      disabled={loading}
+      whileTap={{ scale: 0.985 }}
+      className="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-[#bd7d17] via-primary to-[#e6bd54] bg-[length:200%_100%] hover:bg-[position:100%_0] shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-[background-position,box-shadow] duration-500 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+    >
+      {loading ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" /> {loadingLabel}
+        </>
+      ) : (
+        children
+      )}
+    </motion.button>
+  );
+}
 
 /** Labelled input with a leading icon and an optional trailing adornment. */
 export function AuthInput({
@@ -64,11 +84,12 @@ export default function AuthShell({
   return (
     <div className="min-h-screen bg-cream lg:grid lg:grid-cols-[1.05fr_1fr]">
       {/* ── Brand panel ── */}
-      <div className="relative hidden lg:flex flex-col justify-between overflow-hidden p-14 text-white">
+      <div className="relative hidden lg:flex flex-col justify-between overflow-hidden p-14 text-white shadow-[24px_0_60px_-24px_rgba(120,80,10,0.35)]">
         {/* layered warm gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#c98a1e] via-[#d9a521] to-[#e7c583]" />
-        <div className="absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full bg-rose/40 blur-3xl" />
-        <div className="absolute -bottom-32 -right-16 w-[32rem] h-[32rem] rounded-full bg-white/20 blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#b9770f] via-[#d9a521] to-[#efd39a]" />
+        <div className="absolute top-[-10%] left-[-8%] w-[34rem] h-[34rem] rounded-full bg-[#f6c9d3]/70 blur-[110px]" />
+        <div className="absolute bottom-[-18%] right-[-10%] w-[38rem] h-[38rem] rounded-full bg-white/35 blur-[120px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,transparent_55%,rgba(90,55,5,0.28)_100%)]" />
 
         {/* floating hearts */}
         {[
@@ -84,7 +105,7 @@ export default function AuthShell({
             animate={{ y: [0, -14, 0], opacity: [0.35, 0.7, 0.35] }}
             transition={{ duration: 5 + h.d, repeat: Infinity, ease: "easeInOut", delay: h.d }}
           >
-            <Heart className="fill-white/60 text-white/60" style={{ width: h.s, height: h.s }} />
+            <Heart className="fill-white/75 text-white/75 drop-shadow" style={{ width: h.s, height: h.s }} />
           </motion.div>
         ))}
 
