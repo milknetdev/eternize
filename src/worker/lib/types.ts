@@ -4,6 +4,7 @@ import type { NeonDB } from "../neon-db";
 export interface AppEnv {
   Variables: {
     user: any;
+    impersonating?: boolean;
   };
   Bindings: {
     DB: NeonDB;

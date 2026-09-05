@@ -2,7 +2,10 @@ import type { Context, Next } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import * as bcrypt from "bcryptjs";
 
-const SESSION_COOKIE_NAME = "eternize_session";
+export const SESSION_COOKIE_NAME = "eternize_session";
+// Separate cookie so an admin can "act as" a couple without disturbing their
+// own login. When present it takes precedence in authMiddleware.
+export const SUPPORT_COOKIE_NAME = "eternize_support";
 
 function generateId(): string {
   return "u_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
@@ -22,7 +25,8 @@ function generateToken(): string {
 // =====================
 
 export async function authMiddleware(c: Context, next: Next) {
-  const sessionToken = getCookie(c, SESSION_COOKIE_NAME);
+  const supportToken = getCookie(c, SUPPORT_COOKIE_NAME);
+  const sessionToken = supportToken || getCookie(c, SESSION_COOKIE_NAME);
 
   if (!sessionToken) {
     return c.json({ error: "Não autenticado" }, 401);
@@ -43,6 +47,7 @@ export async function authMiddleware(c: Context, next: Next) {
   }
 
   c.set("user", { id: session.user_id, email: session.email, name: session.name });
+  if (supportToken) c.set("impersonating", true);
 
   await next();
 }

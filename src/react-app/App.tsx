@@ -24,11 +24,13 @@ import AdminDashboard from "@/react-app/pages/AdminDashboard";
 import GravataPage from "@/react-app/pages/GravataPage";
 import GuestGalleryUpload from "@/react-app/pages/GuestGalleryUpload";
 import GiftCheckout from "@/react-app/pages/GiftCheckout";
+import SupportBanner from "@/react-app/components/SupportBanner";
 
 export default function App() {
   return (
     <AuthProvider>
       <Router>
+        <SupportBanner />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/demo/:templateId" element={<TemplateDemo />} />
