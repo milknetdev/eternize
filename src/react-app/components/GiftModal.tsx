@@ -66,7 +66,7 @@ export function GiftModal({
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
             />
           </div>
           <div>
@@ -75,7 +75,7 @@ export function GiftModal({
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20 resize-none"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -88,7 +88,7 @@ export function GiftModal({
                 step={0.01}
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
               />
             </div>
             <div>
@@ -96,7 +96,7 @@ export function GiftModal({
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
               >
                 {categories.map((cat) => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -127,7 +127,7 @@ export function GiftModal({
                 type="text"
                 value={formData.image_url}
                 onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                className="flex-1 px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="flex-1 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                 placeholder="URL ou faça upload"
               />
               <label className="cursor-pointer px-4 py-2 rounded-lg border bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2 text-sm font-medium">

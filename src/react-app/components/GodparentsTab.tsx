@@ -180,7 +180,7 @@ export function GodparentsTab() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   placeholder="Nome do padrinho"
                   required
                 />
@@ -191,7 +191,7 @@ export function GodparentsTab() {
                   type="text"
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   placeholder="Ex: Padrinho, Madrinha"
                 />
               </div>
@@ -201,7 +201,7 @@ export function GodparentsTab() {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                 placeholder="Descrição ou mensagem especial"
                 rows={3}
               />
@@ -213,7 +213,7 @@ export function GodparentsTab() {
                   type="text"
                   value={formData.image_url}
                   onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  className="flex-1 px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                  className="flex-1 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   placeholder="URL ou faça upload"
                 />
                 <label className="cursor-pointer px-4 py-2 rounded-lg border bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2 text-sm font-medium">
@@ -231,7 +231,7 @@ export function GodparentsTab() {
                 type="number"
                 value={formData.sort_order}
                 onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
-                className="w-32 px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-32 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
               />
             </div>
             <Button type="submit" disabled={saving} className="w-full bg-primary hover:bg-primary/90">

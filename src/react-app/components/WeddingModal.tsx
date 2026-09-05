@@ -46,7 +46,7 @@ export function WeddingModal({
                 type="text"
                 value={formData.partner1_name}
                 onChange={(e) => setFormData({ ...formData, partner1_name: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                 placeholder="Ana"
               />
             </div>
@@ -56,7 +56,7 @@ export function WeddingModal({
                 type="text"
                 value={formData.partner2_name}
                 onChange={(e) => setFormData({ ...formData, partner2_name: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                 placeholder="João"
               />
             </div>
@@ -67,7 +67,7 @@ export function WeddingModal({
               type="date"
               value={formData.wedding_date}
               onChange={(e) => setFormData({ ...formData, wedding_date: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
             />
           </div>
           <div>
@@ -76,7 +76,7 @@ export function WeddingModal({
               type="text"
               value={formData.venue_name}
               onChange={(e) => setFormData({ ...formData, venue_name: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
               placeholder="Espaço Villa Garden"
             />
           </div>
@@ -86,7 +86,7 @@ export function WeddingModal({
               type="text"
               value={formData.venue_address}
               onChange={(e) => setFormData({ ...formData, venue_address: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
               placeholder="Rua das Flores, 123 - São Paulo"
             />
           </div>
@@ -98,7 +98,7 @@ export function WeddingModal({
                 type="text"
                 value={formData.custom_url}
                 onChange={(e) => setFormData({ ...formData, custom_url: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                className="flex-1 px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="flex-1 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                 placeholder="ana-e-joao"
               />
             </div>
@@ -109,7 +109,7 @@ export function WeddingModal({
               type="text"
               value={formData.pix_key}
               onChange={(e) => setFormData({ ...formData, pix_key: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
               placeholder="email@exemplo.com ou CPF"
             />
           </div>

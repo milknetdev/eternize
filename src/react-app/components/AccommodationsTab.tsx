@@ -186,7 +186,7 @@ export function AccommodationsTab() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   placeholder="Nome do hotel/pousada"
                   required
                 />
@@ -197,7 +197,7 @@ export function AccommodationsTab() {
                   type="text"
                   value={formData.price_range}
                   onChange={(e) => setFormData({ ...formData, price_range: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   placeholder="Ex: R$ 200-400/noite"
                 />
               </div>
@@ -207,7 +207,7 @@ export function AccommodationsTab() {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                 placeholder="Descrição da acomodação"
                 rows={3}
               />
@@ -218,7 +218,7 @@ export function AccommodationsTab() {
                 type="text"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                 placeholder="Endereço completo"
               />
             </div>
@@ -229,7 +229,7 @@ export function AccommodationsTab() {
                   type="text"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   placeholder="(00) 0000-0000"
                 />
               </div>
@@ -239,7 +239,7 @@ export function AccommodationsTab() {
                   type="text"
                   value={formData.website}
                   onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   placeholder="https://..."
                 />
               </div>
@@ -251,7 +251,7 @@ export function AccommodationsTab() {
                   type="text"
                   value={formData.image_url}
                   onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  className="flex-1 px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                  className="flex-1 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   placeholder="URL ou faça upload"
                 />
                 <label className="cursor-pointer px-4 py-2 rounded-lg border bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2 text-sm font-medium">
@@ -269,7 +269,7 @@ export function AccommodationsTab() {
                 type="number"
                 value={formData.sort_order}
                 onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
-                className="w-32 px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-32 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
               />
             </div>
             <Button type="submit" disabled={saving} className="w-full bg-primary hover:bg-primary/90">

@@ -191,7 +191,7 @@ export function PhotosTab({
                   onChange={(e) => setEditCaption(e.target.value)}
                   placeholder="Adicione uma legenda para esta foto..."
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20 resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary resize-none"
                 />
               </div>
               <Button onClick={handleUpdateCaption} className="w-full bg-primary hover:bg-primary/90">
