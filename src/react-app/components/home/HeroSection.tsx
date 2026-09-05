@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { Button } from "@/react-app/components/ui/button";
 import { ArrowRight, Play, Heart, Star } from "lucide-react";
+
+const FACE_IMGS = [
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=64&h=64&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=64&h=64&fit=crop&crop=faces",
+];
 
 export default function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
@@ -60,37 +68,38 @@ export default function HeroSection() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white shadow-2xl shadow-primary/30 font-semibold text-lg px-8 py-6 rounded-full group"
-            >
-              Criar Meu Site Grátis
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="bg-white/80 backdrop-blur-sm border-border/50 font-semibold text-lg px-8 py-6 rounded-full group hover:bg-white"
-            >
-              <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-              Ver Como Funciona
-            </Button>
+            <Link to="/cadastro">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white shadow-2xl shadow-primary/30 font-semibold text-lg px-8 py-6 rounded-full group"
+              >
+                Criar Meu Site Grátis
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+            <a href="#how-it-works">
+              <Button
+                size="lg"
+                variant="outline"
+                className="bg-white/80 backdrop-blur-sm border-border/50 font-semibold text-lg px-8 py-6 rounded-full group hover:bg-white"
+              >
+                <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                Ver Como Funciona
+              </Button>
+            </a>
           </div>
 
           {/* Trust Indicators */}
           <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
+                {FACE_IMGS.map((src, i) => (
+                  <img
                     key={i}
-                    className="w-8 h-8 rounded-full bg-gradient-to-br from-rose to-primary border-2 border-white"
-                    style={{
-                      backgroundImage: `url(https://images.unsplash.com/photo-${
-                        1500000000000 + i * 1000000
-                      }?w=32&h=32&fit=crop&crop=face)`,
-                      backgroundSize: "cover",
-                    }}
+                    src={src}
+                    alt=""
+                    loading="lazy"
+                    className="w-8 h-8 rounded-full object-cover border-2 border-white bg-muted"
                   />
                 ))}
               </div>

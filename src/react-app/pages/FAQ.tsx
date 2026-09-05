@@ -388,17 +388,17 @@ export default function FAQ() {
               o mais rápido possível.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/contato">
+              <a href="mailto:contato@eternize.com">
                 <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-8 py-6 rounded-xl font-semibold text-lg">
-                  Falar com Suporte
+                  Falar com o Suporte
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
-              </Link>
-              <a href="mailto:suporte@eternize.com.br">
-                <Button variant="outline" className="px-8 py-6 rounded-xl font-medium text-lg border-2">
-                  suporte@eternize.com.br
-                </Button>
               </a>
+              <Link to="/cadastro">
+                <Button variant="outline" className="px-8 py-6 rounded-xl font-medium text-lg border-2">
+                  Criar meu site grátis
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

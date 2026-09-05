@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import { Button } from "@/react-app/components/ui/button";
 import { Check, Star, Sparkles } from "lucide-react";
 
@@ -126,15 +127,17 @@ function PricingCard({
         </ul>
 
         {/* CTA */}
-        <Button
-          className={`w-full py-6 rounded-full font-semibold ${
-            plan.popular
-              ? "bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white shadow-lg shadow-primary/20"
-              : "bg-foreground text-background hover:bg-foreground/90"
-          }`}
-        >
-          {plan.cta}
-        </Button>
+        <Link to="/cadastro" className="block">
+          <Button
+            className={`w-full py-6 rounded-full font-semibold ${
+              plan.popular
+                ? "bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white shadow-lg shadow-primary/20"
+                : "bg-foreground text-background hover:bg-foreground/90"
+            }`}
+          >
+            {plan.cta}
+          </Button>
+        </Link>
       </div>
     </div>
   );

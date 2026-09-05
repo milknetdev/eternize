@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import Header from "@/react-app/components/layout/Header";
 import Footer from "@/react-app/components/layout/Footer";
 import HeroSection from "@/react-app/components/home/HeroSection";
@@ -10,19 +9,6 @@ import PricingSection from "@/react-app/components/home/PricingSection";
 import CTASection from "@/react-app/components/home/CTASection";
 
 export default function HomePage() {
-  useEffect(() => {
-    // Load Google Fonts
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
       <Header />

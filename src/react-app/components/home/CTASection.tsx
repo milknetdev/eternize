@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import { Button } from "@/react-app/components/ui/button";
 import { ArrowRight, Heart, Sparkles } from "lucide-react";
 
@@ -75,13 +76,12 @@ export default function CTASection() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white shadow-2xl shadow-primary/30 font-semibold text-lg px-10 py-7 rounded-full group"
-            >
-              Criar Meu Site Grátis
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
+            <Link to="/cadastro">
+              <Button size="lg" className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white shadow-2xl shadow-primary/30 font-semibold text-lg px-10 py-7 rounded-full group">
+                Criar Meu Site Grátis
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
           </div>
 
           <p className="mt-8 text-sm text-muted-foreground">
