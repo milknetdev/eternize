@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router";
 import { useAuth } from "@/local-auth/react";
 import { authFetch } from "@/react-app/lib/api";
-import { Heart, Users, Gift, MessageCircle, Settings, LogOut, BarChart3, Loader2, ExternalLink, Image, Wallet, Share2, ChevronUp, UtensilsCrossed, CheckSquare, Sparkles, BookOpen, Sun, Moon, Crown, Hotel } from "lucide-react";
+import { Heart, Users, Gift, MessageCircle, Settings, LogOut, BarChart3, Loader2, ExternalLink, Image, Wallet, Share2, ChevronUp, X, UtensilsCrossed, CheckSquare, Sparkles, BookOpen, Crown, Hotel, AlertTriangle } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
 import TablesTab from "@/react-app/components/TablesTab";
 import { TasksTab } from "@/react-app/components/TasksTab";
@@ -47,43 +47,8 @@ export default function Dashboard() {
   const [editingGift, setEditingGift] = useState<GiftItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [labelFilter, setLabelFilter] = useState<string | null>(null);
-  
-  // Dark mode state
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('dashboard-theme');
-      return saved === 'dark';
-    }
-    return false;
-  });
-
-  // Apply dark mode class to document
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('dashboard-theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
-
-  // Cleanup dark mode when leaving dashboard
-  useEffect(() => {
-    return () => {
-      document.documentElement.classList.remove('dark');
-    };
-  }, []);
-
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -95,22 +60,26 @@ export default function Dashboard() {
         authFetch("/api/photos"),
         authFetch("/api/dashboard/stats"),
       ]);
-      
+
+      if (!weddingRes.ok) throw new Error(`wedding ${weddingRes.status}`);
+
       const weddingData = await weddingRes.json();
       const guestsData = await guestsRes.json();
       const giftsData = await giftsRes.json();
       const messagesData = await messagesRes.json();
       const photosData = await photosRes.json();
       const statsData = await statsRes.json();
-      
-      setWedding(weddingData);
-      setGuests(guestsData);
-      setGifts(giftsData);
-      setMessages(messagesData);
+
+      setWedding(weddingData && weddingData.id ? weddingData : null);
+      setGuests(Array.isArray(guestsData) ? guestsData : []);
+      setGifts(Array.isArray(giftsData) ? giftsData : []);
+      setMessages(Array.isArray(messagesData) ? messagesData : []);
       setPhotos(Array.isArray(photosData) ? photosData : []);
-      setStats(statsData);
+      setStats(statsData || null);
+      setLoadError(false);
     } catch (error) {
       console.error("Failed to fetch data:", error);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -152,8 +121,34 @@ export default function Dashboard() {
 
   if (isPending || !user || loading) {
     return (
-      <div className="min-h-screen bg-cream dark:bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Carregando seu painel…</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center px-6">
+        <div className="max-w-sm text-center">
+          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-6 h-6 text-red-500" />
+          </div>
+          <h1 className="font-serif text-2xl font-medium mb-2">Não foi possível carregar</h1>
+          <p className="text-muted-foreground mb-6">
+            Houve um problema ao buscar os dados do seu casamento. Verifique sua conexão e tente de novo.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button
+              onClick={() => { setLoading(true); fetchData(); }}
+              className="bg-gradient-to-r from-primary to-gold-light text-white"
+            >
+              Tentar novamente
+            </Button>
+            <Button variant="outline" onClick={handleLogout}>Sair</Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -219,9 +214,9 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-cream dark:bg-background">
+    <div className="min-h-screen bg-cream">
       {/* Header */}
-      <header className="bg-white dark:bg-card border-b border-border sticky top-0 z-50">
+      <header className="bg-white/90 backdrop-blur border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-2">
@@ -231,33 +226,26 @@ export default function Dashboard() {
               <span className="font-serif text-xl font-semibold">Eternize</span>
             </Link>
 
-            <div className="flex items-center gap-4">
-              {wedding?.custom_url && (
-                <Link to={`/c/${wedding.custom_url}`}>
+            <div className="flex items-center gap-2 sm:gap-4">
+              {wedding?.custom_url ? (
+                <Link to={`/c/${wedding.custom_url}`} target="_blank">
                   <Button variant="outline" size="sm" className="hidden sm:flex gap-2">
                     <ExternalLink className="w-4 h-4" />
-                    Ver Meu Site
+                    Ver meu site
                   </Button>
                 </Link>
-              )}
-              
-              {/* Mobile theme toggle */}
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
-                title={darkMode ? "Modo Diurno" : "Modo Noturno"}
-              >
-                {darkMode ? (
-                  <Sun className="w-5 h-5 text-primary" />
-                ) : (
-                  <Moon className="w-5 h-5 text-muted-foreground" />
-                )}
-              </button>
-              
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-gold-light flex items-center justify-center text-white text-xs font-bold"
+              ) : (
+                <button
+                  onClick={() => setShowWeddingModal(true)}
+                  className="hidden sm:flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                 >
+                  <Sparkles className="w-4 h-4" />
+                  Configurar casamento
+                </button>
+              )}
+
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-gold-light flex items-center justify-center text-white text-xs font-bold">
                   {userName.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-sm font-medium hidden sm:block">{userName}</span>
@@ -276,7 +264,7 @@ export default function Dashboard() {
 
       <div className="flex min-h-[calc(100vh-64px)]">
         {/* Sidebar */}
-        <aside className="w-64 bg-white dark:bg-card border-r border-border flex-shrink-0 hidden md:flex md:flex-col overflow-y-auto">
+        <aside className="w-64 bg-white border-r border-border flex-shrink-0 hidden md:flex md:flex-col overflow-y-auto">
           <nav className="p-4 flex-1">
             {tabGroups.map((group, gi) => (
               <div key={group.label ?? "root"} className={gi > 0 ? "mt-5" : ""}>
@@ -288,14 +276,15 @@ export default function Dashboard() {
                 <div className="space-y-1">
                   {group.tabs.map((tab) => {
                     const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
                     return (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
-                          activeTab === tab.id
-                            ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        className={`w-full flex items-center gap-3 pl-3 pr-4 py-2.5 rounded-lg font-medium text-sm transition-colors border-l-2 ${
+                          isActive
+                            ? "bg-primary/10 text-primary border-primary"
+                            : "text-muted-foreground border-transparent hover:bg-muted hover:text-foreground"
                         }`}
                       >
                         <Icon className="w-5 h-5 flex-shrink-0" />
@@ -307,89 +296,70 @@ export default function Dashboard() {
               </div>
             ))}
           </nav>
-          
-          {/* Theme Toggle */}
-          <div className="p-4 border-t border-border">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                {darkMode ? (
-                  <Moon className="w-4 h-4 text-primary" />
-                ) : (
-                  <Sun className="w-4 h-4 text-primary" />
-                )}
-                <span className="text-sm font-medium">
-                  {darkMode ? "Modo Noturno" : "Modo Diurno"}
-                </span>
-              </div>
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  darkMode ? "bg-primary" : "bg-border"
-                }`}
+
+          {wedding?.custom_url && (
+            <div className="p-4 border-t border-border">
+              <Link
+                to={`/c/${wedding.custom_url}`}
+                target="_blank"
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg text-sm font-medium border border-border hover:border-primary/40 hover:bg-muted transition-colors"
               >
-                <span
-                  className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
-                    darkMode ? "left-7" : "left-1"
-                  }`}
-                />
-              </button>
+                <ExternalLink className="w-4 h-4" />
+                Ver meu site
+              </Link>
             </div>
-          </div>
+          )}
         </aside>
 
         {/* Mobile Tabs */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-border z-50 overflow-x-auto">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border z-50 shadow-[0_-4px_16px_-8px_rgba(0,0,0,0.15)]">
           <div className="flex">
-            {tabs.slice(0, 6).map((tab) => {
+            {tabs.slice(0, 5).map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex flex-col items-center gap-1 py-2 px-2 text-xs transition-colors ${
-                    activeTab === tab.id
-                      ? "text-primary"
-                      : "text-muted-foreground"
+                  onClick={() => { setActiveTab(tab.id); setMoreOpen(false); }}
+                  className={`flex-1 flex flex-col items-center gap-1 py-2 px-1 text-[11px] transition-colors ${
+                    isActive ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
                   <Icon className="w-5 h-5" />
-                  <span className="truncate">{tab.label.split(' ')[0]}</span>
+                  <span className="truncate max-w-full">{tab.label.split(" ")[0]}</span>
                 </button>
               );
             })}
             <button
-              onClick={() => {
-                const moreMenu = document.getElementById('mobile-more-menu');
-                if (moreMenu) moreMenu.classList.toggle('hidden');
-              }}
-              className="flex-1 flex flex-col items-center gap-1 py-2 px-2 text-xs text-muted-foreground"
+              onClick={() => setMoreOpen((v) => !v)}
+              className={`flex-1 flex flex-col items-center gap-1 py-2 px-1 text-[11px] transition-colors ${
+                moreOpen ? "text-primary" : "text-muted-foreground"
+              }`}
             >
-              <ChevronUp className="w-5 h-5" />
+              {moreOpen ? <X className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
               <span>Mais</span>
             </button>
           </div>
-          <div id="mobile-more-menu" className="hidden bg-white dark:bg-card border-t grid grid-cols-3 gap-2 p-3">
-            {tabs.slice(6).map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    document.getElementById('mobile-more-menu')?.classList.add('hidden');
-                  }}
-                  className={`flex flex-col items-center gap-1 py-2 px-2 rounded-lg text-xs transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {moreOpen && (
+            <div className="border-t border-border grid grid-cols-3 gap-2 p-3 max-h-[60vh] overflow-y-auto">
+              {tabs.slice(5).map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => { setActiveTab(tab.id); setMoreOpen(false); }}
+                    className={`flex flex-col items-center gap-1 py-3 px-2 rounded-lg text-xs text-center transition-colors ${
+                      isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="leading-tight">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <main className="flex-1 p-6 md:p-8 pb-24 md:pb-8 overflow-auto">

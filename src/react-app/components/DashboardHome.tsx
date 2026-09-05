@@ -263,10 +263,18 @@ export function DashboardHome({
   const tip = getContextualTip();
   const TipIcon = tip.icon;
 
-  const quickActions = [
+  const quickActions: {
+    label: string;
+    icon: typeof Heart;
+    color: string;
+    onClick?: () => void;
+    href?: string;
+  }[] = [
     { label: "Adicionar Convidado", icon: Users, onClick: () => onNavigateTab("guests"), color: "bg-blue-500 hover:bg-blue-600" },
     { label: "Ver Lista de Presentes", icon: Gift, onClick: () => onNavigateTab("gifts"), color: "bg-pink-500 hover:bg-pink-600" },
-    { label: "Ver Site do Casal", icon: ExternalLink, href: wedding?.custom_url ? `/c/${wedding.custom_url}` : undefined, color: "bg-primary hover:bg-primary/90" },
+    wedding?.custom_url
+      ? { label: "Ver Site do Casal", icon: ExternalLink, href: `/c/${wedding.custom_url}`, color: "bg-primary hover:bg-primary/90" }
+      : { label: "Configurar Casamento", icon: Sparkles, onClick: onSetupWedding, color: "bg-primary hover:bg-primary/90" },
     { label: "Compartilhar Convite", icon: Heart, onClick: () => onNavigateTab("invite"), color: "bg-rose-500 hover:bg-rose-600" },
   ];
 
