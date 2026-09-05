@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import * as bcrypt from "bcryptjs";
-import { authMiddleware } from "../local-auth-backend";
 import type { AppEnv } from "../lib/types";
 import { adminMiddleware } from "../lib/admin";
 
@@ -11,7 +10,7 @@ const r = new Hono<AppEnv>();
 // =====================
 
 // Admin stats
-r.get("/api/admin/stats", authMiddleware, adminMiddleware, async (c) => {
+r.get("/api/admin/stats", adminMiddleware, async (c) => {
   const totalWeddings = await c.env.DB.prepare(
     "SELECT COUNT(*) as count FROM weddings"
   ).first<{ count: number }>();
@@ -44,7 +43,7 @@ r.get("/api/admin/stats", authMiddleware, adminMiddleware, async (c) => {
 });
 
 // Admin - list all weddings
-r.get("/api/admin/weddings", authMiddleware, adminMiddleware, async (c) => {
+r.get("/api/admin/weddings", adminMiddleware, async (c) => {
   const { results } = await c.env.DB.prepare(`
     SELECT 
       w.*,
@@ -58,7 +57,7 @@ r.get("/api/admin/weddings", authMiddleware, adminMiddleware, async (c) => {
 });
 
 // Admin - list all withdrawals
-r.get("/api/admin/withdrawals", authMiddleware, adminMiddleware, async (c) => {
+r.get("/api/admin/withdrawals", adminMiddleware, async (c) => {
   const { results } = await c.env.DB.prepare(`
     SELECT 
       cw.*,
@@ -75,7 +74,7 @@ r.get("/api/admin/withdrawals", authMiddleware, adminMiddleware, async (c) => {
 });
 
 // Admin - approve withdrawal
-r.post("/api/admin/withdrawals/:id/approve", authMiddleware, adminMiddleware, async (c) => {
+r.post("/api/admin/withdrawals/:id/approve", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   
   await c.env.DB.prepare(`
@@ -88,7 +87,7 @@ r.post("/api/admin/withdrawals/:id/approve", authMiddleware, adminMiddleware, as
 });
 
 // Admin - reject withdrawal
-r.post("/api/admin/withdrawals/:id/reject", authMiddleware, adminMiddleware, async (c) => {
+r.post("/api/admin/withdrawals/:id/reject", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   
   // Get the withdrawal to find amounts to un-convert
@@ -129,7 +128,7 @@ r.post("/api/admin/withdrawals/:id/reject", authMiddleware, adminMiddleware, asy
 // =====================
 
 // Search couples by e-mail / name / partner names / site URL
-r.get("/api/admin/couples", authMiddleware, adminMiddleware, async (c) => {
+r.get("/api/admin/couples", adminMiddleware, async (c) => {
   const q = (c.req.query("q") || "").trim();
   const like = `%${q}%`;
   const { results } = await c.env.DB.prepare(
@@ -151,7 +150,7 @@ r.get("/api/admin/couples", authMiddleware, adminMiddleware, async (c) => {
 });
 
 // Full record for one couple
-r.get("/api/admin/couples/:id", authMiddleware, adminMiddleware, async (c) => {
+r.get("/api/admin/couples/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const wedding = await c.env.DB.prepare(
     `SELECT w.*, u.email AS user_email, u.name AS user_name
@@ -187,7 +186,7 @@ r.get("/api/admin/couples/:id", authMiddleware, adminMiddleware, async (c) => {
 });
 
 // Edit a couple's record on their behalf (support). Partial whitelist.
-r.patch("/api/admin/couples/:id", authMiddleware, adminMiddleware, async (c) => {
+r.patch("/api/admin/couples/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
 
@@ -222,7 +221,7 @@ r.patch("/api/admin/couples/:id", authMiddleware, adminMiddleware, async (c) => 
 });
 
 // Issue a temporary password for a user and drop their sessions.
-r.post("/api/admin/users/:id/reset-password", authMiddleware, adminMiddleware, async (c) => {
+r.post("/api/admin/users/:id/reset-password", adminMiddleware, async (c) => {
   const userId = c.req.param("id");
   const user = await c.env.DB.prepare("SELECT id, email FROM users WHERE id = ?")
     .bind(userId).first<{ id: string; email: string }>();

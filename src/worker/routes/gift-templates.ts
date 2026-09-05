@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { authMiddleware } from "../local-auth-backend";
 import type { AppEnv } from "../lib/types";
 import { adminMiddleware } from "../lib/admin";
 
@@ -9,7 +8,7 @@ const r = new Hono<AppEnv>();
 // =====================
 
 // Get all gift list types
-r.get("/api/admin/gift-list-types", authMiddleware, adminMiddleware, async (c) => {
+r.get("/api/admin/gift-list-types", adminMiddleware, async (c) => {
   const { results } = await c.env.DB.prepare(`
     SELECT glt.*, 
       (SELECT COUNT(*) FROM gift_templates WHERE list_type_id = glt.id) as item_count
@@ -20,7 +19,7 @@ r.get("/api/admin/gift-list-types", authMiddleware, adminMiddleware, async (c) =
 });
 
 // Create a new gift list type
-r.post("/api/admin/gift-list-types", authMiddleware, adminMiddleware, async (c) => {
+r.post("/api/admin/gift-list-types", adminMiddleware, async (c) => {
   const body = await c.req.json();
   const { name, description } = body;
   const slug = name.toLowerCase()
@@ -41,7 +40,7 @@ r.post("/api/admin/gift-list-types", authMiddleware, adminMiddleware, async (c) 
 });
 
 // Update a gift list type
-r.put("/api/admin/gift-list-types/:id", authMiddleware, adminMiddleware, async (c) => {
+r.put("/api/admin/gift-list-types/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
   const { name, description, is_active } = body;
@@ -56,7 +55,7 @@ r.put("/api/admin/gift-list-types/:id", authMiddleware, adminMiddleware, async (
 });
 
 // Delete a gift list type
-r.delete("/api/admin/gift-list-types/:id", authMiddleware, adminMiddleware, async (c) => {
+r.delete("/api/admin/gift-list-types/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   
   // Delete associated templates and categories first
@@ -68,7 +67,7 @@ r.delete("/api/admin/gift-list-types/:id", authMiddleware, adminMiddleware, asyn
 });
 
 // Get all templates for a list type
-r.get("/api/admin/gift-list-types/:id/templates", authMiddleware, adminMiddleware, async (c) => {
+r.get("/api/admin/gift-list-types/:id/templates", adminMiddleware, async (c) => {
   const listTypeId = c.req.param("id");
   
   const { results: templates } = await c.env.DB.prepare(`
@@ -83,7 +82,7 @@ r.get("/api/admin/gift-list-types/:id/templates", authMiddleware, adminMiddlewar
 });
 
 // Create a gift template item
-r.post("/api/admin/gift-templates", authMiddleware, adminMiddleware, async (c) => {
+r.post("/api/admin/gift-templates", adminMiddleware, async (c) => {
   const body = await c.req.json();
   const { list_type_id, name, description, price, category, image_url } = body;
   
@@ -108,7 +107,7 @@ r.post("/api/admin/gift-templates", authMiddleware, adminMiddleware, async (c) =
 });
 
 // Update a gift template item
-r.put("/api/admin/gift-templates/:id", authMiddleware, adminMiddleware, async (c) => {
+r.put("/api/admin/gift-templates/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
   const { name, description, price, category, image_url, is_active, sort_order } = body;
@@ -133,14 +132,14 @@ r.put("/api/admin/gift-templates/:id", authMiddleware, adminMiddleware, async (c
 });
 
 // Delete a gift template item
-r.delete("/api/admin/gift-templates/:id", authMiddleware, adminMiddleware, async (c) => {
+r.delete("/api/admin/gift-templates/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   await c.env.DB.prepare("DELETE FROM gift_templates WHERE id = ?").bind(id).run();
   return c.json({ success: true });
 });
 
 // Get categories for a list type
-r.get("/api/admin/gift-list-types/:id/categories", authMiddleware, adminMiddleware, async (c) => {
+r.get("/api/admin/gift-list-types/:id/categories", adminMiddleware, async (c) => {
   const listTypeId = c.req.param("id");
   const { results } = await c.env.DB.prepare(`
     SELECT * FROM gift_template_categories WHERE list_type_id = ? ORDER BY sort_order, id
@@ -149,7 +148,7 @@ r.get("/api/admin/gift-list-types/:id/categories", authMiddleware, adminMiddlewa
 });
 
 // Create a category
-r.post("/api/admin/gift-categories", authMiddleware, adminMiddleware, async (c) => {
+r.post("/api/admin/gift-categories", adminMiddleware, async (c) => {
   const body = await c.req.json();
   const { list_type_id, name, color_class } = body;
   
@@ -166,7 +165,7 @@ r.post("/api/admin/gift-categories", authMiddleware, adminMiddleware, async (c) 
 });
 
 // Update a category
-r.put("/api/admin/gift-categories/:id", authMiddleware, adminMiddleware, async (c) => {
+r.put("/api/admin/gift-categories/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
   const { name, color_class, sort_order } = body;
@@ -181,7 +180,7 @@ r.put("/api/admin/gift-categories/:id", authMiddleware, adminMiddleware, async (
 });
 
 // Delete a category
-r.delete("/api/admin/gift-categories/:id", authMiddleware, adminMiddleware, async (c) => {
+r.delete("/api/admin/gift-categories/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   await c.env.DB.prepare("DELETE FROM gift_template_categories WHERE id = ?").bind(id).run();
   return c.json({ success: true });

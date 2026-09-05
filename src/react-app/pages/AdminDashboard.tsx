@@ -1,7 +1,5 @@
 import { authFetch } from "@/react-app/lib/api";
 import { useState, useEffect } from "react";
-import { useAuth } from "@/local-auth/react";
-import { useNavigate } from "react-router";
 import {
   Users,
   Gift,
@@ -17,9 +15,71 @@ import {
   Wallet,
   Package,
   LifeBuoy,
+  Lock,
+  Loader2,
+  LogOut,
 } from "lucide-react";
 import GiftTemplatesAdmin from "../components/GiftTemplatesAdmin";
 import SupportConsole from "../components/admin/SupportConsole";
+
+function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await authFetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (res.ok) onSuccess();
+      else setError(data.error || "Senha incorreta.");
+    } catch {
+      setError("Erro de conexão.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-cream flex items-center justify-center px-6">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-border bg-white shadow-xl shadow-primary/5 p-8">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-gold-light flex items-center justify-center mx-auto mb-4">
+          <Lock className="w-5 h-5 text-white" />
+        </div>
+        <h1 className="font-serif text-2xl font-medium text-center">Painel Administrativo</h1>
+        <p className="text-muted-foreground text-sm text-center mt-1 mb-6">Digite a senha de acesso.</p>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center">{error}</div>
+        )}
+
+        <input
+          type="password"
+          autoFocus
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Senha"
+          className="w-full px-4 py-3 rounded-xl border border-border bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
+        />
+
+        <button
+          type="submit"
+          disabled={loading || !password}
+          className="w-full mt-4 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-[#bd7d17] via-primary to-[#e6bd54] shadow-lg shadow-primary/25 disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Entrando…</> : "Entrar"}
+        </button>
+      </form>
+    </div>
+  );
+}
 
 interface AdminStats {
   totalWeddings: number;
@@ -57,12 +117,8 @@ interface Withdrawal {
   partner2_name: string | null;
 }
 
-// Admin emails authorized to access this panel
-const ADMIN_EMAILS = ["osvaldog.lfilho@gmail.com"];
-
 export default function AdminDashboard() {
-  const { user, isPending } = useAuth();
-  const navigate = useNavigate();
+  const [authed, setAuthed] = useState<boolean | null>(null);
   const [activeTab, setActiveTab] = useState<"support" | "overview" | "weddings" | "withdrawals" | "templates">("support");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [weddings, setWeddings] = useState<Wedding[]>([]);
@@ -71,19 +127,21 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [processingId, setProcessingId] = useState<number | null>(null);
 
-  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
+  useEffect(() => {
+    authFetch("/api/admin/me")
+      .then((r) => r.json())
+      .then((d) => setAuthed(!!d.admin))
+      .catch(() => setAuthed(false));
+  }, []);
 
   useEffect(() => {
-    if (!isPending && !user) {
-      navigate("/entrar");
-    }
-  }, [user, isPending, navigate]);
+    if (authed) fetchData();
+  }, [authed]);
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchData();
-    }
-  }, [isAdmin]);
+  const logout = async () => {
+    await authFetch("/api/admin/logout", { method: "POST" });
+    setAuthed(false);
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -141,32 +199,16 @@ export default function AdminDashboard() {
 
   const pendingWithdrawals = withdrawals.filter((w) => w.status === "pending");
 
-  if (isPending) {
+  if (authed === null) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-border text-center max-w-md">
-          <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-serif text-foreground mb-2">Acesso Negado</h1>
-          <p className="text-muted-foreground mb-6">
-            Você não tem permissão para acessar o painel administrativo.
-          </p>
-          <button
-            onClick={() => navigate("/")}
-            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            Voltar ao Início
-          </button>
-        </div>
-      </div>
-    );
+  if (!authed) {
+    return <AdminLogin onSuccess={() => setAuthed(true)} />;
   }
 
   return (
@@ -192,10 +234,12 @@ export default function AdminDashboard() {
               >
                 <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
               </button>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Logado como</p>
-                <p className="text-foreground font-medium">{user?.email}</p>
-              </div>
+              <button
+                onClick={logout}
+                className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <LogOut className="w-4 h-4" /> Sair
+              </button>
             </div>
           </div>
         </div>

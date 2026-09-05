@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
-import { authMiddleware, SUPPORT_COOKIE_NAME } from "../local-auth-backend";
+import { SUPPORT_COOKIE_NAME } from "../local-auth-backend";
 import { adminMiddleware } from "../lib/admin";
 import type { AppEnv } from "../lib/types";
 
@@ -21,7 +21,7 @@ function supportToken() {
 
 // Admin: start acting as a couple. Creates a 12h session in a *separate* cookie
 // so the admin's own login is never touched; authMiddleware prefers it.
-r.post("/api/admin/couples/:id/impersonate", authMiddleware, adminMiddleware, async (c) => {
+r.post("/api/admin/couples/:id/impersonate", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const w = await c.env.DB.prepare(
     `SELECT w.id, w.partner1_name, w.partner2_name, u.id AS user_id, u.email, u.name

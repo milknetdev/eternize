@@ -237,8 +237,6 @@ export interface Fixture {
   tokenA: string;
   /** session token for the owner of wedding B */
   tokenB: string;
-  /** session token for the platform admin */
-  tokenAdmin: string;
   weddingA: number;
   weddingB: number;
   /** a guest that belongs to wedding A */
@@ -260,13 +258,11 @@ export async function makeFixture(): Promise<Fixture> {
   await pg.exec(`
     INSERT INTO users (id, email, password_hash, name) VALUES
       ('user_a', 'a@example.com', 'x', 'Alice'),
-      ('user_b', 'b@example.com', 'x', 'Bob'),
-      ('user_admin', 'osvaldog.lfilho@gmail.com', 'x', 'Admin');
+      ('user_b', 'b@example.com', 'x', 'Bob');
 
     INSERT INTO sessions (token, user_id, email, name, expires_at) VALUES
       ('token_a', 'user_a', 'a@example.com', 'Alice', NOW() + INTERVAL '1 day'),
-      ('token_b', 'user_b', 'b@example.com', 'Bob',   NOW() + INTERVAL '1 day'),
-      ('token_admin', 'user_admin', 'osvaldog.lfilho@gmail.com', 'Admin', NOW() + INTERVAL '1 day');
+      ('token_b', 'user_b', 'b@example.com', 'Bob',   NOW() + INTERVAL '1 day');
 
     INSERT INTO weddings (user_id, partner1_name, partner2_name, custom_url) VALUES
       ('user_a', 'Alice', 'Alex', 'alice-alex'),
@@ -283,10 +279,26 @@ export async function makeFixture(): Promise<Fixture> {
     db: new TestDB(pg),
     tokenA: "token_a",
     tokenB: "token_b",
-    tokenAdmin: "token_admin",
     weddingA: 1,
     weddingB: 2,
     guestA: 1,
     taskA: 1,
   };
+}
+
+export const TEST_ADMIN_PASSWORD = "test-admin-pw";
+
+/** Log in through the standalone admin password gate; returns the cookie header. */
+export async function adminCookie(
+  app: { request: (...a: unknown[]) => Promise<Response> },
+  env: Record<string, unknown>,
+): Promise<string> {
+  process.env.ADMIN_PASSWORD = TEST_ADMIN_PASSWORD;
+  const res = await app.request(
+    "/api/admin/login",
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: TEST_ADMIN_PASSWORD }) },
+    env,
+  );
+  const m = (res.headers.get("set-cookie") || "").match(/eternize_admin=([^;]+)/);
+  return `eternize_admin=${m?.[1] ?? ""}`;
 }
