@@ -259,7 +259,7 @@ export function ParentsTab() {
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
                     <button onClick={() => handleEdit(item)} className="p-2 hover:bg-muted rounded-lg transition-colors" title="Editar">
                       <Pencil className="w-4 h-4" />
                     </button>

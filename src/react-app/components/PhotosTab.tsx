@@ -124,8 +124,8 @@ export function PhotosTab({
                 />
               </div>
               
-              {/* Overlay on hover */}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
+              {/* Overlay — always visible on touch, hover-reveal on desktop */}
+              <div className="absolute inset-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3 bg-gradient-to-b from-black/50 via-black/10 to-black/50 sm:from-black/60 sm:via-black/60 sm:to-black/60">
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => {

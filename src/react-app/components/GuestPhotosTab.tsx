@@ -346,7 +346,7 @@ export function GuestPhotosTab() {
 
               {/* Quick actions for pending */}
               {photo.is_approved === null && (
-                <div className="absolute bottom-2 left-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute bottom-2 left-2 right-2 flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <Button
                     size="sm"
                     className="flex-1 bg-green-500 hover:bg-green-600 text-white h-8"
