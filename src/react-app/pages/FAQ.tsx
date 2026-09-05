@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   HelpCircle,
   ChevronDown,
@@ -16,6 +17,7 @@ import {
 import { Button } from "@/react-app/components/ui/button";
 import Header from "@/react-app/components/layout/Header";
 import Footer from "@/react-app/components/layout/Footer";
+import { HeroBg, Reveal, CtaButton } from "@/react-app/components/marketing/kit";
 
 interface FAQItem {
   question: string;
@@ -141,7 +143,7 @@ const faqData: FAQCategory[] = [
       },
       {
         question: "Posso personalizar o design do convite?",
-        answer: "Sim! Você pode alterar cores, fontes, adicionar sua foto de casal e ajustar os textos. Temos mais de 20 templates para escolher."
+        answer: "Sim! Você pode alterar cores, fontes, adicionar sua foto de casal e ajustar os textos. São vários templates para escolher."
       },
       {
         question: "O convite inclui link para o site?",
@@ -179,7 +181,7 @@ const faqData: FAQCategory[] = [
     items: [
       {
         question: "Meu site está fora do ar. O que fazer?",
-        answer: "Isso é muito raro, mas se acontecer, entre em contato pelo chat ou email suporte@eternize.com.br. Nosso time resolve em menos de 1 hora."
+        answer: "Isso é raro, mas se acontecer, escreva para contato@eternize.com que a gente resolve o quanto antes."
       },
       {
         question: "Posso usar meu próprio domínio?",
@@ -191,7 +193,7 @@ const faqData: FAQCategory[] = [
       },
       {
         question: "Como entro em contato com o suporte?",
-        answer: "Você pode usar o chat no canto inferior direito, enviar email para suporte@eternize.com.br ou acessar nossa Central de Ajuda."
+        answer: "É só enviar um email para contato@eternize.com. Quem responde é uma pessoa do time, não um robô — normalmente no mesmo dia."
       },
     ]
   },
@@ -229,12 +231,9 @@ export default function FAQ() {
       <Header />
 
       {/* Hero */}
-      <section className="relative pt-24 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-primary blur-3xl" />
-          <div className="absolute bottom-10 right-20 w-80 h-80 rounded-full bg-gold-light blur-3xl" />
-        </div>
-        <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
+      <section className="relative pt-32 pb-16 bg-gradient-to-br from-cream via-blush/30 to-champagne overflow-hidden">
+        <HeroBg />
+        <Reveal className="max-w-4xl mx-auto px-4 relative z-10 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
             <HelpCircle className="w-4 h-4" />
             Central de Ajuda
@@ -254,14 +253,14 @@ export default function FAQ() {
               placeholder="Buscar perguntas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-border bg-white focus:border-primary focus:outline-none text-lg"
+              className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-border bg-white focus:border-primary focus:outline-none text-lg shadow-sm focus:shadow-md transition-shadow"
             />
           </div>
 
           <p className="mt-4 text-sm text-muted-foreground">
             {totalQuestions} perguntas em {faqData.length} categorias
           </p>
-        </div>
+        </Reveal>
       </section>
 
       {/* FAQ Content */}
@@ -301,7 +300,7 @@ export default function FAQ() {
             {/* Questions */}
             <div className={searchTerm ? "lg:col-span-4" : "lg:col-span-3"}>
               {filteredCategories.map((category) => (
-                <div key={category.id} className="mb-8">
+                <Reveal key={category.id} className="mb-8">
                   {searchTerm && (
                     <div className="flex items-center gap-2 mb-4">
                       <category.icon className="w-5 h-5 text-primary" />
@@ -318,7 +317,9 @@ export default function FAQ() {
                       return (
                         <div
                           key={itemId}
-                          className="bg-white rounded-xl border border-border overflow-hidden"
+                          className={`bg-white rounded-xl border overflow-hidden transition-colors ${
+                            isOpen ? "border-primary/40 shadow-sm" : "border-border"
+                          }`}
                         >
                           <button
                             onClick={() => toggleItem(itemId)}
@@ -326,25 +327,35 @@ export default function FAQ() {
                           >
                             <span className="font-medium pr-4">{item.question}</span>
                             <ChevronDown
-                              className={`w-5 h-5 text-muted-foreground flex-shrink-0 transition-transform ${
-                                isOpen ? "rotate-180" : ""
+                              className={`w-5 h-5 flex-shrink-0 transition-transform ${
+                                isOpen ? "rotate-180 text-primary" : "text-muted-foreground"
                               }`}
                             />
                           </button>
-                          {isOpen && (
-                            <div className="px-5 pb-5 pt-0">
-                              <div className="pt-3 border-t border-border">
-                                <p className="text-muted-foreground leading-relaxed">
-                                  {item.answer}
-                                </p>
-                              </div>
-                            </div>
-                          )}
+                          <AnimatePresence initial={false}>
+                            {isOpen && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.25, ease: "easeOut" }}
+                                className="overflow-hidden"
+                              >
+                                <div className="px-5 pb-5 pt-0">
+                                  <div className="pt-3 border-t border-border">
+                                    <p className="text-muted-foreground leading-relaxed">
+                                      {item.answer}
+                                    </p>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       );
                     })}
                   </div>
-                </div>
+                </Reveal>
               ))}
 
               {filteredCategories.length === 0 && searchTerm && (
@@ -367,29 +378,28 @@ export default function FAQ() {
       {/* Still Need Help */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-gradient-to-br from-primary/5 via-blush/30 to-champagne rounded-3xl p-8 md:p-12 text-center">
+          <Reveal className="bg-gradient-to-br from-primary/5 via-blush/30 to-champagne rounded-3xl p-8 md:p-12 text-center">
             <MessageCircle className="w-12 h-12 text-primary mx-auto mb-6" />
             <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
               Ainda tem dúvidas?
             </h2>
             <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-              Nossa equipe está pronta para ajudar. Entre em contato e responderemos 
-              o mais rápido possível.
+              Quem responde é uma pessoa do time, não um robô. Escreva pra gente e
+              retornamos o quanto antes — normalmente no mesmo dia.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="mailto:contato@eternize.com">
-                <Button className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white px-8 py-6 rounded-xl font-semibold text-lg">
-                  Falar com o Suporte
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+              <a
+                href="mailto:contato@eternize.com"
+                className="group inline-flex items-center justify-center gap-2 rounded-xl font-semibold px-8 py-4 text-lg bg-gradient-to-r from-[#bd7d17] via-primary to-[#e6bd54] bg-[length:200%_100%] hover:bg-[position:100%_0] text-white shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-[background-position,box-shadow] duration-500"
+              >
+                Falar com o Suporte
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </a>
-              <Link to="/cadastro">
-                <Button variant="outline" className="px-8 py-6 rounded-xl font-medium text-lg border-2">
-                  Criar meu site grátis
-                </Button>
-              </Link>
+              <CtaButton to="/cadastro" variant="outline">
+                Criar meu site grátis
+              </CtaButton>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -401,22 +411,23 @@ export default function FAQ() {
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { name: "Como Funciona", href: "/#como-funciona", icon: HelpCircle },
-              { name: "Planos e Preços", href: "/#planos", icon: CreditCard },
+              { name: "Como Funciona", href: "/#how-it-works", icon: HelpCircle },
+              { name: "Planos e Preços", href: "/#pricing", icon: CreditCard },
               { name: "Templates", href: "/templates", icon: Settings },
               { name: "Demonstração", href: "/demo/ana-e-joao", icon: Camera },
             ].map((link, i) => (
-              <Link
-                key={i}
-                to={link.href}
-                className="flex items-center gap-3 p-4 bg-white rounded-xl border border-border hover:border-primary hover:shadow-md transition-all"
-              >
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <link.icon className="w-5 h-5 text-primary" />
-                </div>
-                <span className="font-medium">{link.name}</span>
-                <ArrowRight className="w-4 h-4 text-muted-foreground ml-auto" />
-              </Link>
+              <Reveal key={i} delay={i * 0.05}>
+                <Link
+                  to={link.href}
+                  className="group flex items-center gap-3 p-4 bg-white rounded-xl border border-border hover:border-primary hover:shadow-md transition-all"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <link.icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <span className="font-medium">{link.name}</span>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground ml-auto group-hover:translate-x-1 group-hover:text-primary transition-all" />
+                </Link>
+              </Reveal>
             ))}
           </div>
         </div>
