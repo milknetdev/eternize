@@ -67,11 +67,16 @@ export default function GiftCheckout() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    document: "",
     cardSenderName: "",
     cardMessage: "",
   });
   const [pixCopied, setPixCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pixCharge, setPixCharge] = useState<{ emv: string; qrCode: string; ref: string; expiresAt: string | null } | null>(null);
+  const [blocked, setBlocked] = useState(false);
+  const [payError, setPayError] = useState("");
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     fetch("/api/public/platform-config")
@@ -123,28 +128,21 @@ export default function GiftCheckout() {
   const primaryColor = wedding?.theme_primary_color || "#d4a574";
   const secondaryColor = wedding?.theme_secondary_color || "#c9a86c";
 
-  const handleCopyPix = () => {
-    if (wedding?.pix_key) {
-      navigator.clipboard.writeText(wedding.pix_key);
-      setPixCopied(true);
-      setTimeout(() => setPixCopied(false), 3000);
-    }
-  };
-
   const handleSubmitCard = () => {
     setStep("info");
   };
 
-  const handleSubmitInfo = (e: React.FormEvent) => {
+  // info -> pix: create the orders, then a real PIX charge for the whole checkout.
+  const handleSubmitInfo = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStep("pix");
-  };
-
-  const handleConfirmPayment = async () => {
     setLoading(true);
+    setPayError("");
+    setBlocked(false);
     try {
-      // Submit order to API. The card price and the flat maintenance fee are
-      // charged once per checkout — attach them to the first item only.
+      const ref =
+        (crypto as any)?.randomUUID?.() ||
+        `chk_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
       let idx = 0;
       for (const item of cart) {
         await authFetch("/api/public/gift-order", {
@@ -162,18 +160,87 @@ export default function GiftCheckout() {
             card_message: formData.cardMessage,
             card_price: idx === 0 ? selectedCard.price : 0,
             apply_maintenance_fee: idx === 0,
+            checkout_ref: ref,
           }),
         });
         idx += 1;
       }
 
-      // Clear cart
-      sessionStorage.removeItem(`cart_${customUrl}`);
-      setStep("success");
-    } catch (error) {
-      console.error("Error submitting order:", error);
+      const res = await fetch("/api/public/pix-charge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          checkout_ref: ref,
+          amount: total,
+          description: `Presente para ${wedding?.partner1_name || ""} & ${wedding?.partner2_name || ""}`.trim(),
+          customer: { name: formData.name, email: formData.email, document: formData.document },
+        }),
+      });
+
+      if (res.status === 503) {
+        setBlocked(true);
+        return;
+      }
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setPayError(d.error || "Não foi possível gerar o PIX. Tente novamente.");
+        return;
+      }
+      const data = await res.json();
+      setPixCharge({ emv: data.emv, qrCode: data.qrCode, ref: data.ref || ref, expiresAt: data.expiresAt || null });
+      setStep("pix");
+    } catch (err) {
+      console.error("checkout failed:", err);
+      setPayError("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const finishSuccess = () => {
+    sessionStorage.removeItem(`cart_${customUrl}`);
+    setStep("success");
+  };
+
+  // Poll payment status while on the PIX step.
+  useEffect(() => {
+    if (step !== "pix" || !pixCharge?.ref) return;
+    let stop = false;
+    const started = Date.now();
+    const tick = async () => {
+      if (stop) return;
+      try {
+        const r = await fetch(`/api/public/checkout-status/${encodeURIComponent(pixCharge.ref)}`);
+        const d = await r.json();
+        if (d.paid) {
+          stop = true;
+          finishSuccess();
+          return;
+        }
+      } catch { /* keep trying */ }
+      if (Date.now() - started < 15 * 60 * 1000) setTimeout(tick, 4000);
+    };
+    const t = setTimeout(tick, 4000);
+    return () => {
+      stop = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, pixCharge?.ref]);
+
+  const handleVerifyPayment = async () => {
+    if (!pixCharge?.ref) return;
+    setChecking(true);
+    setPayError("");
+    try {
+      const r = await fetch(`/api/public/checkout-status/${encodeURIComponent(pixCharge.ref)}?reconcile=1`);
+      const d = await r.json();
+      if (d.paid) finishSuccess();
+      else setPayError("Ainda não identificamos o pagamento. Se você acabou de pagar, aguarde alguns instantes.");
+    } catch {
+      setPayError("Não foi possível verificar agora. Tente novamente.");
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -399,6 +466,42 @@ export default function GiftCheckout() {
                       Enviaremos a confirmação do presente para este e-mail
                     </p>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      CPF <span className="text-muted-foreground font-normal">(opcional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.document}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          document: e.target.value
+                            .replace(/\D/g, "")
+                            .slice(0, 11)
+                            .replace(/(\d{3})(\d)/, "$1.$2")
+                            .replace(/(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+                            .replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4"),
+                        })
+                      }
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      placeholder="000.000.000-00"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Alguns bancos exigem o CPF do pagador no PIX.
+                    </p>
+                  </div>
+
+                  {blocked && (
+                    <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+                      O pagamento de presentes está <strong>temporariamente indisponível</strong>. Os noivos
+                      já foram avisados — tente novamente mais tarde.
+                    </div>
+                  )}
+                  {payError && (
+                    <p className="text-sm text-red-500">{payError}</p>
+                  )}
 
                   <div className="flex gap-3 pt-4">
                     <Button
@@ -411,10 +514,11 @@ export default function GiftCheckout() {
                     </Button>
                     <Button
                       type="submit"
-                      className="flex-1 py-6 rounded-xl font-semibold text-white"
+                      disabled={loading}
+                      className="flex-1 py-6 rounded-xl font-semibold text-white disabled:opacity-60"
                       style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}
                     >
-                      Continuar
+                      {loading ? "Gerando PIX…" : "Continuar"}
                     </Button>
                   </div>
                 </form>
@@ -428,72 +532,75 @@ export default function GiftCheckout() {
                   Pagamento via PIX
                 </h1>
                 <p className="text-muted-foreground mb-6">
-                  Escaneie o QR Code ou copie a chave PIX para pagar
+                  Escaneie o QR Code no app do seu banco ou use o código copia-e-cola.
+                  A confirmação é automática.
                 </p>
 
-                {/* QR Code Placeholder */}
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 text-center mb-6">
-                  <div className="w-48 h-48 bg-white rounded-xl mx-auto mb-4 flex items-center justify-center border-2 border-dashed border-gray-300">
-                    <QrCode className="w-32 h-32 text-gray-400" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    QR Code válido por 30 minutos
-                  </p>
+                {/* Real QR from the gateway */}
+                <div className="bg-white rounded-2xl p-6 text-center mb-4 border border-border">
+                  {pixCharge?.qrCode ? (
+                    <img
+                      src={pixCharge.qrCode}
+                      alt="QR Code PIX"
+                      className="w-56 h-56 object-contain mx-auto"
+                    />
+                  ) : (
+                    <div className="w-56 h-56 mx-auto flex items-center justify-center text-muted-foreground">
+                      <QrCode className="w-24 h-24" />
+                    </div>
+                  )}
                 </div>
 
-                {/* PIX Key */}
-                {wedding?.pix_key && (
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium mb-2">
-                      Chave PIX
-                    </label>
+                {/* copia e cola */}
+                {pixCharge?.emv && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2">PIX copia e cola</label>
                     <div className="flex gap-2">
-                      <div className="flex-1 px-4 py-3 rounded-xl border border-border bg-gray-50 font-mono text-sm overflow-hidden">
-                        <p className="truncate">{wedding.pix_key}</p>
+                      <div className="flex-1 px-4 py-3 rounded-xl border border-border bg-gray-50 font-mono text-xs overflow-hidden">
+                        <p className="truncate">{pixCharge.emv}</p>
                       </div>
                       <Button
-                        onClick={handleCopyPix}
+                        onClick={() => {
+                          navigator.clipboard.writeText(pixCharge.emv);
+                          setPixCopied(true);
+                          setTimeout(() => setPixCopied(false), 2500);
+                        }}
                         variant="outline"
                         className="px-6"
                       >
-                        {pixCopied ? (
-                          <Check className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <Copy className="w-5 h-5" />
-                        )}
+                        {pixCopied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
                       </Button>
                     </div>
                   </div>
                 )}
 
-                {/* Info */}
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <Clock className="w-4 h-4" style={{ color: primaryColor }} />
-                    Pagamento instantâneo
-                  </div>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <Shield className="w-4 h-4" style={{ color: primaryColor }} />
-                    Transação 100% segura
-                  </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+                  <Clock className="w-4 h-4 animate-pulse" style={{ color: primaryColor }} />
+                  Aguardando o pagamento… a tela avança sozinha quando o PIX cair.
                 </div>
+
+                {payError && <p className="text-sm text-red-500 mb-3">{payError}</p>}
 
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
-                    onClick={() => setStep("info")}
+                    onClick={() => { setStep("info"); setPixCharge(null); }}
                     className="flex-1 py-6 rounded-xl"
                   >
                     Voltar
                   </Button>
                   <Button
-                    onClick={handleConfirmPayment}
-                    disabled={loading}
+                    onClick={handleVerifyPayment}
+                    disabled={checking}
                     className="flex-1 py-6 rounded-xl font-semibold text-white"
                     style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}
                   >
-                    {loading ? "Processando..." : "Já Fiz o Pagamento"}
+                    {checking ? "Verificando…" : "Já paguei, verificar"}
                   </Button>
+                </div>
+                <div className="flex items-center justify-center gap-3 mt-4 text-xs text-muted-foreground">
+                  <Shield className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                  Pagamento processado com segurança
                 </div>
               </div>
             )}
