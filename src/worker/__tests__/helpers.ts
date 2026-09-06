@@ -224,6 +224,7 @@ CREATE TABLE gift_orders (
   platform_amount DOUBLE PRECISION DEFAULT 0,
   couple_amount DOUBLE PRECISION DEFAULT 0,
   payment_status TEXT DEFAULT 'pending',
+  paid_at TIMESTAMPTZ,
   is_converted BOOLEAN DEFAULT FALSE,
   converted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),

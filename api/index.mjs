@@ -3334,6 +3334,31 @@ r15.get("/api/gift-orders", authMiddleware, async (c) => {
   `).bind(wedding.id).all();
   return c.json({ orders: orders.results || [] });
 });
+r15.put("/api/gift-orders/:id/status", authMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const userId = c.get("user")?.id;
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE user_id = ?"
+  ).bind(userId).first();
+  if (!wedding) return c.json({ error: "Wedding not found" }, 404);
+  const body = await c.req.json().catch(() => ({}));
+  const paid = !!body.paid;
+  const res = await c.env.DB.prepare(`
+    UPDATE gift_orders
+    SET payment_status = ?, paid_at = ${paid ? "CURRENT_TIMESTAMP" : "NULL"}, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND wedding_id = ? AND is_converted = FALSE
+  `).bind(paid ? "paid" : "pending", id, wedding.id).run();
+  if (!res.meta.changes) return c.json({ error: "Pedido n\xE3o encontrado" }, 404);
+  if (paid) {
+    try {
+      await c.env.DB.prepare(
+        "UPDATE gift_orders SET couple_amount = amount WHERE id = ? AND (couple_amount IS NULL OR couple_amount = 0)"
+      ).bind(id).run();
+    } catch {
+    }
+  }
+  return c.json({ success: true, paid });
+});
 r15.get("/api/balance", authMiddleware, async (c) => {
   const userId = c.get("user")?.id;
   const wedding = await c.env.DB.prepare(

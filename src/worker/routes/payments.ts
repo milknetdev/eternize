@@ -30,6 +30,40 @@ r.get("/api/gift-orders", authMiddleware, async (c) => {
   return c.json({ orders: orders.results || [] });
 });
 
+// Couple confirms (or un-confirms) that a gift payment landed. Payment is manual
+// PIX, so nothing flips a pending order to "paid" automatically — this is it.
+r.put("/api/gift-orders/:id/status", authMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const userId = c.get("user")?.id;
+  const wedding = await c.env.DB.prepare(
+    "SELECT id FROM weddings WHERE user_id = ?"
+  ).bind(userId).first<{ id: number }>();
+  if (!wedding) return c.json({ error: "Wedding not found" }, 404);
+
+  const body = await c.req.json().catch(() => ({}));
+  const paid = !!body.paid;
+
+  // Only the pending<->paid toggle; never touch an order already converted to PIX.
+  const res = await c.env.DB.prepare(`
+    UPDATE gift_orders
+    SET payment_status = ?, paid_at = ${paid ? "CURRENT_TIMESTAMP" : "NULL"}, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND wedding_id = ? AND is_converted = FALSE
+  `).bind(paid ? "paid" : "pending", id, wedding.id).run();
+
+  if (!res.meta.changes) return c.json({ error: "Pedido não encontrado" }, 404);
+
+  // Defensive: make sure the couple's net share is set for legacy rows.
+  if (paid) {
+    try {
+      await c.env.DB.prepare(
+        "UPDATE gift_orders SET couple_amount = amount WHERE id = ? AND (couple_amount IS NULL OR couple_amount = 0)"
+      ).bind(id).run();
+    } catch { /* pre-migration schema — ignore */ }
+  }
+
+  return c.json({ success: true, paid });
+});
+
 // Get available balance (paid orders not yet converted)
 r.get("/api/balance", authMiddleware, async (c) => {
   const userId = c.get("user")?.id;

@@ -48,10 +48,27 @@ export function FinanceiroTab() {
   const [pixKey, setPixKey] = useState("");
   const [pixKeyType, setPixKeyType] = useState("cpf");
   const [submitting, setSubmitting] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  const confirmOrder = async (id: number, paid: boolean) => {
+    setConfirmingId(id);
+    try {
+      await authFetch(`/api/gift-orders/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paid }),
+      });
+      await fetchData();
+    } catch (e) {
+      console.error("Failed to update order status:", e);
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -197,6 +214,11 @@ export function FinanceiroTab() {
             <Gift className="w-5 h-5 text-primary" />
             Presentes Recebidos
           </h3>
+          {orders.some((o) => o.payment_status !== "paid") && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Confirme o recebimento de cada PIX para o valor entrar no seu saldo.
+            </p>
+          )}
         </div>
         {orders.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
@@ -231,15 +253,37 @@ export function FinanceiroTab() {
                       {formatCurrency(order.amount)} − {formatCurrency(order.commission_amount)} taxa
                     </p>
                   )}
-                  <div className="flex items-center gap-1 text-xs justify-end">
-                    {order.is_converted ? (
+                  <div className="flex items-center gap-2 text-xs justify-end mt-0.5">
+                    {order.payment_status !== "paid" ? (
+                      <>
+                        <span className="text-amber-600 flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> Aguardando confirmação
+                        </span>
+                        <button
+                          onClick={() => confirmOrder(order.id, true)}
+                          disabled={confirmingId === order.id}
+                          className="px-2 py-0.5 rounded-md bg-primary text-white font-medium hover:bg-primary/90 disabled:opacity-50"
+                        >
+                          {confirmingId === order.id ? "…" : "Confirmar recebimento"}
+                        </button>
+                      </>
+                    ) : order.is_converted ? (
                       <span className="text-blue-600 flex items-center gap-1">
                         <Check className="w-3 h-3" /> Convertido
                       </span>
                     ) : (
-                      <span className="text-green-600 flex items-center gap-1">
-                        <DollarSign className="w-3 h-3" /> Disponível
-                      </span>
+                      <>
+                        <span className="text-green-600 flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" /> Disponível
+                        </span>
+                        <button
+                          onClick={() => confirmOrder(order.id, false)}
+                          disabled={confirmingId === order.id}
+                          className="text-muted-foreground hover:text-foreground underline"
+                        >
+                          desfazer
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>

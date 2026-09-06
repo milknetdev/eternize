@@ -11,12 +11,9 @@ import {
   Shield,
   Gift,
   Sparkles,
-  Crown,
-  Star,
-  Gem,
-  PartyPopper,
 } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
+import { GiftCardSurface, themeFor } from "@/react-app/components/checkout/giftCardThemes";
 
 interface CartItem {
   gift: {
@@ -42,24 +39,12 @@ interface CardType {
   name: string;
   price: number;
   description: string;
-  icon: React.ReactNode;
-  gradient: string;
-  borderColor: string;
+  // visual treatment is picked by position (themeFor handles the wrap-around)
+  themeIndex: number;
 }
 
-// Card tiers come from the admin (GET /api/public/platform-config); the visual
-// style is assigned by position.
-const CARD_STYLES = [
-  { icon: <Gift className="w-6 h-6" />, gradient: "from-gray-100 to-gray-200", borderColor: "border-gray-300" },
-  { icon: <Heart className="w-6 h-6" />, gradient: "from-pink-100 to-rose-200", borderColor: "border-pink-300" },
-  { icon: <Star className="w-6 h-6" />, gradient: "from-amber-100 to-yellow-200", borderColor: "border-amber-400" },
-  { icon: <Gem className="w-6 h-6" />, gradient: "from-purple-100 to-violet-200", borderColor: "border-purple-400" },
-  { icon: <PartyPopper className="w-6 h-6" />, gradient: "from-cyan-100 to-blue-200", borderColor: "border-cyan-400" },
-  { icon: <Crown className="w-6 h-6" />, gradient: "from-yellow-200 to-amber-300", borderColor: "border-yellow-500" },
-];
-
 const FALLBACK_CARDS: CardType[] = [
-  { id: "gratis", name: "Grátis", price: 0, description: "Cartão simples com seu nome e mensagem", ...CARD_STYLES[0] },
+  { id: "gratis", name: "Grátis", price: 0, description: "Cartão simples com seu nome e mensagem", themeIndex: 0 },
 ];
 
 function formatPrice(price: number): string {
@@ -99,7 +84,7 @@ export default function GiftCheckout() {
           name: o.name,
           price: Number(o.price) || 0,
           description: o.description || "",
-          ...CARD_STYLES[i % CARD_STYLES.length],
+          themeIndex: i,
         }));
         if (opts.length > 0) {
           setCards(opts);
@@ -274,43 +259,34 @@ export default function GiftCheckout() {
                 </p>
 
                 <div className="grid sm:grid-cols-2 gap-4 mb-8">
-                  {cards.map((card) => (
-                    <button
-                      key={card.id}
-                      onClick={() => setSelectedCard(card)}
-                      className={`relative p-4 rounded-xl border-2 text-left transition-all hover:scale-[1.02] ${
-                        selectedCard.id === card.id
-                          ? `${card.borderColor} shadow-lg`
-                          : "border-transparent hover:border-gray-200"
-                      }`}
-                    >
-                      <div
-                        className={`absolute inset-0 rounded-xl bg-gradient-to-br ${card.gradient} opacity-50`}
-                      />
-                      <div className="relative">
+                  {cards.map((card) => {
+                    const theme = themeFor(card.themeIndex);
+                    const active = selectedCard.id === card.id;
+                    return (
+                      <GiftCardSurface
+                        key={card.id}
+                        theme={theme}
+                        selected={active}
+                        onClick={() => setSelectedCard(card)}
+                      >
                         <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span style={{ color: primaryColor }}>{card.icon}</span>
+                          <div className={`flex items-center gap-2 ${theme.accent}`}>
+                            {theme.icon}
                             <span className="font-semibold">{card.name}</span>
                           </div>
-                          {selectedCard.id === card.id && (
-                            <div
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-white"
-                              style={{ backgroundColor: primaryColor }}
-                            >
+                          {active && (
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center bg-white/80 text-foreground">
                               <Check className="w-4 h-4" />
                             </div>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {card.description}
-                        </p>
-                        <p className="font-semibold" style={{ color: primaryColor }}>
+                        <p className="text-sm text-black/60 mb-2">{card.description}</p>
+                        <p className={`font-semibold ${theme.accent}`}>
                           {card.price === 0 ? "Grátis" : formatPrice(card.price)}
                         </p>
-                      </div>
-                    </button>
-                  ))}
+                      </GiftCardSurface>
+                    );
+                  })}
                 </div>
 
                 {/* Card Preview */}
@@ -352,24 +328,24 @@ export default function GiftCheckout() {
 
                 {/* Card Preview Box */}
                 {(formData.cardSenderName || formData.cardMessage) && (
-                  <div
-                    className={`p-6 rounded-xl bg-gradient-to-br ${selectedCard.gradient} border-2 ${selectedCard.borderColor} mb-6`}
-                  >
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground mb-1">Prévia do cartão</p>
-                      <div className="flex items-center justify-center gap-2 mb-3">
-                        {selectedCard.icon}
-                        <span className="font-serif text-lg font-semibold">
-                          Cartão {selectedCard.name}
-                        </span>
+                  <div className="mb-6">
+                    <GiftCardSurface theme={themeFor(selectedCard.themeIndex)} variant="preview" selected>
+                      <div className="text-center">
+                        <p className="text-xs uppercase tracking-widest text-black/40 mb-1">Prévia do cartão</p>
+                        <div className={`flex items-center justify-center gap-2 mb-3 ${themeFor(selectedCard.themeIndex).accent}`}>
+                          {themeFor(selectedCard.themeIndex).icon}
+                          <span className="font-serif text-lg font-semibold">
+                            Cartão {selectedCard.name}
+                          </span>
+                        </div>
+                        {formData.cardMessage && (
+                          <p className="italic text-black/70 mb-3">"{formData.cardMessage}"</p>
+                        )}
+                        {formData.cardSenderName && (
+                          <p className="font-medium text-black/80">— {formData.cardSenderName}</p>
+                        )}
                       </div>
-                      {formData.cardMessage && (
-                        <p className="italic text-gray-700 mb-3">"{formData.cardMessage}"</p>
-                      )}
-                      {formData.cardSenderName && (
-                        <p className="font-medium">— {formData.cardSenderName}</p>
-                      )}
-                    </div>
+                    </GiftCardSurface>
                   </div>
                 )}
 
@@ -541,23 +517,23 @@ export default function GiftCheckout() {
 
                 {/* Card Preview */}
                 {selectedCard.price > 0 && (
-                  <div
-                    className={`p-6 rounded-xl bg-gradient-to-br ${selectedCard.gradient} border-2 ${selectedCard.borderColor} mb-6 text-left`}
-                  >
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-3">
-                        {selectedCard.icon}
-                        <span className="font-serif text-lg font-semibold">
-                          Cartão {selectedCard.name}
-                        </span>
+                  <div className="mb-6">
+                    <GiftCardSurface theme={themeFor(selectedCard.themeIndex)} variant="preview" selected>
+                      <div className="text-center">
+                        <div className={`flex items-center justify-center gap-2 mb-3 ${themeFor(selectedCard.themeIndex).accent}`}>
+                          {themeFor(selectedCard.themeIndex).icon}
+                          <span className="font-serif text-lg font-semibold">
+                            Cartão {selectedCard.name}
+                          </span>
+                        </div>
+                        {formData.cardMessage && (
+                          <p className="italic text-black/70 mb-3">"{formData.cardMessage}"</p>
+                        )}
+                        {(formData.cardSenderName || formData.name) && (
+                          <p className="font-medium text-black/80">— {formData.cardSenderName || formData.name}</p>
+                        )}
                       </div>
-                      {formData.cardMessage && (
-                        <p className="italic text-gray-700 mb-3">"{formData.cardMessage}"</p>
-                      )}
-                      {(formData.cardSenderName || formData.name) && (
-                        <p className="font-medium">— {formData.cardSenderName || formData.name}</p>
-                      )}
-                    </div>
+                    </GiftCardSurface>
                   </div>
                 )}
 
@@ -627,18 +603,18 @@ export default function GiftCheckout() {
 
               {/* Card */}
               {selectedCard && (
-                <div
-                  className={`p-3 rounded-lg bg-gradient-to-br ${selectedCard.gradient} border ${selectedCard.borderColor} mb-4`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">{selectedCard.icon}</span>
-                      <span className="text-sm font-medium">Cartão {selectedCard.name}</span>
+                <div className="mb-4">
+                  <GiftCardSurface theme={themeFor(selectedCard.themeIndex)} variant="chip" selected>
+                    <div className="flex items-center justify-between">
+                      <div className={`flex items-center gap-2 ${themeFor(selectedCard.themeIndex).accent}`}>
+                        <span className="[&>svg]:w-4 [&>svg]:h-4">{themeFor(selectedCard.themeIndex).icon}</span>
+                        <span className="text-sm font-medium">Cartão {selectedCard.name}</span>
+                      </div>
+                      <span className={`text-sm font-semibold ${themeFor(selectedCard.themeIndex).accent}`}>
+                        {selectedCard.price === 0 ? "Grátis" : formatPrice(selectedCard.price)}
+                      </span>
                     </div>
-                    <span className="text-sm font-semibold" style={{ color: primaryColor }}>
-                      {selectedCard.price === 0 ? "Grátis" : formatPrice(selectedCard.price)}
-                    </span>
-                  </div>
+                  </GiftCardSurface>
                 </div>
               )}
 
