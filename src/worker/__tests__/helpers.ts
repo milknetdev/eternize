@@ -211,7 +211,18 @@ CREATE TABLE gift_orders (
   wedding_id INTEGER NOT NULL REFERENCES weddings(id),
   gift_id INTEGER,
   guest_name TEXT,
+  guest_email TEXT,
   amount DOUBLE PRECISION DEFAULT 0,
+  message TEXT,
+  card_type TEXT,
+  card_sender_name TEXT,
+  card_message TEXT,
+  card_price DOUBLE PRECISION DEFAULT 0,
+  maintenance_fee DOUBLE PRECISION DEFAULT 0,
+  commission_pct DOUBLE PRECISION DEFAULT 0,
+  commission_amount DOUBLE PRECISION DEFAULT 0,
+  platform_amount DOUBLE PRECISION DEFAULT 0,
+  couple_amount DOUBLE PRECISION DEFAULT 0,
   payment_status TEXT DEFAULT 'pending',
   is_converted BOOLEAN DEFAULT FALSE,
   converted_at TIMESTAMPTZ,
@@ -229,6 +240,28 @@ CREATE TABLE cash_withdrawals (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE platform_settings (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  commission_pct DOUBLE PRECISION DEFAULT 2,
+  maintenance_fee DOUBLE PRECISION DEFAULT 12,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+INSERT INTO platform_settings (id) VALUES (1);
+
+CREATE TABLE gift_card_options (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  price DOUBLE PRECISION NOT NULL DEFAULT 0,
+  description TEXT,
+  sort_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+INSERT INTO gift_card_options (name, price, description, sort_order) VALUES
+  ('Grátis', 0, 'Cartão simples com seu nome e mensagem', 0),
+  ('Simples', 15.5, 'Design elegante com moldura decorativa', 1);
 `;
 
 export interface Fixture {

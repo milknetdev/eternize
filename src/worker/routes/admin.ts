@@ -23,9 +23,9 @@ r.get("/api/admin/stats", adminMiddleware, async (c) => {
     "SELECT COUNT(*) as count FROM guests"
   ).first<{ count: number }>();
 
-  const totalGiftsValue = await c.env.DB.prepare(
-    "SELECT SUM(amount) as total FROM gift_orders WHERE payment_status = 'paid'"
-  ).first<{ total: number }>();
+  const giftTotals = await c.env.DB.prepare(
+    "SELECT COALESCE(SUM(amount),0) as gross, COALESCE(SUM(platform_amount),0) as platform FROM gift_orders WHERE payment_status = 'paid'"
+  ).first<{ gross: number; platform: number }>();
 
   const pendingWithdrawals = await c.env.DB.prepare(
     "SELECT COUNT(*) as count, SUM(amount) as total FROM cash_withdrawals WHERE status = 'pending'"
@@ -35,10 +35,11 @@ r.get("/api/admin/stats", adminMiddleware, async (c) => {
     totalWeddings: totalWeddings?.count || 0,
     publishedWeddings: publishedWeddings?.count || 0,
     totalGuests: totalGuests?.count || 0,
-    totalGiftsValue: totalGiftsValue?.total || 0,
+    totalGiftsValue: giftTotals?.gross || 0,
+    platformRevenue: giftTotals?.platform || 0,
     pendingWithdrawals: pendingWithdrawals?.count || 0,
     pendingWithdrawalsAmount: pendingWithdrawals?.total || 0,
-    totalRevenue: totalGiftsValue?.total || 0,
+    totalRevenue: giftTotals?.platform || 0,
   });
 });
 

@@ -37,6 +37,7 @@ describe("route modules are mounted", () => {
     ["/api/contributions", "contributions"],
     ["/api/guest-photos", "guest-photos"],
     ["/api/dashboard/stats", "dashboard"],
+    ["/api/admin/platform/settings", "platform"],
   ])("%s (%s) responds 401 without a session", async (path) => {
     const res = await req(path);
     expect(res.status).toBe(401);

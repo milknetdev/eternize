@@ -55,7 +55,7 @@ r.get("/api/dashboard/stats", authMiddleware, async (c) => {
   ).bind(wedding.id).first();
 
   const ordersSum = await c.env.DB.prepare(
-    "SELECT SUM(amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid'"
+    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid'"
   ).bind(wedding.id).first();
 
   return c.json({

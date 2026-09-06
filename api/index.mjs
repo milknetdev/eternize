@@ -788,15 +788,15 @@ var Hono = class {
   errorHandler = errorHandler;
   route(path, app2) {
     const subApp = this.basePath(path);
-    app2.routes.map((r25) => {
+    app2.routes.map((r26) => {
       let handler;
       if (app2.errorHandler === errorHandler) {
-        handler = r25.handler;
+        handler = r26.handler;
       } else {
-        handler = async (c, next) => (await compose([], app2.errorHandler)(c, () => r25.handler(c, next))).res;
-        handler[COMPOSED_HANDLER] = r25.handler;
+        handler = async (c, next) => (await compose([], app2.errorHandler)(c, () => r26.handler(c, next))).res;
+        handler[COMPOSED_HANDLER] = r26.handler;
       }
-      subApp.#addRoute(r25.method, r25.path, handler);
+      subApp.#addRoute(r26.method, r26.path, handler);
     });
     return this;
   }
@@ -857,9 +857,9 @@ var Hono = class {
   #addRoute(method, path, handler) {
     method = method.toUpperCase();
     path = mergePath(this._basePath, path);
-    const r25 = { path, method, handler };
-    this.router.add(method, path, [handler, r25]);
-    this.routes.push(r25);
+    const r26 = { path, method, handler };
+    this.router.add(method, path, [handler, r26]);
+    this.routes.push(r26);
   }
   #handleError(err, c) {
     if (err instanceof Error) {
@@ -1270,14 +1270,14 @@ var RegExpRouter = class {
   #buildMatcher(method) {
     const routes = [];
     let hasOwnRoute = method === METHOD_NAME_ALL;
-    [this.#middleware, this.#routes].forEach((r25) => {
-      const ownRoute = r25[method] ? Object.keys(r25[method]).map((path) => [path, r25[method][path]]) : [];
+    [this.#middleware, this.#routes].forEach((r26) => {
+      const ownRoute = r26[method] ? Object.keys(r26[method]).map((path) => [path, r26[method][path]]) : [];
       if (ownRoute.length !== 0) {
         hasOwnRoute ||= true;
         routes.push(...ownRoute);
       } else if (method !== METHOD_NAME_ALL) {
         routes.push(
-          ...Object.keys(r25[METHOD_NAME_ALL]).map((path) => [path, r25[METHOD_NAME_ALL][path]])
+          ...Object.keys(r26[METHOD_NAME_ALL]).map((path) => [path, r26[METHOD_NAME_ALL][path]])
         );
       }
     });
@@ -3159,18 +3159,22 @@ r14.get("/api/balance", authMiddleware, async (c) => {
     return c.json({ error: "Wedding not found" }, 404);
   }
   const available = await c.env.DB.prepare(
-    "SELECT SUM(amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE"
+    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE"
   ).bind(wedding.id).first();
   const converted = await c.env.DB.prepare(
-    "SELECT SUM(amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = TRUE"
+    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = TRUE"
   ).bind(wedding.id).first();
   const pending = await c.env.DB.prepare(
     "SELECT SUM(amount) as total FROM cash_withdrawals WHERE wedding_id = ? AND status = 'pending'"
+  ).bind(wedding.id).first();
+  const fees = await c.env.DB.prepare(
+    "SELECT SUM(commission_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid'"
   ).bind(wedding.id).first();
   return c.json({
     availableBalance: available?.total || 0,
     convertedTotal: converted?.total || 0,
     pendingWithdrawal: pending?.total || 0,
+    serviceFeesTotal: fees?.total || 0,
     pixKey: wedding.pix_key || null
   });
 });
@@ -3197,7 +3201,7 @@ r14.post("/api/withdrawals", authMiddleware, async (c) => {
   }
   const { amount, pixKey, pixKeyType } = await c.req.json();
   const available = await c.env.DB.prepare(
-    "SELECT SUM(amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE"
+    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE"
   ).bind(wedding.id).first();
   if (!available?.total || amount > available.total) {
     return c.json({ error: "Insufficient balance" }, 400);
@@ -3207,7 +3211,7 @@ r14.post("/api/withdrawals", authMiddleware, async (c) => {
     VALUES (?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `).bind(wedding.id, amount, pixKey, pixKeyType).run();
   const ordersToConvert = await c.env.DB.prepare(`
-    SELECT id, amount FROM gift_orders 
+    SELECT id, couple_amount FROM gift_orders
     WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE
     ORDER BY created_at ASC
   `).bind(wedding.id).all();
@@ -3218,7 +3222,7 @@ r14.post("/api/withdrawals", authMiddleware, async (c) => {
       UPDATE gift_orders SET is_converted = TRUE, converted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(order.id).run();
-    remaining -= order.amount;
+    remaining -= order.couple_amount;
   }
   return c.json({ success: true, withdrawalId: result.meta?.last_row_id });
 });
@@ -3296,8 +3300,8 @@ r16.get("/api/admin/stats", adminMiddleware, async (c) => {
   const totalGuests = await c.env.DB.prepare(
     "SELECT COUNT(*) as count FROM guests"
   ).first();
-  const totalGiftsValue = await c.env.DB.prepare(
-    "SELECT SUM(amount) as total FROM gift_orders WHERE payment_status = 'paid'"
+  const giftTotals = await c.env.DB.prepare(
+    "SELECT COALESCE(SUM(amount),0) as gross, COALESCE(SUM(platform_amount),0) as platform FROM gift_orders WHERE payment_status = 'paid'"
   ).first();
   const pendingWithdrawals = await c.env.DB.prepare(
     "SELECT COUNT(*) as count, SUM(amount) as total FROM cash_withdrawals WHERE status = 'pending'"
@@ -3306,10 +3310,11 @@ r16.get("/api/admin/stats", adminMiddleware, async (c) => {
     totalWeddings: totalWeddings?.count || 0,
     publishedWeddings: publishedWeddings?.count || 0,
     totalGuests: totalGuests?.count || 0,
-    totalGiftsValue: totalGiftsValue?.total || 0,
+    totalGiftsValue: giftTotals?.gross || 0,
+    platformRevenue: giftTotals?.platform || 0,
     pendingWithdrawals: pendingWithdrawals?.count || 0,
     pendingWithdrawalsAmount: pendingWithdrawals?.total || 0,
-    totalRevenue: totalGiftsValue?.total || 0
+    totalRevenue: giftTotals?.platform || 0
   });
 });
 r16.get("/api/admin/weddings", adminMiddleware, async (c) => {
@@ -3962,9 +3967,149 @@ r21.get("/api/public/wedding/:customUrl/accommodations", async (c) => {
 });
 var accommodations_default = r21;
 
-// src/worker/routes/contributions.ts
+// src/worker/routes/platform.ts
 var r22 = new Hono2();
-r22.get("/api/contributions", authMiddleware, async (c) => {
+var DEFAULTS = { commission_pct: 2, maintenance_fee: 12 };
+async function readSettings(c) {
+  try {
+    const row = await c.env.DB.prepare(
+      "SELECT commission_pct, maintenance_fee FROM platform_settings WHERE id = 1"
+    ).first();
+    if (row) {
+      return {
+        commission_pct: Number(row.commission_pct) || 0,
+        maintenance_fee: Number(row.maintenance_fee) || 0
+      };
+    }
+  } catch {
+  }
+  return { ...DEFAULTS };
+}
+async function computeSplit(c, amount, cardPrice, applyMaintenanceFee) {
+  const { commission_pct, maintenance_fee } = await readSettings(c);
+  const gift = Number(amount) || 0;
+  const card = Number(cardPrice) || 0;
+  const fee = applyMaintenanceFee ? maintenance_fee : 0;
+  const commission_amount = Math.round(gift * commission_pct) / 100;
+  const platform_amount = Math.round((commission_amount + card + fee) * 100) / 100;
+  const couple_amount = Math.round((gift - commission_amount) * 100) / 100;
+  return { commission_pct, maintenance_fee: fee, commission_amount, platform_amount, couple_amount };
+}
+r22.get("/api/public/platform-config", async (c) => {
+  const settings = await readSettings(c);
+  let cardOptions = [];
+  try {
+    const { results } = await c.env.DB.prepare(
+      "SELECT id, name, price, description FROM gift_card_options WHERE is_active = TRUE ORDER BY sort_order, id"
+    ).all();
+    cardOptions = results || [];
+  } catch {
+  }
+  if (cardOptions.length === 0) {
+    cardOptions = [{ id: 0, name: "Gr\xE1tis", price: 0, description: "Cart\xE3o simples com seu nome e mensagem" }];
+  }
+  return c.json({
+    commissionPct: settings.commission_pct,
+    maintenanceFee: settings.maintenance_fee,
+    cardOptions
+  });
+});
+r22.get("/api/admin/platform/settings", adminMiddleware, async (c) => {
+  return c.json(await readSettings(c));
+});
+r22.put("/api/admin/platform/settings", adminMiddleware, async (c) => {
+  const body = await c.req.json();
+  const commission = Math.max(0, Math.min(100, Number(body.commission_pct) || 0));
+  const fee = Math.max(0, Number(body.maintenance_fee) || 0);
+  await c.env.DB.prepare(`
+    INSERT INTO platform_settings (id, commission_pct, maintenance_fee, updated_at)
+    VALUES (1, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT (id) DO UPDATE SET
+      commission_pct = EXCLUDED.commission_pct,
+      maintenance_fee = EXCLUDED.maintenance_fee,
+      updated_at = CURRENT_TIMESTAMP
+  `).bind(commission, fee).run();
+  return c.json({ success: true, commission_pct: commission, maintenance_fee: fee });
+});
+r22.get("/api/admin/platform/cards", adminMiddleware, async (c) => {
+  const { results } = await c.env.DB.prepare(
+    "SELECT * FROM gift_card_options ORDER BY sort_order, id"
+  ).all();
+  return c.json({ cards: results || [] });
+});
+r22.post("/api/admin/platform/cards", adminMiddleware, async (c) => {
+  const body = await c.req.json();
+  if (!body.name?.trim()) return c.json({ error: "Nome obrigat\xF3rio" }, 400);
+  const max = await c.env.DB.prepare(
+    "SELECT COALESCE(MAX(sort_order), -1) AS m FROM gift_card_options"
+  ).first();
+  const result = await c.env.DB.prepare(`
+    INSERT INTO gift_card_options (name, price, description, sort_order, is_active)
+    VALUES (?, ?, ?, ?, ?)
+  `).bind(
+    body.name.trim(),
+    Math.max(0, Number(body.price) || 0),
+    body.description || null,
+    (max?.m ?? -1) + 1,
+    body.is_active === false ? false : true
+  ).run();
+  return c.json({ success: true, id: result.meta.last_row_id });
+});
+r22.put("/api/admin/platform/cards/:id", adminMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json();
+  const res = await c.env.DB.prepare(`
+    UPDATE gift_card_options SET
+      name = ?, price = ?, description = ?, sort_order = ?, is_active = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(
+    body.name,
+    Math.max(0, Number(body.price) || 0),
+    body.description || null,
+    Number(body.sort_order) || 0,
+    body.is_active === false ? false : true,
+    id
+  ).run();
+  if (!res.meta.changes) return c.json({ error: "Cart\xE3o n\xE3o encontrado" }, 404);
+  return c.json({ success: true });
+});
+r22.delete("/api/admin/platform/cards/:id", adminMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const res = await c.env.DB.prepare(
+    "DELETE FROM gift_card_options WHERE id = ?"
+  ).bind(id).run();
+  if (!res.meta.changes) return c.json({ error: "Cart\xE3o n\xE3o encontrado" }, 404);
+  return c.json({ success: true });
+});
+r22.get("/api/admin/platform/revenue", adminMiddleware, async (c) => {
+  const row = await c.env.DB.prepare(`
+    SELECT
+      COUNT(*)                          AS order_count,
+      COALESCE(SUM(commission_amount),0) AS commission_total,
+      COALESCE(SUM(card_price),0)        AS card_total,
+      COALESCE(SUM(maintenance_fee),0)   AS fee_total,
+      COALESCE(SUM(platform_amount),0)   AS platform_total,
+      COALESCE(SUM(couple_amount),0)     AS couple_total,
+      COALESCE(SUM(amount),0)            AS gross_total
+    FROM gift_orders
+    WHERE payment_status = 'paid'
+  `).first();
+  return c.json({
+    orderCount: row?.order_count || 0,
+    commissionTotal: row?.commission_total || 0,
+    cardTotal: row?.card_total || 0,
+    feeTotal: row?.fee_total || 0,
+    platformTotal: row?.platform_total || 0,
+    coupleTotal: row?.couple_total || 0,
+    grossTotal: row?.gross_total || 0
+  });
+});
+var platform_default = r22;
+
+// src/worker/routes/contributions.ts
+var r23 = new Hono2();
+r23.get("/api/contributions", authMiddleware, async (c) => {
   const user = c.get("user");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE user_id = ?"
@@ -3975,7 +4120,7 @@ r22.get("/api/contributions", authMiddleware, async (c) => {
   ).bind(wedding.id).all();
   return c.json(results || []);
 });
-r22.put("/api/contributions/:id/confirm", authMiddleware, async (c) => {
+r23.put("/api/contributions/:id/confirm", authMiddleware, async (c) => {
   const id = c.req.param("id");
   const weddingId = await getWeddingId(c);
   if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
@@ -3987,7 +4132,7 @@ r22.put("/api/contributions/:id/confirm", authMiddleware, async (c) => {
   if (!res.meta.changes) return c.json({ error: "Contribution not found" }, 404);
   return c.json({ success: true });
 });
-r22.delete("/api/contributions/:id", authMiddleware, async (c) => {
+r23.delete("/api/contributions/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
   const weddingId = await getWeddingId(c);
   if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
@@ -3997,7 +4142,7 @@ r22.delete("/api/contributions/:id", authMiddleware, async (c) => {
   if (!res.meta.changes) return c.json({ error: "Contribution not found" }, 404);
   return c.json({ success: true });
 });
-r22.get("/api/public/wedding/:customUrl/contributions", async (c) => {
+r23.get("/api/public/wedding/:customUrl/contributions", async (c) => {
   const customUrl = c.req.param("customUrl");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE custom_url = ?"
@@ -4011,7 +4156,7 @@ r22.get("/api/public/wedding/:customUrl/contributions", async (c) => {
   `).bind(wedding.id).all();
   return c.json({ contributions: results || [] });
 });
-r22.post("/api/public/wedding/:customUrl/contributions", async (c) => {
+r23.post("/api/public/wedding/:customUrl/contributions", async (c) => {
   const customUrl = c.req.param("customUrl");
   const body = await c.req.json();
   const wedding = await c.env.DB.prepare(
@@ -4030,36 +4175,45 @@ r22.post("/api/public/wedding/:customUrl/contributions", async (c) => {
   ).run();
   return c.json({ success: true, id: result.meta.last_row_id });
 });
-r22.post("/api/public/gift-order", async (c) => {
+r23.post("/api/public/gift-order", async (c) => {
   const body = await c.req.json();
   if (!body.wedding_id || !body.gift_id || !body.guest_name) {
     return c.json({ error: "Missing required fields" }, 400);
   }
+  const amount = Number(body.amount) || 0;
+  const cardPrice = Number(body.card_price) || 0;
+  const split = await computeSplit(c, amount, cardPrice, !!body.apply_maintenance_fee);
   const result = await c.env.DB.prepare(`
     INSERT INTO gift_orders (
       wedding_id, gift_id, guest_name, guest_email, amount, message,
       card_type, card_sender_name, card_message, card_price,
+      maintenance_fee, commission_pct, commission_amount, platform_amount, couple_amount,
       payment_status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `).bind(
     body.wedding_id,
     body.gift_id,
     body.guest_name,
     body.guest_email || null,
-    body.amount || 0,
+    amount,
     body.message || null,
     body.card_type || "gratis",
     body.card_sender_name || body.guest_name,
     body.card_message || null,
-    body.card_price || 0
+    cardPrice,
+    split.maintenance_fee,
+    split.commission_pct,
+    split.commission_amount,
+    split.platform_amount,
+    split.couple_amount
   ).run();
   return c.json({ success: true, id: result.meta.last_row_id });
 });
-var contributions_default = r22;
+var contributions_default = r23;
 
 // src/worker/routes/guest-photos.ts
-var r23 = new Hono2();
-r23.get("/api/public/wedding/:customUrl/guest-photos", async (c) => {
+var r24 = new Hono2();
+r24.get("/api/public/wedding/:customUrl/guest-photos", async (c) => {
   const customUrl = c.req.param("customUrl");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE custom_url = ?"
@@ -4073,7 +4227,7 @@ r23.get("/api/public/wedding/:customUrl/guest-photos", async (c) => {
   `).bind(wedding.id).all();
   return c.json({ photos: results });
 });
-r23.post("/api/public/wedding/:customUrl/guest-photos", async (c) => {
+r24.post("/api/public/wedding/:customUrl/guest-photos", async (c) => {
   const customUrl = c.req.param("customUrl");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE custom_url = ? AND is_published = TRUE"
@@ -4114,7 +4268,7 @@ r23.post("/api/public/wedding/:customUrl/guest-photos", async (c) => {
     filename: file.name
   });
 });
-r23.get("/api/guest-photos", authMiddleware, async (c) => {
+r24.get("/api/guest-photos", authMiddleware, async (c) => {
   const user = c.get("user");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE user_id = ?"
@@ -4128,7 +4282,7 @@ r23.get("/api/guest-photos", authMiddleware, async (c) => {
   `).bind(wedding.id).all();
   return c.json({ photos: results });
 });
-r23.put("/api/guest-photos/:id", authMiddleware, async (c) => {
+r24.put("/api/guest-photos/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
   const user = c.get("user");
   const body = await c.req.json();
@@ -4145,7 +4299,7 @@ r23.put("/api/guest-photos/:id", authMiddleware, async (c) => {
   `).bind(body.is_approved, id).run();
   return c.json({ success: true });
 });
-r23.delete("/api/guest-photos/:id", authMiddleware, async (c) => {
+r24.delete("/api/guest-photos/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
   const user = c.get("user");
   const wedding = await c.env.DB.prepare(
@@ -4160,11 +4314,11 @@ r23.delete("/api/guest-photos/:id", authMiddleware, async (c) => {
   await c.env.DB.prepare("DELETE FROM guest_photos WHERE id = ?").bind(id).run();
   return c.json({ success: true });
 });
-var guest_photos_default = r23;
+var guest_photos_default = r24;
 
 // src/worker/routes/dashboard.ts
-var r24 = new Hono2();
-r24.get("/api/dashboard/stats", authMiddleware, async (c) => {
+var r25 = new Hono2();
+r25.get("/api/dashboard/stats", authMiddleware, async (c) => {
   const user = c.get("user");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE user_id = ?"
@@ -4203,7 +4357,7 @@ r24.get("/api/dashboard/stats", authMiddleware, async (c) => {
     "SELECT COUNT(*) as count FROM guest_messages WHERE wedding_id = ?"
   ).bind(wedding.id).first();
   const ordersSum = await c.env.DB.prepare(
-    "SELECT SUM(amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid'"
+    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid'"
   ).bind(wedding.id).first();
   return c.json({
     totalGuests: guestsStats?.total || 0,
@@ -4213,7 +4367,7 @@ r24.get("/api/dashboard/stats", authMiddleware, async (c) => {
     totalAmount: ordersSum?.total || 0
   });
 });
-var dashboard_default = r24;
+var dashboard_default = r25;
 
 // src/worker/index.ts
 var app = new Hono2();
@@ -4249,6 +4403,7 @@ app.route("/", accommodations_default);
 app.route("/", contributions_default);
 app.route("/", guest_photos_default);
 app.route("/", dashboard_default);
+app.route("/", platform_default);
 var index_default = app;
 export {
   index_default as default

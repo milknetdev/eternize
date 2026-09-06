@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { authMiddleware } from "../local-auth-backend";
 import type { AppEnv } from "../lib/types";
 import { getWeddingId } from "../lib/ownership";
+import { computeSplit } from "./platform";
 
 const r = new Hono<AppEnv>();
 r.get("/api/contributions", authMiddleware, async (c) => {
@@ -92,28 +93,40 @@ r.post("/api/public/wedding/:customUrl/contributions", async (c) => {
 // Public: Submit gift order with personalized card
 r.post("/api/public/gift-order", async (c) => {
   const body = await c.req.json();
-  
+
   if (!body.wedding_id || !body.gift_id || !body.guest_name) {
     return c.json({ error: "Missing required fields" }, 400);
   }
+
+  const amount = Number(body.amount) || 0;
+  const cardPrice = Number(body.card_price) || 0;
+  // The flat maintenance fee is charged once per checkout — the client sets this
+  // flag on the first cart item only.
+  const split = await computeSplit(c, amount, cardPrice, !!body.apply_maintenance_fee);
 
   const result = await c.env.DB.prepare(`
     INSERT INTO gift_orders (
       wedding_id, gift_id, guest_name, guest_email, amount, message,
       card_type, card_sender_name, card_message, card_price,
+      maintenance_fee, commission_pct, commission_amount, platform_amount, couple_amount,
       payment_status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `).bind(
     body.wedding_id,
     body.gift_id,
     body.guest_name,
     body.guest_email || null,
-    body.amount || 0,
+    amount,
     body.message || null,
     body.card_type || 'gratis',
     body.card_sender_name || body.guest_name,
     body.card_message || null,
-    body.card_price || 0
+    cardPrice,
+    split.maintenance_fee,
+    split.commission_pct,
+    split.commission_amount,
+    split.platform_amount,
+    split.couple_amount
   ).run();
 
   return c.json({ success: true, id: result.meta.last_row_id });

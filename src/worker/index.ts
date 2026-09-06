@@ -25,6 +25,7 @@ import accommodationsRoutes from "./routes/accommodations";
 import contributionsRoutes from "./routes/contributions";
 import guestPhotosRoutes from "./routes/guest-photos";
 import dashboardRoutes from "./routes/dashboard";
+import platformRoutes from "./routes/platform";
 
 const app = new Hono<AppEnv>();
 
@@ -65,5 +66,6 @@ app.route("/", accommodationsRoutes);
 app.route("/", contributionsRoutes);
 app.route("/", guestPhotosRoutes);
 app.route("/", dashboardRoutes);
+app.route("/", platformRoutes);
 
 export default app;

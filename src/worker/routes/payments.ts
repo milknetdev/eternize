@@ -40,22 +40,28 @@ r.get("/api/balance", authMiddleware, async (c) => {
     return c.json({ error: "Wedding not found" }, 404);
   }
 
+  // Balances are the couple's NET share (gift value minus the platform commission).
   const available = await c.env.DB.prepare(
-    "SELECT SUM(amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE"
+    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE"
   ).bind(wedding.id).first<{ total: number }>();
 
   const converted = await c.env.DB.prepare(
-    "SELECT SUM(amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = TRUE"
+    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = TRUE"
   ).bind(wedding.id).first<{ total: number }>();
 
   const pending = await c.env.DB.prepare(
     "SELECT SUM(amount) as total FROM cash_withdrawals WHERE wedding_id = ? AND status = 'pending'"
   ).bind(wedding.id).first<{ total: number }>();
 
+  const fees = await c.env.DB.prepare(
+    "SELECT SUM(commission_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid'"
+  ).bind(wedding.id).first<{ total: number }>();
+
   return c.json({
     availableBalance: available?.total || 0,
     convertedTotal: converted?.total || 0,
     pendingWithdrawal: pending?.total || 0,
+    serviceFeesTotal: fees?.total || 0,
     pixKey: wedding.pix_key || null,
   });
 });
@@ -95,9 +101,9 @@ r.post("/api/withdrawals", authMiddleware, async (c) => {
     pixKeyType: string;
   }>();
 
-  // Check available balance
+  // Check available balance (couple's net share)
   const available = await c.env.DB.prepare(
-    "SELECT SUM(amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE"
+    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE"
   ).bind(wedding.id).first<{ total: number }>();
 
   if (!available?.total || amount > available.total) {
@@ -110,12 +116,12 @@ r.post("/api/withdrawals", authMiddleware, async (c) => {
     VALUES (?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `).bind(wedding.id, amount, pixKey, pixKeyType).run();
 
-  // Mark orders as converted (up to the withdrawal amount)
+  // Mark orders as converted (up to the withdrawal amount, by couple share)
   const ordersToConvert = await c.env.DB.prepare(`
-    SELECT id, amount FROM gift_orders 
+    SELECT id, couple_amount FROM gift_orders
     WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE
     ORDER BY created_at ASC
-  `).bind(wedding.id).all<{ id: number; amount: number }>();
+  `).bind(wedding.id).all<{ id: number; couple_amount: number }>();
 
   let remaining = amount;
   for (const order of ordersToConvert.results || []) {
@@ -124,7 +130,7 @@ r.post("/api/withdrawals", authMiddleware, async (c) => {
       UPDATE gift_orders SET is_converted = TRUE, converted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(order.id).run();
-    remaining -= order.amount;
+    remaining -= order.couple_amount;
   }
 
   return c.json({ success: true, withdrawalId: result.meta?.last_row_id });
