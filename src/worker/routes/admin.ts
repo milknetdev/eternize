@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import * as bcrypt from "bcryptjs";
 import type { AppEnv } from "../lib/types";
 import { adminMiddleware } from "../lib/admin";
+import { sumOrders } from "./platform";
 
 const r = new Hono<AppEnv>();
 
@@ -23,9 +24,13 @@ r.get("/api/admin/stats", adminMiddleware, async (c) => {
     "SELECT COUNT(*) as count FROM guests"
   ).first<{ count: number }>();
 
-  const giftTotals = await c.env.DB.prepare(
-    "SELECT COALESCE(SUM(amount),0) as gross, COALESCE(SUM(platform_amount),0) as platform FROM gift_orders WHERE payment_status = 'paid'"
-  ).first<{ gross: number; platform: number }>();
+  const grossRow = await c.env.DB.prepare(
+    "SELECT COALESCE(SUM(amount),0) as total FROM gift_orders WHERE payment_status = 'paid'"
+  ).first<{ total: number }>();
+  const platformRevenue = await sumOrders(
+    c, "platform_amount", "payment_status = 'paid'", [], null,
+  );
+  const giftTotals = { gross: grossRow?.total || 0, platform: platformRevenue };
 
   const pendingWithdrawals = await c.env.DB.prepare(
     "SELECT COUNT(*) as count, SUM(amount) as total FROM cash_withdrawals WHERE status = 'pending'"

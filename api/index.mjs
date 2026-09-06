@@ -3131,9 +3131,193 @@ r13.post("/api/public/confirm/:code/decline", async (c) => {
 });
 var confirm_default = r13;
 
-// src/worker/routes/payments.ts
+// src/worker/lib/admin.ts
+var ADMIN_COOKIE_NAME = "eternize_admin";
+async function adminMiddleware(c, next) {
+  const token = getCookie(c, ADMIN_COOKIE_NAME);
+  if (!token) return c.json({ error: "Admin n\xE3o autenticado" }, 401);
+  const db = c.env.DB;
+  const row = await db.prepare(
+    "SELECT 1 AS ok FROM sessions WHERE token = ? AND user_id = '__admin__' AND expires_at > NOW()"
+  ).bind(token).first();
+  if (!row) return c.json({ error: "Sess\xE3o admin expirada" }, 401);
+  c.set("user", { id: "__admin__", email: "admin", name: "Admin" });
+  await next();
+}
+
+// src/worker/routes/platform.ts
 var r14 = new Hono2();
-r14.get("/api/gift-orders", authMiddleware, async (c) => {
+var DEFAULTS = { commission_pct: 2, maintenance_fee: 12 };
+async function readSettings(c) {
+  try {
+    const row = await c.env.DB.prepare(
+      "SELECT commission_pct, maintenance_fee FROM platform_settings WHERE id = 1"
+    ).first();
+    if (row) {
+      return {
+        commission_pct: Number(row.commission_pct) || 0,
+        maintenance_fee: Number(row.maintenance_fee) || 0
+      };
+    }
+  } catch {
+  }
+  return { ...DEFAULTS };
+}
+async function sumOrders(c, column, where, binds, fallback) {
+  const run = async (col) => {
+    const row = await c.env.DB.prepare(
+      `SELECT COALESCE(SUM(${col}), 0) AS total FROM gift_orders WHERE ${where}`
+    ).bind(...binds).first();
+    return Number(row?.total) || 0;
+  };
+  try {
+    return await run(column);
+  } catch {
+    return fallback ? run(fallback) : 0;
+  }
+}
+async function computeSplit(c, amount, cardPrice, applyMaintenanceFee) {
+  const { commission_pct, maintenance_fee } = await readSettings(c);
+  const gift = Number(amount) || 0;
+  const card = Number(cardPrice) || 0;
+  const fee = applyMaintenanceFee ? maintenance_fee : 0;
+  const commission_amount = Math.round(gift * commission_pct) / 100;
+  const platform_amount = Math.round((commission_amount + card + fee) * 100) / 100;
+  const couple_amount = Math.round((gift - commission_amount) * 100) / 100;
+  return { commission_pct, maintenance_fee: fee, commission_amount, platform_amount, couple_amount };
+}
+r14.get("/api/public/platform-config", async (c) => {
+  const settings = await readSettings(c);
+  let cardOptions = [];
+  try {
+    const { results } = await c.env.DB.prepare(
+      "SELECT id, name, price, description FROM gift_card_options WHERE is_active = TRUE ORDER BY sort_order, id"
+    ).all();
+    cardOptions = results || [];
+  } catch {
+  }
+  if (cardOptions.length === 0) {
+    cardOptions = [{ id: 0, name: "Gr\xE1tis", price: 0, description: "Cart\xE3o simples com seu nome e mensagem" }];
+  }
+  return c.json({
+    commissionPct: settings.commission_pct,
+    maintenanceFee: settings.maintenance_fee,
+    cardOptions
+  });
+});
+r14.get("/api/admin/platform/settings", adminMiddleware, async (c) => {
+  return c.json(await readSettings(c));
+});
+r14.put("/api/admin/platform/settings", adminMiddleware, async (c) => {
+  const body = await c.req.json();
+  const commission = Math.max(0, Math.min(100, Number(body.commission_pct) || 0));
+  const fee = Math.max(0, Number(body.maintenance_fee) || 0);
+  try {
+    await c.env.DB.prepare(`
+      INSERT INTO platform_settings (id, commission_pct, maintenance_fee, updated_at)
+      VALUES (1, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT (id) DO UPDATE SET
+        commission_pct = EXCLUDED.commission_pct,
+        maintenance_fee = EXCLUDED.maintenance_fee,
+        updated_at = CURRENT_TIMESTAMP
+    `).bind(commission, fee).run();
+  } catch {
+    return c.json({ error: "Rode a migra\xE7\xE3o de monetiza\xE7\xE3o no banco antes de configurar." }, 503);
+  }
+  return c.json({ success: true, commission_pct: commission, maintenance_fee: fee });
+});
+r14.get("/api/admin/platform/cards", adminMiddleware, async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(
+      "SELECT * FROM gift_card_options ORDER BY sort_order, id"
+    ).all();
+    return c.json({ cards: results || [] });
+  } catch {
+    return c.json({ cards: [] });
+  }
+});
+r14.post("/api/admin/platform/cards", adminMiddleware, async (c) => {
+  const body = await c.req.json();
+  if (!body.name?.trim()) return c.json({ error: "Nome obrigat\xF3rio" }, 400);
+  try {
+    const max = await c.env.DB.prepare(
+      "SELECT COALESCE(MAX(sort_order), -1) AS m FROM gift_card_options"
+    ).first();
+    const result = await c.env.DB.prepare(`
+    INSERT INTO gift_card_options (name, price, description, sort_order, is_active)
+    VALUES (?, ?, ?, ?, ?)
+  `).bind(
+      body.name.trim(),
+      Math.max(0, Number(body.price) || 0),
+      body.description || null,
+      (max?.m ?? -1) + 1,
+      body.is_active === false ? false : true
+    ).run();
+    return c.json({ success: true, id: result.meta.last_row_id });
+  } catch {
+    return c.json({ error: "Rode a migra\xE7\xE3o de monetiza\xE7\xE3o no banco antes de gerenciar cart\xF5es." }, 503);
+  }
+});
+r14.put("/api/admin/platform/cards/:id", adminMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json();
+  const res = await c.env.DB.prepare(`
+    UPDATE gift_card_options SET
+      name = ?, price = ?, description = ?, sort_order = ?, is_active = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(
+    body.name,
+    Math.max(0, Number(body.price) || 0),
+    body.description || null,
+    Number(body.sort_order) || 0,
+    body.is_active === false ? false : true,
+    id
+  ).run();
+  if (!res.meta.changes) return c.json({ error: "Cart\xE3o n\xE3o encontrado" }, 404);
+  return c.json({ success: true });
+});
+r14.delete("/api/admin/platform/cards/:id", adminMiddleware, async (c) => {
+  const id = c.req.param("id");
+  const res = await c.env.DB.prepare(
+    "DELETE FROM gift_card_options WHERE id = ?"
+  ).bind(id).run();
+  if (!res.meta.changes) return c.json({ error: "Cart\xE3o n\xE3o encontrado" }, 404);
+  return c.json({ success: true });
+});
+r14.get("/api/admin/platform/revenue", adminMiddleware, async (c) => {
+  let row = null;
+  try {
+    row = await c.env.DB.prepare(`
+      SELECT
+        COUNT(*)                          AS order_count,
+        COALESCE(SUM(commission_amount),0) AS commission_total,
+        COALESCE(SUM(card_price),0)        AS card_total,
+        COALESCE(SUM(maintenance_fee),0)   AS fee_total,
+        COALESCE(SUM(platform_amount),0)   AS platform_total,
+        COALESCE(SUM(couple_amount),0)     AS couple_total,
+        COALESCE(SUM(amount),0)            AS gross_total
+      FROM gift_orders
+      WHERE payment_status = 'paid'
+    `).first();
+  } catch {
+    row = null;
+  }
+  return c.json({
+    orderCount: row?.order_count || 0,
+    commissionTotal: row?.commission_total || 0,
+    cardTotal: row?.card_total || 0,
+    feeTotal: row?.fee_total || 0,
+    platformTotal: row?.platform_total || 0,
+    coupleTotal: row?.couple_total || 0,
+    grossTotal: row?.gross_total || 0
+  });
+});
+var platform_default = r14;
+
+// src/worker/routes/payments.ts
+var r15 = new Hono2();
+r15.get("/api/gift-orders", authMiddleware, async (c) => {
   const userId = c.get("user")?.id;
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE user_id = ?"
@@ -3150,7 +3334,7 @@ r14.get("/api/gift-orders", authMiddleware, async (c) => {
   `).bind(wedding.id).all();
   return c.json({ orders: orders.results || [] });
 });
-r14.get("/api/balance", authMiddleware, async (c) => {
+r15.get("/api/balance", authMiddleware, async (c) => {
   const userId = c.get("user")?.id;
   const wedding = await c.env.DB.prepare(
     "SELECT id, pix_key FROM weddings WHERE user_id = ?"
@@ -3158,27 +3342,39 @@ r14.get("/api/balance", authMiddleware, async (c) => {
   if (!wedding) {
     return c.json({ error: "Wedding not found" }, 404);
   }
-  const available = await c.env.DB.prepare(
-    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE"
-  ).bind(wedding.id).first();
-  const converted = await c.env.DB.prepare(
-    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = TRUE"
-  ).bind(wedding.id).first();
+  const availableBalance = await sumOrders(
+    c,
+    "couple_amount",
+    "wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE",
+    [wedding.id],
+    "amount"
+  );
+  const convertedTotal = await sumOrders(
+    c,
+    "couple_amount",
+    "wedding_id = ? AND payment_status = 'paid' AND is_converted = TRUE",
+    [wedding.id],
+    "amount"
+  );
+  const serviceFeesTotal = await sumOrders(
+    c,
+    "commission_amount",
+    "wedding_id = ? AND payment_status = 'paid'",
+    [wedding.id],
+    null
+  );
   const pending = await c.env.DB.prepare(
     "SELECT SUM(amount) as total FROM cash_withdrawals WHERE wedding_id = ? AND status = 'pending'"
   ).bind(wedding.id).first();
-  const fees = await c.env.DB.prepare(
-    "SELECT SUM(commission_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid'"
-  ).bind(wedding.id).first();
   return c.json({
-    availableBalance: available?.total || 0,
-    convertedTotal: converted?.total || 0,
+    availableBalance,
+    convertedTotal,
     pendingWithdrawal: pending?.total || 0,
-    serviceFeesTotal: fees?.total || 0,
+    serviceFeesTotal,
     pixKey: wedding.pix_key || null
   });
 });
-r14.get("/api/withdrawals", authMiddleware, async (c) => {
+r15.get("/api/withdrawals", authMiddleware, async (c) => {
   const userId = c.get("user")?.id;
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE user_id = ?"
@@ -3191,7 +3387,7 @@ r14.get("/api/withdrawals", authMiddleware, async (c) => {
   ).bind(wedding.id).all();
   return c.json({ withdrawals: withdrawals.results || [] });
 });
-r14.post("/api/withdrawals", authMiddleware, async (c) => {
+r15.post("/api/withdrawals", authMiddleware, async (c) => {
   const userId = c.get("user")?.id;
   const wedding = await c.env.DB.prepare(
     "SELECT id, pix_key FROM weddings WHERE user_id = ?"
@@ -3200,21 +3396,34 @@ r14.post("/api/withdrawals", authMiddleware, async (c) => {
     return c.json({ error: "Wedding not found" }, 404);
   }
   const { amount, pixKey, pixKeyType } = await c.req.json();
-  const available = await c.env.DB.prepare(
-    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE"
-  ).bind(wedding.id).first();
-  if (!available?.total || amount > available.total) {
+  const availableTotal = await sumOrders(
+    c,
+    "couple_amount",
+    "wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE",
+    [wedding.id],
+    "amount"
+  );
+  if (!availableTotal || amount > availableTotal) {
     return c.json({ error: "Insufficient balance" }, 400);
   }
   const result = await c.env.DB.prepare(`
     INSERT INTO cash_withdrawals (wedding_id, amount, pix_key, pix_key_type, status, created_at, updated_at)
     VALUES (?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `).bind(wedding.id, amount, pixKey, pixKeyType).run();
-  const ordersToConvert = await c.env.DB.prepare(`
-    SELECT id, couple_amount FROM gift_orders
-    WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE
-    ORDER BY created_at ASC
-  `).bind(wedding.id).all();
+  let ordersToConvert;
+  try {
+    ordersToConvert = await c.env.DB.prepare(`
+      SELECT id, couple_amount AS share FROM gift_orders
+      WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE
+      ORDER BY created_at ASC
+    `).bind(wedding.id).all();
+  } catch {
+    ordersToConvert = await c.env.DB.prepare(`
+      SELECT id, amount AS share FROM gift_orders
+      WHERE wedding_id = ? AND payment_status = 'paid' AND is_converted = FALSE
+      ORDER BY created_at ASC
+    `).bind(wedding.id).all();
+  }
   let remaining = amount;
   for (const order of ordersToConvert.results || []) {
     if (remaining <= 0) break;
@@ -3222,28 +3431,14 @@ r14.post("/api/withdrawals", authMiddleware, async (c) => {
       UPDATE gift_orders SET is_converted = TRUE, converted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(order.id).run();
-    remaining -= order.couple_amount;
+    remaining -= Number(order.share) || 0;
   }
   return c.json({ success: true, withdrawalId: result.meta?.last_row_id });
 });
-var payments_default = r14;
-
-// src/worker/lib/admin.ts
-var ADMIN_COOKIE_NAME = "eternize_admin";
-async function adminMiddleware(c, next) {
-  const token = getCookie(c, ADMIN_COOKIE_NAME);
-  if (!token) return c.json({ error: "Admin n\xE3o autenticado" }, 401);
-  const db = c.env.DB;
-  const row = await db.prepare(
-    "SELECT 1 AS ok FROM sessions WHERE token = ? AND user_id = '__admin__' AND expires_at > NOW()"
-  ).bind(token).first();
-  if (!row) return c.json({ error: "Sess\xE3o admin expirada" }, 401);
-  c.set("user", { id: "__admin__", email: "admin", name: "Admin" });
-  await next();
-}
+var payments_default = r15;
 
 // src/worker/routes/admin-auth.ts
-var r15 = new Hono2();
+var r16 = new Hono2();
 var COOKIE = { httpOnly: true, path: "/", sameSite: "lax", secure: true };
 function adminToken() {
   const b = new Uint8Array(32);
@@ -3253,7 +3448,7 @@ function adminToken() {
 function expectedPassword(c) {
   return c.env?.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || "";
 }
-r15.post("/api/admin/login", async (c) => {
+r16.post("/api/admin/login", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const password = typeof body.password === "string" ? body.password : "";
   const expected = expectedPassword(c);
@@ -3271,7 +3466,7 @@ r15.post("/api/admin/login", async (c) => {
   setCookie(c, ADMIN_COOKIE_NAME, token, { ...COOKIE, maxAge: 30 * 24 * 60 * 60 });
   return c.json({ success: true });
 });
-r15.get("/api/admin/me", async (c) => {
+r16.get("/api/admin/me", async (c) => {
   const token = getCookie(c, ADMIN_COOKIE_NAME);
   if (!token) return c.json({ admin: false });
   const row = await c.env.DB.prepare(
@@ -3279,18 +3474,18 @@ r15.get("/api/admin/me", async (c) => {
   ).bind(token).first();
   return c.json({ admin: !!row });
 });
-r15.post("/api/admin/logout", async (c) => {
+r16.post("/api/admin/logout", async (c) => {
   const token = getCookie(c, ADMIN_COOKIE_NAME);
   if (token) await c.env.DB.prepare("DELETE FROM sessions WHERE token = ?").bind(token).run();
   setCookie(c, ADMIN_COOKIE_NAME, "", { ...COOKIE, maxAge: 0 });
   return c.json({ success: true });
 });
-var admin_auth_default = r15;
+var admin_auth_default = r16;
 
 // src/worker/routes/admin.ts
 import * as bcrypt2 from "bcryptjs";
-var r16 = new Hono2();
-r16.get("/api/admin/stats", adminMiddleware, async (c) => {
+var r17 = new Hono2();
+r17.get("/api/admin/stats", adminMiddleware, async (c) => {
   const totalWeddings = await c.env.DB.prepare(
     "SELECT COUNT(*) as count FROM weddings"
   ).first();
@@ -3300,9 +3495,17 @@ r16.get("/api/admin/stats", adminMiddleware, async (c) => {
   const totalGuests = await c.env.DB.prepare(
     "SELECT COUNT(*) as count FROM guests"
   ).first();
-  const giftTotals = await c.env.DB.prepare(
-    "SELECT COALESCE(SUM(amount),0) as gross, COALESCE(SUM(platform_amount),0) as platform FROM gift_orders WHERE payment_status = 'paid'"
+  const grossRow = await c.env.DB.prepare(
+    "SELECT COALESCE(SUM(amount),0) as total FROM gift_orders WHERE payment_status = 'paid'"
   ).first();
+  const platformRevenue = await sumOrders(
+    c,
+    "platform_amount",
+    "payment_status = 'paid'",
+    [],
+    null
+  );
+  const giftTotals = { gross: grossRow?.total || 0, platform: platformRevenue };
   const pendingWithdrawals = await c.env.DB.prepare(
     "SELECT COUNT(*) as count, SUM(amount) as total FROM cash_withdrawals WHERE status = 'pending'"
   ).first();
@@ -3317,7 +3520,7 @@ r16.get("/api/admin/stats", adminMiddleware, async (c) => {
     totalRevenue: giftTotals?.platform || 0
   });
 });
-r16.get("/api/admin/weddings", adminMiddleware, async (c) => {
+r17.get("/api/admin/weddings", adminMiddleware, async (c) => {
   const { results } = await c.env.DB.prepare(`
     SELECT 
       w.*,
@@ -3328,7 +3531,7 @@ r16.get("/api/admin/weddings", adminMiddleware, async (c) => {
   `).all();
   return c.json({ weddings: results || [] });
 });
-r16.get("/api/admin/withdrawals", adminMiddleware, async (c) => {
+r17.get("/api/admin/withdrawals", adminMiddleware, async (c) => {
   const { results } = await c.env.DB.prepare(`
     SELECT 
       cw.*,
@@ -3342,7 +3545,7 @@ r16.get("/api/admin/withdrawals", adminMiddleware, async (c) => {
   `).all();
   return c.json({ withdrawals: results || [] });
 });
-r16.post("/api/admin/withdrawals/:id/approve", adminMiddleware, async (c) => {
+r17.post("/api/admin/withdrawals/:id/approve", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   await c.env.DB.prepare(`
     UPDATE cash_withdrawals 
@@ -3351,7 +3554,7 @@ r16.post("/api/admin/withdrawals/:id/approve", adminMiddleware, async (c) => {
   `).bind(id).run();
   return c.json({ success: true });
 });
-r16.post("/api/admin/withdrawals/:id/reject", adminMiddleware, async (c) => {
+r17.post("/api/admin/withdrawals/:id/reject", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const withdrawal = await c.env.DB.prepare(
     "SELECT wedding_id, amount FROM cash_withdrawals WHERE id = ?"
@@ -3379,7 +3582,7 @@ r16.post("/api/admin/withdrawals/:id/reject", adminMiddleware, async (c) => {
   `).bind(id).run();
   return c.json({ success: true });
 });
-r16.get("/api/admin/couples", adminMiddleware, async (c) => {
+r17.get("/api/admin/couples", adminMiddleware, async (c) => {
   const q = (c.req.query("q") || "").trim();
   const like = `%${q}%`;
   const { results } = await c.env.DB.prepare(
@@ -3399,7 +3602,7 @@ r16.get("/api/admin/couples", adminMiddleware, async (c) => {
   ).bind(q, like, like, like, like, like).all();
   return c.json({ couples: results || [] });
 });
-r16.get("/api/admin/couples/:id", adminMiddleware, async (c) => {
+r17.get("/api/admin/couples/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const wedding = await c.env.DB.prepare(
     `SELECT w.*, u.email AS user_email, u.name AS user_name
@@ -3429,7 +3632,7 @@ r16.get("/api/admin/couples/:id", adminMiddleware, async (c) => {
     withdrawals: withdrawals.results || []
   });
 });
-r16.patch("/api/admin/couples/:id", adminMiddleware, async (c) => {
+r17.patch("/api/admin/couples/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
   const TEXT_COLS = [
@@ -3477,7 +3680,7 @@ r16.patch("/api/admin/couples/:id", adminMiddleware, async (c) => {
   if (!res.meta.changes) return c.json({ error: "Couple not found" }, 404);
   return c.json({ success: true });
 });
-r16.post("/api/admin/users/:id/reset-password", adminMiddleware, async (c) => {
+r17.post("/api/admin/users/:id/reset-password", adminMiddleware, async (c) => {
   const userId = c.req.param("id");
   const user = await c.env.DB.prepare("SELECT id, email FROM users WHERE id = ?").bind(userId).first();
   if (!user) return c.json({ error: "User not found" }, 404);
@@ -3489,10 +3692,10 @@ r16.post("/api/admin/users/:id/reset-password", adminMiddleware, async (c) => {
   await c.env.DB.prepare("DELETE FROM sessions WHERE user_id = ?").bind(userId).run();
   return c.json({ success: true, email: user.email, tempPassword });
 });
-var admin_default = r16;
+var admin_default = r17;
 
 // src/worker/routes/support.ts
-var r17 = new Hono2();
+var r18 = new Hono2();
 var COOKIE2 = {
   httpOnly: true,
   path: "/",
@@ -3504,7 +3707,7 @@ function supportToken() {
   crypto.getRandomValues(b);
   return "sup_" + Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
 }
-r17.post("/api/admin/couples/:id/impersonate", adminMiddleware, async (c) => {
+r18.post("/api/admin/couples/:id/impersonate", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const w = await c.env.DB.prepare(
     `SELECT w.id, w.partner1_name, w.partner2_name, u.id AS user_id, u.email, u.name
@@ -3519,7 +3722,7 @@ r17.post("/api/admin/couples/:id/impersonate", adminMiddleware, async (c) => {
   console.log(`[support] ${c.get("user")?.email} -> wedding ${id} (${w.email})`);
   return c.json({ success: true });
 });
-r17.get("/api/support/context", async (c) => {
+r18.get("/api/support/context", async (c) => {
   const token = getCookie(c, SUPPORT_COOKIE_NAME);
   if (!token) return c.json({ impersonating: false });
   const s = await c.env.DB.prepare(
@@ -3536,17 +3739,17 @@ r17.get("/api/support/context", async (c) => {
     customUrl: w?.custom_url ?? null
   });
 });
-r17.post("/api/support/stop", async (c) => {
+r18.post("/api/support/stop", async (c) => {
   const token = getCookie(c, SUPPORT_COOKIE_NAME);
   if (token) await c.env.DB.prepare("DELETE FROM sessions WHERE token = ?").bind(token).run();
   setCookie(c, SUPPORT_COOKIE_NAME, "", { ...COOKIE2, maxAge: 0 });
   return c.json({ success: true });
 });
-var support_default = r17;
+var support_default = r18;
 
 // src/worker/routes/gift-templates.ts
-var r18 = new Hono2();
-r18.get("/api/admin/gift-list-types", adminMiddleware, async (c) => {
+var r19 = new Hono2();
+r19.get("/api/admin/gift-list-types", adminMiddleware, async (c) => {
   const { results } = await c.env.DB.prepare(`
     SELECT glt.*, 
       (SELECT COUNT(*) FROM gift_templates WHERE list_type_id = glt.id) as item_count
@@ -3555,7 +3758,7 @@ r18.get("/api/admin/gift-list-types", adminMiddleware, async (c) => {
   `).all();
   return c.json({ listTypes: results || [] });
 });
-r18.post("/api/admin/gift-list-types", adminMiddleware, async (c) => {
+r19.post("/api/admin/gift-list-types", adminMiddleware, async (c) => {
   const body = await c.req.json();
   const { name, description } = body;
   const slug = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -3568,7 +3771,7 @@ r18.post("/api/admin/gift-list-types", adminMiddleware, async (c) => {
   `).bind(name, slug, description || null, (maxOrder?.max || 0) + 1).run();
   return c.json({ success: true, id: result.meta.last_row_id });
 });
-r18.put("/api/admin/gift-list-types/:id", adminMiddleware, async (c) => {
+r19.put("/api/admin/gift-list-types/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
   const { name, description, is_active } = body;
@@ -3579,14 +3782,14 @@ r18.put("/api/admin/gift-list-types/:id", adminMiddleware, async (c) => {
   `).bind(name, description || null, is_active ? true : false, id).run();
   return c.json({ success: true });
 });
-r18.delete("/api/admin/gift-list-types/:id", adminMiddleware, async (c) => {
+r19.delete("/api/admin/gift-list-types/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   await c.env.DB.prepare("DELETE FROM gift_templates WHERE list_type_id = ?").bind(id).run();
   await c.env.DB.prepare("DELETE FROM gift_template_categories WHERE list_type_id = ?").bind(id).run();
   await c.env.DB.prepare("DELETE FROM gift_list_types WHERE id = ?").bind(id).run();
   return c.json({ success: true });
 });
-r18.get("/api/admin/gift-list-types/:id/templates", adminMiddleware, async (c) => {
+r19.get("/api/admin/gift-list-types/:id/templates", adminMiddleware, async (c) => {
   const listTypeId = c.req.param("id");
   const { results: templates } = await c.env.DB.prepare(`
     SELECT * FROM gift_templates WHERE list_type_id = ? ORDER BY sort_order, id
@@ -3596,7 +3799,7 @@ r18.get("/api/admin/gift-list-types/:id/templates", adminMiddleware, async (c) =
   `).bind(listTypeId).all();
   return c.json({ templates: templates || [], categories: categories || [] });
 });
-r18.post("/api/admin/gift-templates", adminMiddleware, async (c) => {
+r19.post("/api/admin/gift-templates", adminMiddleware, async (c) => {
   const body = await c.req.json();
   const { list_type_id, name, description, price, category, image_url } = body;
   const maxOrder = await c.env.DB.prepare(
@@ -3616,7 +3819,7 @@ r18.post("/api/admin/gift-templates", adminMiddleware, async (c) => {
   ).run();
   return c.json({ success: true, id: result.meta.last_row_id });
 });
-r18.put("/api/admin/gift-templates/:id", adminMiddleware, async (c) => {
+r19.put("/api/admin/gift-templates/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
   const { name, description, price, category, image_url, is_active, sort_order } = body;
@@ -3637,19 +3840,19 @@ r18.put("/api/admin/gift-templates/:id", adminMiddleware, async (c) => {
   ).run();
   return c.json({ success: true });
 });
-r18.delete("/api/admin/gift-templates/:id", adminMiddleware, async (c) => {
+r19.delete("/api/admin/gift-templates/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   await c.env.DB.prepare("DELETE FROM gift_templates WHERE id = ?").bind(id).run();
   return c.json({ success: true });
 });
-r18.get("/api/admin/gift-list-types/:id/categories", adminMiddleware, async (c) => {
+r19.get("/api/admin/gift-list-types/:id/categories", adminMiddleware, async (c) => {
   const listTypeId = c.req.param("id");
   const { results } = await c.env.DB.prepare(`
     SELECT * FROM gift_template_categories WHERE list_type_id = ? ORDER BY sort_order, id
   `).bind(listTypeId).all();
   return c.json({ categories: results || [] });
 });
-r18.post("/api/admin/gift-categories", adminMiddleware, async (c) => {
+r19.post("/api/admin/gift-categories", adminMiddleware, async (c) => {
   const body = await c.req.json();
   const { list_type_id, name, color_class } = body;
   const maxOrder = await c.env.DB.prepare(
@@ -3661,7 +3864,7 @@ r18.post("/api/admin/gift-categories", adminMiddleware, async (c) => {
   `).bind(list_type_id, name, color_class || "bg-gray-100 text-gray-700", (maxOrder?.max || 0) + 1).run();
   return c.json({ success: true, id: result.meta.last_row_id });
 });
-r18.put("/api/admin/gift-categories/:id", adminMiddleware, async (c) => {
+r19.put("/api/admin/gift-categories/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
   const { name, color_class, sort_order } = body;
@@ -3672,12 +3875,12 @@ r18.put("/api/admin/gift-categories/:id", adminMiddleware, async (c) => {
   `).bind(name, color_class || "bg-gray-100 text-gray-700", sort_order || 0, id).run();
   return c.json({ success: true });
 });
-r18.delete("/api/admin/gift-categories/:id", adminMiddleware, async (c) => {
+r19.delete("/api/admin/gift-categories/:id", adminMiddleware, async (c) => {
   const id = c.req.param("id");
   await c.env.DB.prepare("DELETE FROM gift_template_categories WHERE id = ?").bind(id).run();
   return c.json({ success: true });
 });
-r18.get("/api/public/gift-templates", async (c) => {
+r19.get("/api/public/gift-templates", async (c) => {
   const { results: listTypes } = await c.env.DB.prepare(`
     SELECT id, name, slug, description FROM gift_list_types 
     WHERE is_active = TRUE ORDER BY sort_order, id
@@ -3701,7 +3904,7 @@ r18.get("/api/public/gift-templates", async (c) => {
   }
   return c.json({ listTypes: result });
 });
-r18.get("/api/public/gift-templates/:listId", async (c) => {
+r19.get("/api/public/gift-templates/:listId", async (c) => {
   const listId = c.req.param("listId");
   const { results: templates } = await c.env.DB.prepare(`
     SELECT id, name, description, price, category, image_url 
@@ -3714,11 +3917,11 @@ r18.get("/api/public/gift-templates/:listId", async (c) => {
   `).bind(listId).all();
   return c.json({ templates: templates || [], categories: categories || [] });
 });
-var gift_templates_default = r18;
+var gift_templates_default = r19;
 
 // src/worker/routes/godparents.ts
-var r19 = new Hono2();
-r19.get("/api/godparents", authMiddleware, async (c) => {
+var r20 = new Hono2();
+r20.get("/api/godparents", authMiddleware, async (c) => {
   const user = c.get("user");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE user_id = ?"
@@ -3729,7 +3932,7 @@ r19.get("/api/godparents", authMiddleware, async (c) => {
   ).bind(wedding.id).all();
   return c.json(results);
 });
-r19.post("/api/godparents", authMiddleware, async (c) => {
+r20.post("/api/godparents", authMiddleware, async (c) => {
   const user = c.get("user");
   const body = await c.req.json();
   const wedding = await c.env.DB.prepare(
@@ -3751,7 +3954,7 @@ r19.post("/api/godparents", authMiddleware, async (c) => {
   ).run();
   return c.json({ success: true, id: result.meta.last_row_id });
 });
-r19.put("/api/godparents/:id", authMiddleware, async (c) => {
+r20.put("/api/godparents/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
   const weddingId = await getWeddingId(c);
   if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
@@ -3773,7 +3976,7 @@ r19.put("/api/godparents/:id", authMiddleware, async (c) => {
   if (!res.meta.changes) return c.json({ error: "Godparent not found" }, 404);
   return c.json({ success: true });
 });
-r19.delete("/api/godparents/:id", authMiddleware, async (c) => {
+r20.delete("/api/godparents/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
   const weddingId = await getWeddingId(c);
   if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
@@ -3783,7 +3986,7 @@ r19.delete("/api/godparents/:id", authMiddleware, async (c) => {
   if (!res.meta.changes) return c.json({ error: "Godparent not found" }, 404);
   return c.json({ success: true });
 });
-r19.get("/api/public/wedding/:customUrl/godparents", async (c) => {
+r20.get("/api/public/wedding/:customUrl/godparents", async (c) => {
   const customUrl = c.req.param("customUrl");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE custom_url = ?"
@@ -3796,11 +3999,11 @@ r19.get("/api/public/wedding/:customUrl/godparents", async (c) => {
   ).bind(wedding.id).all();
   return c.json({ godparents: results || [] });
 });
-var godparents_default = r19;
+var godparents_default = r20;
 
 // src/worker/routes/parents.ts
-var r20 = new Hono2();
-r20.get("/api/parents", authMiddleware, async (c) => {
+var r21 = new Hono2();
+r21.get("/api/parents", authMiddleware, async (c) => {
   const user = c.get("user");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE user_id = ?"
@@ -3811,7 +4014,7 @@ r20.get("/api/parents", authMiddleware, async (c) => {
   ).bind(wedding.id).all();
   return c.json(results);
 });
-r20.post("/api/parents", authMiddleware, async (c) => {
+r21.post("/api/parents", authMiddleware, async (c) => {
   const user = c.get("user");
   const body = await c.req.json();
   const wedding = await c.env.DB.prepare(
@@ -3832,7 +4035,7 @@ r20.post("/api/parents", authMiddleware, async (c) => {
   ).run();
   return c.json({ success: true, id: result.meta.last_row_id });
 });
-r20.put("/api/parents/:id", authMiddleware, async (c) => {
+r21.put("/api/parents/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
   const weddingId = await getWeddingId(c);
   if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
@@ -3853,7 +4056,7 @@ r20.put("/api/parents/:id", authMiddleware, async (c) => {
   if (!res.meta.changes) return c.json({ error: "Parent not found" }, 404);
   return c.json({ success: true });
 });
-r20.delete("/api/parents/:id", authMiddleware, async (c) => {
+r21.delete("/api/parents/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
   const weddingId = await getWeddingId(c);
   if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
@@ -3863,7 +4066,7 @@ r20.delete("/api/parents/:id", authMiddleware, async (c) => {
   if (!res.meta.changes) return c.json({ error: "Parent not found" }, 404);
   return c.json({ success: true });
 });
-r20.get("/api/public/wedding/:customUrl/parents", async (c) => {
+r21.get("/api/public/wedding/:customUrl/parents", async (c) => {
   const customUrl = c.req.param("customUrl");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE custom_url = ?"
@@ -3876,11 +4079,11 @@ r20.get("/api/public/wedding/:customUrl/parents", async (c) => {
   ).bind(wedding.id).all();
   return c.json({ parents: results || [] });
 });
-var parents_default = r20;
+var parents_default = r21;
 
 // src/worker/routes/accommodations.ts
-var r21 = new Hono2();
-r21.get("/api/accommodations", authMiddleware, async (c) => {
+var r22 = new Hono2();
+r22.get("/api/accommodations", authMiddleware, async (c) => {
   const user = c.get("user");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE user_id = ?"
@@ -3891,7 +4094,7 @@ r21.get("/api/accommodations", authMiddleware, async (c) => {
   ).bind(wedding.id).all();
   return c.json(results);
 });
-r21.post("/api/accommodations", authMiddleware, async (c) => {
+r22.post("/api/accommodations", authMiddleware, async (c) => {
   const user = c.get("user");
   const body = await c.req.json();
   const wedding = await c.env.DB.prepare(
@@ -3916,7 +4119,7 @@ r21.post("/api/accommodations", authMiddleware, async (c) => {
   ).run();
   return c.json({ success: true, id: result.meta.last_row_id });
 });
-r21.put("/api/accommodations/:id", authMiddleware, async (c) => {
+r22.put("/api/accommodations/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
   const weddingId = await getWeddingId(c);
   if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
@@ -3942,7 +4145,7 @@ r21.put("/api/accommodations/:id", authMiddleware, async (c) => {
   if (!res.meta.changes) return c.json({ error: "Accommodation not found" }, 404);
   return c.json({ success: true });
 });
-r21.delete("/api/accommodations/:id", authMiddleware, async (c) => {
+r22.delete("/api/accommodations/:id", authMiddleware, async (c) => {
   const id = c.req.param("id");
   const weddingId = await getWeddingId(c);
   if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
@@ -3952,7 +4155,7 @@ r21.delete("/api/accommodations/:id", authMiddleware, async (c) => {
   if (!res.meta.changes) return c.json({ error: "Accommodation not found" }, 404);
   return c.json({ success: true });
 });
-r21.get("/api/public/wedding/:customUrl/accommodations", async (c) => {
+r22.get("/api/public/wedding/:customUrl/accommodations", async (c) => {
   const customUrl = c.req.param("customUrl");
   const wedding = await c.env.DB.prepare(
     "SELECT id FROM weddings WHERE custom_url = ?"
@@ -3965,147 +4168,7 @@ r21.get("/api/public/wedding/:customUrl/accommodations", async (c) => {
   ).bind(wedding.id).all();
   return c.json({ accommodations: results || [] });
 });
-var accommodations_default = r21;
-
-// src/worker/routes/platform.ts
-var r22 = new Hono2();
-var DEFAULTS = { commission_pct: 2, maintenance_fee: 12 };
-async function readSettings(c) {
-  try {
-    const row = await c.env.DB.prepare(
-      "SELECT commission_pct, maintenance_fee FROM platform_settings WHERE id = 1"
-    ).first();
-    if (row) {
-      return {
-        commission_pct: Number(row.commission_pct) || 0,
-        maintenance_fee: Number(row.maintenance_fee) || 0
-      };
-    }
-  } catch {
-  }
-  return { ...DEFAULTS };
-}
-async function computeSplit(c, amount, cardPrice, applyMaintenanceFee) {
-  const { commission_pct, maintenance_fee } = await readSettings(c);
-  const gift = Number(amount) || 0;
-  const card = Number(cardPrice) || 0;
-  const fee = applyMaintenanceFee ? maintenance_fee : 0;
-  const commission_amount = Math.round(gift * commission_pct) / 100;
-  const platform_amount = Math.round((commission_amount + card + fee) * 100) / 100;
-  const couple_amount = Math.round((gift - commission_amount) * 100) / 100;
-  return { commission_pct, maintenance_fee: fee, commission_amount, platform_amount, couple_amount };
-}
-r22.get("/api/public/platform-config", async (c) => {
-  const settings = await readSettings(c);
-  let cardOptions = [];
-  try {
-    const { results } = await c.env.DB.prepare(
-      "SELECT id, name, price, description FROM gift_card_options WHERE is_active = TRUE ORDER BY sort_order, id"
-    ).all();
-    cardOptions = results || [];
-  } catch {
-  }
-  if (cardOptions.length === 0) {
-    cardOptions = [{ id: 0, name: "Gr\xE1tis", price: 0, description: "Cart\xE3o simples com seu nome e mensagem" }];
-  }
-  return c.json({
-    commissionPct: settings.commission_pct,
-    maintenanceFee: settings.maintenance_fee,
-    cardOptions
-  });
-});
-r22.get("/api/admin/platform/settings", adminMiddleware, async (c) => {
-  return c.json(await readSettings(c));
-});
-r22.put("/api/admin/platform/settings", adminMiddleware, async (c) => {
-  const body = await c.req.json();
-  const commission = Math.max(0, Math.min(100, Number(body.commission_pct) || 0));
-  const fee = Math.max(0, Number(body.maintenance_fee) || 0);
-  await c.env.DB.prepare(`
-    INSERT INTO platform_settings (id, commission_pct, maintenance_fee, updated_at)
-    VALUES (1, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT (id) DO UPDATE SET
-      commission_pct = EXCLUDED.commission_pct,
-      maintenance_fee = EXCLUDED.maintenance_fee,
-      updated_at = CURRENT_TIMESTAMP
-  `).bind(commission, fee).run();
-  return c.json({ success: true, commission_pct: commission, maintenance_fee: fee });
-});
-r22.get("/api/admin/platform/cards", adminMiddleware, async (c) => {
-  const { results } = await c.env.DB.prepare(
-    "SELECT * FROM gift_card_options ORDER BY sort_order, id"
-  ).all();
-  return c.json({ cards: results || [] });
-});
-r22.post("/api/admin/platform/cards", adminMiddleware, async (c) => {
-  const body = await c.req.json();
-  if (!body.name?.trim()) return c.json({ error: "Nome obrigat\xF3rio" }, 400);
-  const max = await c.env.DB.prepare(
-    "SELECT COALESCE(MAX(sort_order), -1) AS m FROM gift_card_options"
-  ).first();
-  const result = await c.env.DB.prepare(`
-    INSERT INTO gift_card_options (name, price, description, sort_order, is_active)
-    VALUES (?, ?, ?, ?, ?)
-  `).bind(
-    body.name.trim(),
-    Math.max(0, Number(body.price) || 0),
-    body.description || null,
-    (max?.m ?? -1) + 1,
-    body.is_active === false ? false : true
-  ).run();
-  return c.json({ success: true, id: result.meta.last_row_id });
-});
-r22.put("/api/admin/platform/cards/:id", adminMiddleware, async (c) => {
-  const id = c.req.param("id");
-  const body = await c.req.json();
-  const res = await c.env.DB.prepare(`
-    UPDATE gift_card_options SET
-      name = ?, price = ?, description = ?, sort_order = ?, is_active = ?,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(
-    body.name,
-    Math.max(0, Number(body.price) || 0),
-    body.description || null,
-    Number(body.sort_order) || 0,
-    body.is_active === false ? false : true,
-    id
-  ).run();
-  if (!res.meta.changes) return c.json({ error: "Cart\xE3o n\xE3o encontrado" }, 404);
-  return c.json({ success: true });
-});
-r22.delete("/api/admin/platform/cards/:id", adminMiddleware, async (c) => {
-  const id = c.req.param("id");
-  const res = await c.env.DB.prepare(
-    "DELETE FROM gift_card_options WHERE id = ?"
-  ).bind(id).run();
-  if (!res.meta.changes) return c.json({ error: "Cart\xE3o n\xE3o encontrado" }, 404);
-  return c.json({ success: true });
-});
-r22.get("/api/admin/platform/revenue", adminMiddleware, async (c) => {
-  const row = await c.env.DB.prepare(`
-    SELECT
-      COUNT(*)                          AS order_count,
-      COALESCE(SUM(commission_amount),0) AS commission_total,
-      COALESCE(SUM(card_price),0)        AS card_total,
-      COALESCE(SUM(maintenance_fee),0)   AS fee_total,
-      COALESCE(SUM(platform_amount),0)   AS platform_total,
-      COALESCE(SUM(couple_amount),0)     AS couple_total,
-      COALESCE(SUM(amount),0)            AS gross_total
-    FROM gift_orders
-    WHERE payment_status = 'paid'
-  `).first();
-  return c.json({
-    orderCount: row?.order_count || 0,
-    commissionTotal: row?.commission_total || 0,
-    cardTotal: row?.card_total || 0,
-    feeTotal: row?.fee_total || 0,
-    platformTotal: row?.platform_total || 0,
-    coupleTotal: row?.couple_total || 0,
-    grossTotal: row?.gross_total || 0
-  });
-});
-var platform_default = r22;
+var accommodations_default = r22;
 
 // src/worker/routes/contributions.ts
 var r23 = new Hono2();
@@ -4183,14 +4246,7 @@ r23.post("/api/public/gift-order", async (c) => {
   const amount = Number(body.amount) || 0;
   const cardPrice = Number(body.card_price) || 0;
   const split = await computeSplit(c, amount, cardPrice, !!body.apply_maintenance_fee);
-  const result = await c.env.DB.prepare(`
-    INSERT INTO gift_orders (
-      wedding_id, gift_id, guest_name, guest_email, amount, message,
-      card_type, card_sender_name, card_message, card_price,
-      maintenance_fee, commission_pct, commission_amount, platform_amount, couple_amount,
-      payment_status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-  `).bind(
+  const common = [
     body.wedding_id,
     body.gift_id,
     body.guest_name,
@@ -4200,14 +4256,37 @@ r23.post("/api/public/gift-order", async (c) => {
     body.card_type || "gratis",
     body.card_sender_name || body.guest_name,
     body.card_message || null,
-    cardPrice,
-    split.maintenance_fee,
-    split.commission_pct,
-    split.commission_amount,
-    split.platform_amount,
-    split.couple_amount
-  ).run();
-  return c.json({ success: true, id: result.meta.last_row_id });
+    cardPrice
+  ];
+  let id;
+  try {
+    const result = await c.env.DB.prepare(`
+      INSERT INTO gift_orders (
+        wedding_id, gift_id, guest_name, guest_email, amount, message,
+        card_type, card_sender_name, card_message, card_price,
+        maintenance_fee, commission_pct, commission_amount, platform_amount, couple_amount,
+        payment_status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).bind(
+      ...common,
+      split.maintenance_fee,
+      split.commission_pct,
+      split.commission_amount,
+      split.platform_amount,
+      split.couple_amount
+    ).run();
+    id = result.meta.last_row_id;
+  } catch {
+    const result = await c.env.DB.prepare(`
+      INSERT INTO gift_orders (
+        wedding_id, gift_id, guest_name, guest_email, amount, message,
+        card_type, card_sender_name, card_message, card_price,
+        payment_status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).bind(...common).run();
+    id = result.meta.last_row_id;
+  }
+  return c.json({ success: true, id });
 });
 var contributions_default = r23;
 
@@ -4356,15 +4435,19 @@ r25.get("/api/dashboard/stats", authMiddleware, async (c) => {
   const messagesCount = await c.env.DB.prepare(
     "SELECT COUNT(*) as count FROM guest_messages WHERE wedding_id = ?"
   ).bind(wedding.id).first();
-  const ordersSum = await c.env.DB.prepare(
-    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid'"
-  ).bind(wedding.id).first();
+  const totalAmount = await sumOrders(
+    c,
+    "couple_amount",
+    "wedding_id = ? AND payment_status = 'paid'",
+    [wedding.id],
+    "amount"
+  );
   return c.json({
     totalGuests: guestsStats?.total || 0,
     confirmedGuests: guestsStats?.confirmed || 0,
     totalGifts: giftsCount?.count || 0,
     totalMessages: messagesCount?.count || 0,
-    totalAmount: ordersSum?.total || 0
+    totalAmount
   });
 });
 var dashboard_default = r25;

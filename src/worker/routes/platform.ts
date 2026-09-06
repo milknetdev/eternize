@@ -31,6 +31,33 @@ async function readSettings(c: any): Promise<{ commission_pct: number; maintenan
   return { ...DEFAULTS };
 }
 
+/**
+ * SUM a gift_orders money column, tolerating a database where the monetization
+ * migration hasn't run yet (the split columns don't exist). Falls back to
+ * `fallback` (or 0 when null).
+ */
+export async function sumOrders(
+  c: any,
+  column: string,
+  where: string,
+  binds: unknown[],
+  fallback: string | null,
+): Promise<number> {
+  const run = async (col: string) => {
+    const row = (await c.env.DB.prepare(
+      `SELECT COALESCE(SUM(${col}), 0) AS total FROM gift_orders WHERE ${where}`,
+    )
+      .bind(...binds)
+      .first()) as { total: number } | null;
+    return Number(row?.total) || 0;
+  };
+  try {
+    return await run(column);
+  } catch {
+    return fallback ? run(fallback) : 0;
+  }
+}
+
 /** Shared by the gift-order route to compute the split for one line item. */
 export async function computeSplit(
   c: any,
@@ -79,28 +106,37 @@ r.put("/api/admin/platform/settings", adminMiddleware, async (c) => {
   const body = await c.req.json();
   const commission = Math.max(0, Math.min(100, Number(body.commission_pct) || 0));
   const fee = Math.max(0, Number(body.maintenance_fee) || 0);
-  await c.env.DB.prepare(`
-    INSERT INTO platform_settings (id, commission_pct, maintenance_fee, updated_at)
-    VALUES (1, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT (id) DO UPDATE SET
-      commission_pct = EXCLUDED.commission_pct,
-      maintenance_fee = EXCLUDED.maintenance_fee,
-      updated_at = CURRENT_TIMESTAMP
-  `).bind(commission, fee).run();
+  try {
+    await c.env.DB.prepare(`
+      INSERT INTO platform_settings (id, commission_pct, maintenance_fee, updated_at)
+      VALUES (1, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT (id) DO UPDATE SET
+        commission_pct = EXCLUDED.commission_pct,
+        maintenance_fee = EXCLUDED.maintenance_fee,
+        updated_at = CURRENT_TIMESTAMP
+    `).bind(commission, fee).run();
+  } catch {
+    return c.json({ error: "Rode a migração de monetização no banco antes de configurar." }, 503);
+  }
   return c.json({ success: true, commission_pct: commission, maintenance_fee: fee });
 });
 
 // ── Admin: gift-card tiers CRUD ───────────────────────────────────────
 r.get("/api/admin/platform/cards", adminMiddleware, async (c) => {
-  const { results } = await c.env.DB.prepare(
-    "SELECT * FROM gift_card_options ORDER BY sort_order, id"
-  ).all();
-  return c.json({ cards: results || [] });
+  try {
+    const { results } = await c.env.DB.prepare(
+      "SELECT * FROM gift_card_options ORDER BY sort_order, id"
+    ).all();
+    return c.json({ cards: results || [] });
+  } catch {
+    return c.json({ cards: [] });
+  }
 });
 
 r.post("/api/admin/platform/cards", adminMiddleware, async (c) => {
   const body = await c.req.json();
   if (!body.name?.trim()) return c.json({ error: "Nome obrigatório" }, 400);
+  try {
   const max = await c.env.DB.prepare(
     "SELECT COALESCE(MAX(sort_order), -1) AS m FROM gift_card_options"
   ).first<{ m: number }>();
@@ -115,6 +151,9 @@ r.post("/api/admin/platform/cards", adminMiddleware, async (c) => {
     body.is_active === false ? false : true,
   ).run();
   return c.json({ success: true, id: result.meta.last_row_id });
+  } catch {
+    return c.json({ error: "Rode a migração de monetização no banco antes de gerenciar cartões." }, 503);
+  }
 });
 
 r.put("/api/admin/platform/cards/:id", adminMiddleware, async (c) => {
@@ -148,18 +187,23 @@ r.delete("/api/admin/platform/cards/:id", adminMiddleware, async (c) => {
 
 // ── Admin: revenue summary ───────────────────────────────────────────
 r.get("/api/admin/platform/revenue", adminMiddleware, async (c) => {
-  const row = await c.env.DB.prepare(`
-    SELECT
-      COUNT(*)                          AS order_count,
-      COALESCE(SUM(commission_amount),0) AS commission_total,
-      COALESCE(SUM(card_price),0)        AS card_total,
-      COALESCE(SUM(maintenance_fee),0)   AS fee_total,
-      COALESCE(SUM(platform_amount),0)   AS platform_total,
-      COALESCE(SUM(couple_amount),0)     AS couple_total,
-      COALESCE(SUM(amount),0)            AS gross_total
-    FROM gift_orders
-    WHERE payment_status = 'paid'
-  `).first<Record<string, number>>();
+  let row: Record<string, number> | null = null;
+  try {
+    row = await c.env.DB.prepare(`
+      SELECT
+        COUNT(*)                          AS order_count,
+        COALESCE(SUM(commission_amount),0) AS commission_total,
+        COALESCE(SUM(card_price),0)        AS card_total,
+        COALESCE(SUM(maintenance_fee),0)   AS fee_total,
+        COALESCE(SUM(platform_amount),0)   AS platform_total,
+        COALESCE(SUM(couple_amount),0)     AS couple_total,
+        COALESCE(SUM(amount),0)            AS gross_total
+      FROM gift_orders
+      WHERE payment_status = 'paid'
+    `).first<Record<string, number>>();
+  } catch {
+    row = null;
+  }
   return c.json({
     orderCount: row?.order_count || 0,
     commissionTotal: row?.commission_total || 0,

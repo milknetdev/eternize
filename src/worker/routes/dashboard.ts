@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { authMiddleware } from "../local-auth-backend";
 import type { AppEnv } from "../lib/types";
+import { sumOrders } from "./platform";
 
 const r = new Hono<AppEnv>();
 // =====================
@@ -54,16 +55,20 @@ r.get("/api/dashboard/stats", authMiddleware, async (c) => {
     "SELECT COUNT(*) as count FROM guest_messages WHERE wedding_id = ?"
   ).bind(wedding.id).first();
 
-  const ordersSum = await c.env.DB.prepare(
-    "SELECT SUM(couple_amount) as total FROM gift_orders WHERE wedding_id = ? AND payment_status = 'paid'"
-  ).bind(wedding.id).first();
+  const totalAmount = await sumOrders(
+    c,
+    "couple_amount",
+    "wedding_id = ? AND payment_status = 'paid'",
+    [wedding.id],
+    "amount",
+  );
 
   return c.json({
     totalGuests: guestsStats?.total || 0,
     confirmedGuests: guestsStats?.confirmed || 0,
     totalGifts: giftsCount?.count || 0,
     totalMessages: messagesCount?.count || 0,
-    totalAmount: ordersSum?.total || 0,
+    totalAmount,
   });
 });
 
