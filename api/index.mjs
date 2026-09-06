@@ -3317,14 +3317,15 @@ var platform_default = r14;
 
 // src/worker/lib/pix/validapay.ts
 import { createHmac, timingSafeEqual } from "node:crypto";
+var OAUTH_URL = () => process.env.VALIDAPAY_OAUTH_URL || "https://oauth2.validapay.com.br/auth/token";
 var BASE_URL = () => (process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br").replace(/\/+$/, "");
-var PATH_TOKEN = process.env.VALIDAPAY_TOKEN_PATH || "/auth/token";
-var PATH_CREATE = process.env.VALIDAPAY_CHARGE_PATH || "/v1/charges/pix";
-var PATH_GET = process.env.VALIDAPAY_CHARGE_GET_PATH || "/v1/charges/:id";
-var WEBHOOK_SIG_HEADER = "x-validapay-signature";
+var SCOPE = () => process.env.VALIDAPAY_SCOPE || "pix.cob/write";
+var PATH_CREATE = "/v1/charges/pix";
+var PATH_GET = "/v1/charges/:id";
+var WEBHOOK_SIG_HEADER = "x-webhook-signature";
 function normalizeStatus(raw2) {
   const s = String(raw2 || "").toUpperCase();
-  if (s === "PAID" || s === "APPROVED" || s === "COMPLETED") return "paid";
+  if (s === "PAID" || s === "APPROVED" || s === "COMPLETED" || s === "SUCCESS") return "paid";
   if (s === "EXPIRED") return "expired";
   if (s === "FAILED" || s === "CANCELED" || s === "CANCELLED" || s === "REFUSED") return "failed";
   return "pending";
@@ -3338,96 +3339,70 @@ async function getAccessToken() {
   if (cachedToken && cachedToken.expiresAt - 6e4 > Date.now()) {
     return cachedToken.value;
   }
-  const url = `${BASE_URL()}${PATH_TOKEN}`;
-  const id = process.env.VALIDAPAY_CLIENT_ID || "";
-  const secret = process.env.VALIDAPAY_CLIENT_SECRET || "";
-  const scope = process.env.VALIDAPAY_SCOPE || "";
-  const basic = Buffer.from(`${id}:${secret}`).toString("base64");
-  const attempts = [
-    // 1) RFC 6749: HTTP Basic header + form body
-    {
-      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json", Authorization: `Basic ${basic}` },
-      body: new URLSearchParams({ grant_type: "client_credentials", ...scope ? { scope } : {} }).toString()
-    },
-    // 2) creds in the form body
-    {
-      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-      body: new URLSearchParams({ grant_type: "client_credentials", client_id: id, client_secret: secret, ...scope ? { scope } : {} }).toString()
-    },
-    // 3) creds in a JSON body
-    {
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ grant_type: "client_credentials", client_id: id, client_secret: secret, ...scope ? { scope } : {} })
-    }
-  ];
-  let res = null;
-  let lastText = "";
-  for (const a of attempts) {
-    res = await fetch(url, { method: "POST", headers: a.headers, body: a.body });
-    if (res.ok) break;
-    lastText = await res.text().catch(() => "");
-    if (res.status !== 400 && res.status !== 401 && res.status !== 415 && res.status !== 422) break;
-  }
-  if (!res || !res.ok) {
-    throw new Error(`ValidaPay auth ${res?.status} @ ${PATH_TOKEN}: ${lastText.slice(0, 300)}`);
+  const res = await fetch(OAUTH_URL(), {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: process.env.VALIDAPAY_CLIENT_ID || "",
+      client_secret: process.env.VALIDAPAY_CLIENT_SECRET || "",
+      scope: SCOPE()
+    }).toString()
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`ValidaPay auth ${res.status} @ ${OAUTH_URL()}: ${text.slice(0, 300)}`);
   }
   const j = await res.json();
-  const value = String(j.access_token ?? j.token ?? j.accessToken ?? "");
-  if (!value) throw new Error("ValidaPay auth: no token in response");
-  const ttlSec = Number(j.expires_in ?? j.expiresIn ?? 3600) || 3600;
+  const value = String(j.access_token ?? j.token ?? "");
+  if (!value) throw new Error("ValidaPay auth: no access_token in response");
+  const ttlSec = Number(j.expires_in ?? 3600) || 3600;
   cachedToken = { value, expiresAt: Date.now() + ttlSec * 1e3 };
   return value;
 }
 async function authHeaders() {
   return {
     "Content-Type": "application/json",
+    Accept: "application/json",
     Authorization: `Bearer ${await getAccessToken()}`
   };
 }
 function readCharge(j) {
   return {
-    chargeId: String(j.chargeId ?? j.id ?? j.charge_id ?? ""),
-    emv: String(j.emv ?? j.pixCopiaECola ?? j.copyPaste ?? j.brcode ?? ""),
-    qrCode: String(j.qrCode ?? j.qrcode ?? j.qr_code_image ?? j.qrCodeImage ?? ""),
-    status: normalizeStatus(j.status),
-    expiresAt: j.expiresAt ?? j.expiration_date ?? null
+    chargeId: String(j.chargeId ?? j.id ?? ""),
+    emv: String(j.emv ?? j.pixCopiaECola ?? j.brcode ?? ""),
+    qrCode: String(j.qrCode ?? j.qrcode ?? ""),
+    status: normalizeStatus(j.status ?? "PENDING"),
+    expiresAt: j.expiresAt ?? j.expiration ?? null
   };
 }
 async function createPixCharge(input) {
   const body = {
-    amount: Math.round(input.amountCents),
-    externalId: input.checkoutRef,
-    expiration: input.expiration ?? 1800,
-    description: input.description,
-    customer: {
-      name: input.customer.name,
-      email: input.customer.email || void 0,
-      documentNumber: input.customer.document || void 0
-    },
-    metadata: { checkoutRef: input.checkoutRef }
+    amount: Math.round(input.amount * 100) / 100,
+    externalTxid: input.checkoutRef
   };
-  const headers = await authHeaders();
-  const paths = [PATH_CREATE, "/v1/charges", "/v1/pix/charges", "/charges/pix"].filter(
-    (p, i, a) => a.indexOf(p) === i
-  );
-  let res = null;
-  let lastText = "";
-  for (const path of paths) {
-    res = await fetch(`${BASE_URL()}${path}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(path === "/v1/charges" ? { ...body, type: "pix", method: "pix" } : body)
-    });
-    if (res.status === 409) {
-      const dup = await res.json().catch(() => ({}));
-      const id = dup?.chargeId ?? dup?.id;
-      if (id) return getCharge(String(id));
-    }
-    if (res.ok) return readCharge(await res.json());
-    lastText = await res.text().catch(() => "");
-    if (res.status !== 404) break;
+  if (input.customer.name || input.customer.email || input.customer.document) {
+    body.customer = {
+      name: input.customer.name || void 0,
+      email: input.customer.email || void 0,
+      documentNumber: (input.customer.document || "").replace(/\D/g, "") || void 0
+    };
   }
-  throw new Error(`ValidaPay create charge ${res?.status} @ ${paths[0]}: ${lastText.slice(0, 300)}`);
+  const res = await fetch(`${BASE_URL()}${PATH_CREATE}`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify(body)
+  });
+  if (res.status === 409) {
+    const dup = await res.json().catch(() => ({}));
+    const id = dup?.chargeId ?? dup?.id;
+    if (id) return getCharge(String(id));
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`ValidaPay create charge ${res.status} @ ${PATH_CREATE}: ${text.slice(0, 300)}`);
+  }
+  return readCharge(await res.json());
 }
 async function getCharge(chargeId) {
   const res = await fetch(`${BASE_URL()}${PATH_GET.replace(":id", encodeURIComponent(chargeId))}`, {
@@ -3440,16 +3415,25 @@ async function getCharge(chargeId) {
   return readCharge(await res.json());
 }
 function verifyWebhook(rawBody, signatureHeader) {
-  const secret = process.env.VALIDAPAY_WEBHOOK_SECRET || process.env.VALIDAPAY_CLIENT_SECRET;
+  const secret = process.env.VALIDAPAY_WEBHOOK_SECRET;
   if (!secret) {
-    console.warn("[validapay] no webhook secret \u2014 signature not verified");
+    console.warn("[validapay] VALIDAPAY_WEBHOOK_SECRET not set \u2014 webhook signature not verified");
     return true;
   }
   if (!signatureHeader) return false;
-  const expected = createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
-  const got = signatureHeader.replace(/^sha256=/, "").trim();
+  const parts = Object.fromEntries(
+    signatureHeader.split(",").map((kv) => {
+      const i = kv.indexOf("=");
+      return [kv.slice(0, i).trim(), kv.slice(i + 1).trim()];
+    })
+  );
+  const t = parts["t"];
+  const v1 = parts["v1"] || signatureHeader.replace(/^sha256=/, "").trim();
+  if (!v1) return false;
+  const signed = t ? `${t}.${rawBody}` : rawBody;
+  const expected = createHmac("sha256", secret).update(signed, "utf8").digest("hex");
   const a = Buffer.from(expected, "utf8");
-  const b = Buffer.from(got, "utf8");
+  const b = Buffer.from(v1, "utf8");
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
@@ -3600,51 +3584,28 @@ r15.post("/api/withdrawals", authMiddleware, async (c) => {
 });
 r15.get("/api/public/pix-debug", async (c) => {
   if (c.req.query("probe") !== "1") return c.json({ error: "add ?probe=1" }, 400);
-  const cid = process.env.VALIDAPAY_CLIENT_ID || "";
-  const csec = process.env.VALIDAPAY_CLIENT_SECRET || "";
-  const scope = process.env.VALIDAPAY_SCOPE || "";
-  const basic = Buffer.from(`${cid}:${csec}`).toString("base64");
-  const sc = scope ? { scope } : {};
-  const bases = [
-    process.env.VALIDAPAY_API_URL,
-    "https://api.validapay.com.br",
-    "https://sandbox.validapay.com.br"
-  ].filter(Boolean).map((b) => b.replace(/\/+$/, ""));
-  const uniqueBases = [...new Set(bases)];
-  const bodyForm = new URLSearchParams({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc }).toString();
-  const bodyFormBasic = new URLSearchParams({ grant_type: "client_credentials", ...sc }).toString();
-  const bodyJson = JSON.stringify({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc });
-  const bodyJsonCamel = JSON.stringify({ grantType: "client_credentials", clientId: cid, clientSecret: csec, ...scope ? { scope } : {} });
-  const qs = new URLSearchParams({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc }).toString();
-  const H = { Accept: "application/json" };
-  const modes = {
-    basic_form: { headers: { ...H, "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${basic}` }, body: bodyFormBasic },
-    body_form: { headers: { ...H, "Content-Type": "application/x-www-form-urlencoded" }, body: bodyForm },
-    body_json: { headers: { ...H, "Content-Type": "application/json" }, body: bodyJson },
-    body_json_camel: { headers: { ...H, "Content-Type": "application/json" }, body: bodyJsonCamel },
-    query_string: { path: `?${qs}`, headers: { ...H }, body: "" },
-    basic_only: { headers: { ...H, Authorization: `Basic ${basic}`, "Content-Type": "application/json" }, body: JSON.stringify({ grant_type: "client_credentials", ...sc }) }
+  const out = {
+    configured: isConfigured(),
+    oauthUrl: process.env.VALIDAPAY_OAUTH_URL || "https://oauth2.validapay.com.br/auth/token",
+    apiUrl: process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br",
+    scope: process.env.VALIDAPAY_SCOPE || "pix.cob/write"
   };
-  const out = [];
-  for (const base of uniqueBases) {
-    for (const [mode, cfg] of Object.entries(modes)) {
-      const url = `${base}/auth/token${cfg.path || ""}`;
-      try {
-        const res = await fetch(url, { method: "POST", headers: cfg.headers, body: cfg.body || void 0 });
-        const txt = (await res.text().catch(() => "")).slice(0, 220).replace(/\s+/g, " ");
-        out.push({ base, mode, status: res.status, body: txt });
-      } catch (e) {
-        out.push({ base, mode, error: String(e?.message || e).slice(0, 160) });
-      }
-    }
+  try {
+    const ref = `probe-${Date.now()}`;
+    const charge = await createPixCharge({
+      amount: 1,
+      checkoutRef: ref,
+      customer: { name: "Teste Eternize" }
+    });
+    out.result = "OK";
+    out.chargeId = charge.chargeId;
+    out.hasEmv = !!charge.emv;
+    out.hasQrCode = !!charge.qrCode;
+  } catch (err) {
+    out.result = "ERRO";
+    out.detail = String(err?.message || err).slice(0, 600);
   }
-  return c.json({
-    hasClientId: !!cid,
-    hasClientSecret: !!csec,
-    apiUrlEnv: process.env.VALIDAPAY_API_URL || null,
-    scopeEnv: scope || null,
-    tries: out
-  });
+  return c.json(out);
 });
 r15.post("/api/public/pix-charge", async (c) => {
   if (!isConfigured()) {
@@ -3656,9 +3617,8 @@ r15.post("/api/public/pix-charge", async (c) => {
   if (!ref || amount <= 0) return c.json({ error: "Dados inv\xE1lidos" }, 400);
   try {
     const charge = await createPixCharge({
-      amountCents: Math.round(amount * 100),
+      amount,
       checkoutRef: ref,
-      description: String(body.description || "Presente de casamento"),
       customer: {
         name: String(body.customer?.name || "Convidado"),
         email: body.customer?.email || null,
@@ -4737,22 +4697,22 @@ var dashboard_default = r25;
 
 // src/worker/routes/webhooks.ts
 var r26 = new Hono2();
-async function markCheckoutPaid(db, checkoutRef) {
+async function markPaid(db, key) {
   await db.prepare(
     `UPDATE gift_orders
          SET payment_status = 'paid', paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
        WHERE pix_transaction_id = ? AND payment_status <> 'paid'`
-  ).bind(checkoutRef).run();
+  ).bind(key).run();
   try {
     await db.prepare(
       "UPDATE gift_orders SET couple_amount = amount WHERE pix_transaction_id = ? AND (couple_amount IS NULL OR couple_amount = 0)"
-    ).bind(checkoutRef).run();
+    ).bind(key).run();
   } catch {
   }
 }
 r26.post("/api/webhooks/validapay", async (c) => {
   const raw2 = await c.req.text();
-  const sig = c.req.header(WEBHOOK_SIG_HEADER);
+  const sig = c.req.header(WEBHOOK_SIG_HEADER) || c.req.header("X-Webhook-Signature");
   if (!verifyWebhook(raw2, sig)) {
     return c.json({ error: "invalid signature" }, 401);
   }
@@ -4763,9 +4723,9 @@ r26.post("/api/webhooks/validapay", async (c) => {
     return c.json({ error: "invalid body" }, 400);
   }
   const status = normalizeStatus(body.status ?? (body.event === "payment.success" ? "PAID" : ""));
-  const ref = body?.metadata?.checkoutRef || body?.externalId || body?.metadata?.orderId;
-  if (status === "paid" && ref) {
-    await markCheckoutPaid(c.env.DB, String(ref));
+  const key = body?.chargeId || body?.externalTxid || body?.metadata?.checkoutRef;
+  if (status === "paid" && key) {
+    await markPaid(c.env.DB, String(key));
   }
   return c.json({ received: true });
 });

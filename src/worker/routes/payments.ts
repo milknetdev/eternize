@@ -193,62 +193,32 @@ r.post("/api/withdrawals", authMiddleware, async (c) => {
 // PUBLIC — PIX CHARGE (ValidaPay)
 // =====================
 
-// TEMP diagnostic: probes candidate API hosts + token paths so we can find the
-// right VALIDAPAY_API_URL / VALIDAPAY_TOKEN_PATH without guessing. No secrets in
-// the output. Open in a browser: /api/public/pix-debug?probe=1
+// TEMP diagnostic: end-to-end check against ValidaPay. Open in a browser:
+// /api/public/pix-debug?probe=1  → tries auth, then a R$1 charge. No secrets out.
 r.get("/api/public/pix-debug", async (c) => {
   if (c.req.query("probe") !== "1") return c.json({ error: "add ?probe=1" }, 400);
-
-  const cid = process.env.VALIDAPAY_CLIENT_ID || "";
-  const csec = process.env.VALIDAPAY_CLIENT_SECRET || "";
-  const scope = process.env.VALIDAPAY_SCOPE || "";
-  const basic = Buffer.from(`${cid}:${csec}`).toString("base64");
-  const sc: Record<string, string> = scope ? { scope } : {};
-
-  const bases = [
-    process.env.VALIDAPAY_API_URL,
-    "https://api.validapay.com.br",
-    "https://sandbox.validapay.com.br",
-  ].filter(Boolean).map((b) => (b as string).replace(/\/+$/, ""));
-  // de-dupe
-  const uniqueBases = [...new Set(bases)];
-
-  const bodyForm = new URLSearchParams({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc }).toString();
-  const bodyFormBasic = new URLSearchParams({ grant_type: "client_credentials", ...sc }).toString();
-  const bodyJson = JSON.stringify({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc });
-  const bodyJsonCamel = JSON.stringify({ grantType: "client_credentials", clientId: cid, clientSecret: csec, ...(scope ? { scope } : {}) });
-  const qs = new URLSearchParams({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc }).toString();
-
-  const H = { Accept: "application/json" };
-  const modes: Record<string, { path?: string; headers: Record<string, string>; body?: string }> = {
-    basic_form: { headers: { ...H, "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${basic}` }, body: bodyFormBasic },
-    body_form: { headers: { ...H, "Content-Type": "application/x-www-form-urlencoded" }, body: bodyForm },
-    body_json: { headers: { ...H, "Content-Type": "application/json" }, body: bodyJson },
-    body_json_camel: { headers: { ...H, "Content-Type": "application/json" }, body: bodyJsonCamel },
-    query_string: { path: `?${qs}`, headers: { ...H }, body: "" },
-    basic_only: { headers: { ...H, Authorization: `Basic ${basic}`, "Content-Type": "application/json" }, body: JSON.stringify({ grant_type: "client_credentials", ...sc }) },
+  const out: any = {
+    configured: isConfigured(),
+    oauthUrl: process.env.VALIDAPAY_OAUTH_URL || "https://oauth2.validapay.com.br/auth/token",
+    apiUrl: process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br",
+    scope: process.env.VALIDAPAY_SCOPE || "pix.cob/write",
   };
-
-  const out: any[] = [];
-  for (const base of uniqueBases) {
-    for (const [mode, cfg] of Object.entries(modes)) {
-      const url = `${base}/auth/token${cfg.path || ""}`;
-      try {
-        const res = await fetch(url, { method: "POST", headers: cfg.headers, body: cfg.body || undefined });
-        const txt = (await res.text().catch(() => "")).slice(0, 220).replace(/\s+/g, " ");
-        out.push({ base, mode, status: res.status, body: txt });
-      } catch (e) {
-        out.push({ base, mode, error: String((e as any)?.message || e).slice(0, 160) });
-      }
-    }
+  try {
+    const ref = `probe-${Date.now()}`;
+    const charge = await createPixCharge({
+      amount: 1,
+      checkoutRef: ref,
+      customer: { name: "Teste Eternize" },
+    });
+    out.result = "OK";
+    out.chargeId = charge.chargeId;
+    out.hasEmv = !!charge.emv;
+    out.hasQrCode = !!charge.qrCode;
+  } catch (err) {
+    out.result = "ERRO";
+    out.detail = String((err as any)?.message || err).slice(0, 600);
   }
-  return c.json({
-    hasClientId: !!cid,
-    hasClientSecret: !!csec,
-    apiUrlEnv: process.env.VALIDAPAY_API_URL || null,
-    scopeEnv: scope || null,
-    tries: out,
-  });
+  return c.json(out);
 });
 
 // Create one PIX charge for a whole checkout. The gift_orders must already exist
@@ -264,9 +234,8 @@ r.post("/api/public/pix-charge", async (c) => {
 
   try {
     const charge = await createPixCharge({
-      amountCents: Math.round(amount * 100),
+      amount,
       checkoutRef: ref,
-      description: String(body.description || "Presente de casamento"),
       customer: {
         name: String(body.customer?.name || "Convidado"),
         email: body.customer?.email || null,

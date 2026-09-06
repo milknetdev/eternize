@@ -2,29 +2,34 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 /**
  * ValidaPay PIX adapter — the only place that knows ValidaPay's HTTP shape.
- * The API spec below is from the public docs draft; adjust these constants once
- * you have the sandbox reference.
+ * Spec: https://docs.validapay.com.br (llms-full.txt).
  *
  * Config (Vercel env):
- *   VALIDAPAY_CLIENT_ID / VALIDAPAY_CLIENT_SECRET  — OAuth2 client_credentials (preferred)
+ *   VALIDAPAY_CLIENT_ID / VALIDAPAY_CLIENT_SECRET  — OAuth2 client_credentials (required)
  *   VALIDAPAY_TOKEN          — OR a ready static bearer token (overrides OAuth)
- *   VALIDAPAY_API_URL        — optional, defaults below
- *   VALIDAPAY_WEBHOOK_SECRET — optional; if set, webhook HMAC is verified
+ *   VALIDAPAY_OAUTH_URL      — token endpoint. Default = production. For sandbox set
+ *                              https://oauth2-sandbox.validapay.com.br/auth/token
+ *   VALIDAPAY_API_URL        — charge API base. Default = production
+ *                              (https://api.validapay.com.br). Sandbox:
+ *                              https://sandbox.validapay.com.br
+ *   VALIDAPAY_SCOPE          — OAuth scope. Default "pix.cob/write"
+ *   VALIDAPAY_WEBHOOK_SECRET — secret to verify the X-Webhook-Signature HMAC
  */
 
+const OAUTH_URL = () =>
+  process.env.VALIDAPAY_OAUTH_URL || "https://oauth2.validapay.com.br/auth/token";
 const BASE_URL = () =>
   (process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br").replace(/\/+$/, "");
-// Best guesses — overridable per-env so we don't need a redeploy to adjust.
-const PATH_TOKEN = process.env.VALIDAPAY_TOKEN_PATH || "/auth/token";
-const PATH_CREATE = process.env.VALIDAPAY_CHARGE_PATH || "/v1/charges/pix";
-const PATH_GET = process.env.VALIDAPAY_CHARGE_GET_PATH || "/v1/charges/:id";
-export const WEBHOOK_SIG_HEADER = "x-validapay-signature";
+const SCOPE = () => process.env.VALIDAPAY_SCOPE || "pix.cob/write";
+const PATH_CREATE = "/v1/charges/pix";
+const PATH_GET = "/v1/charges/:id";
+export const WEBHOOK_SIG_HEADER = "x-webhook-signature";
 
 export type PixStatus = "pending" | "paid" | "expired" | "failed";
 
 function normalizeStatus(raw: unknown): PixStatus {
   const s = String(raw || "").toUpperCase();
-  if (s === "PAID" || s === "APPROVED" || s === "COMPLETED") return "paid";
+  if (s === "PAID" || s === "APPROVED" || s === "COMPLETED" || s === "SUCCESS") return "paid";
   if (s === "EXPIRED") return "expired";
   if (s === "FAILED" || s === "CANCELED" || s === "CANCELLED" || s === "REFUSED") return "failed";
   return "pending";
@@ -47,45 +52,24 @@ async function getAccessToken(): Promise<string> {
     return cachedToken.value;
   }
 
-  const url = `${BASE_URL()}${PATH_TOKEN}`;
-  const id = process.env.VALIDAPAY_CLIENT_ID || "";
-  const secret = process.env.VALIDAPAY_CLIENT_SECRET || "";
-  const scope = process.env.VALIDAPAY_SCOPE || "";
-  const basic = Buffer.from(`${id}:${secret}`).toString("base64");
-
-  const attempts: { headers: Record<string, string>; body: string }[] = [
-    // 1) RFC 6749: HTTP Basic header + form body
-    {
-      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json", Authorization: `Basic ${basic}` },
-      body: new URLSearchParams({ grant_type: "client_credentials", ...(scope ? { scope } : {}) }).toString(),
-    },
-    // 2) creds in the form body
-    {
-      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-      body: new URLSearchParams({ grant_type: "client_credentials", client_id: id, client_secret: secret, ...(scope ? { scope } : {}) }).toString(),
-    },
-    // 3) creds in a JSON body
-    {
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ grant_type: "client_credentials", client_id: id, client_secret: secret, ...(scope ? { scope } : {}) }),
-    },
-  ];
-
-  let res: Response | null = null;
-  let lastText = "";
-  for (const a of attempts) {
-    res = await fetch(url, { method: "POST", headers: a.headers, body: a.body });
-    if (res.ok) break;
-    lastText = await res.text().catch(() => "");
-    if (res.status !== 400 && res.status !== 401 && res.status !== 415 && res.status !== 422) break;
-  }
-  if (!res || !res.ok) {
-    throw new Error(`ValidaPay auth ${res?.status} @ ${PATH_TOKEN}: ${lastText.slice(0, 300)}`);
+  const res = await fetch(OAUTH_URL(), {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: process.env.VALIDAPAY_CLIENT_ID || "",
+      client_secret: process.env.VALIDAPAY_CLIENT_SECRET || "",
+      scope: SCOPE(),
+    }).toString(),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`ValidaPay auth ${res.status} @ ${OAUTH_URL()}: ${text.slice(0, 300)}`);
   }
   const j = (await res.json()) as any;
-  const value = String(j.access_token ?? j.token ?? j.accessToken ?? "");
-  if (!value) throw new Error("ValidaPay auth: no token in response");
-  const ttlSec = Number(j.expires_in ?? j.expiresIn ?? 3600) || 3600;
+  const value = String(j.access_token ?? j.token ?? "");
+  if (!value) throw new Error("ValidaPay auth: no access_token in response");
+  const ttlSec = Number(j.expires_in ?? 3600) || 3600;
   cachedToken = { value, expiresAt: Date.now() + ttlSec * 1000 };
   return value;
 }
@@ -93,17 +77,16 @@ async function getAccessToken(): Promise<string> {
 async function authHeaders(): Promise<Record<string, string>> {
   return {
     "Content-Type": "application/json",
+    Accept: "application/json",
     Authorization: `Bearer ${await getAccessToken()}`,
   };
 }
 
 export interface CreateChargeInput {
-  amountCents: number;
+  /** amount in BRL (e.g. 50.00) — ValidaPay wants reais, not cents */
+  amount: number;
   checkoutRef: string;
-  description: string;
   customer: { name: string; email?: string | null; document?: string | null };
-  /** seconds until the QR expires */
-  expiration?: number;
 }
 
 export interface PixCharge {
@@ -116,51 +99,43 @@ export interface PixCharge {
 
 function readCharge(j: any): PixCharge {
   return {
-    chargeId: String(j.chargeId ?? j.id ?? j.charge_id ?? ""),
-    emv: String(j.emv ?? j.pixCopiaECola ?? j.copyPaste ?? j.brcode ?? ""),
-    qrCode: String(j.qrCode ?? j.qrcode ?? j.qr_code_image ?? j.qrCodeImage ?? ""),
-    status: normalizeStatus(j.status),
-    expiresAt: j.expiresAt ?? j.expiration_date ?? null,
+    chargeId: String(j.chargeId ?? j.id ?? ""),
+    emv: String(j.emv ?? j.pixCopiaECola ?? j.brcode ?? ""),
+    qrCode: String(j.qrCode ?? j.qrcode ?? ""),
+    status: normalizeStatus(j.status ?? "PENDING"),
+    expiresAt: j.expiresAt ?? j.expiration ?? null,
   };
 }
 
 export async function createPixCharge(input: CreateChargeInput): Promise<PixCharge> {
-  const body = {
-    amount: Math.round(input.amountCents),
-    externalId: input.checkoutRef,
-    expiration: input.expiration ?? 1800,
-    description: input.description,
-    customer: {
-      name: input.customer.name,
-      email: input.customer.email || undefined,
-      documentNumber: input.customer.document || undefined,
-    },
-    metadata: { checkoutRef: input.checkoutRef },
+  const body: Record<string, unknown> = {
+    amount: Math.round(input.amount * 100) / 100,
+    externalTxid: input.checkoutRef,
   };
-
-  const headers = await authHeaders();
-  const paths = [PATH_CREATE, "/v1/charges", "/v1/pix/charges", "/charges/pix"].filter(
-    (p, i, a) => a.indexOf(p) === i,
-  );
-
-  let res: Response | null = null;
-  let lastText = "";
-  for (const path of paths) {
-    res = await fetch(`${BASE_URL()}${path}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(path === "/v1/charges" ? { ...body, type: "pix", method: "pix" } : body),
-    });
-    if (res.status === 409) {
-      const dup = (await res.json().catch(() => ({}))) as any;
-      const id = dup?.chargeId ?? dup?.id;
-      if (id) return getCharge(String(id));
-    }
-    if (res.ok) return readCharge(await res.json());
-    lastText = await res.text().catch(() => "");
-    if (res.status !== 404) break; // only fall through on "wrong path"
+  if (input.customer.name || input.customer.email || input.customer.document) {
+    body.customer = {
+      name: input.customer.name || undefined,
+      email: input.customer.email || undefined,
+      documentNumber: (input.customer.document || "").replace(/\D/g, "") || undefined,
+    };
   }
-  throw new Error(`ValidaPay create charge ${res?.status} @ ${paths[0]}: ${lastText.slice(0, 300)}`);
+
+  const res = await fetch(`${BASE_URL()}${PATH_CREATE}`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify(body),
+  });
+
+  if (res.status === 409) {
+    const dup = (await res.json().catch(() => ({}))) as any;
+    const id = dup?.chargeId ?? dup?.id;
+    if (id) return getCharge(String(id));
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`ValidaPay create charge ${res.status} @ ${PATH_CREATE}: ${text.slice(0, 300)}`);
+  }
+  return readCharge(await res.json());
 }
 
 export async function getCharge(chargeId: string): Promise<PixCharge> {
@@ -175,21 +150,33 @@ export async function getCharge(chargeId: string): Promise<PixCharge> {
 }
 
 /**
- * Verifies the webhook HMAC. Uses VALIDAPAY_WEBHOOK_SECRET if set, otherwise
- * falls back to the client secret (a common signing key). If neither exists we
- * accept the request (and warn) so the integration can be brought up in stages.
+ * Verifies the webhook signature.
+ * Header: `X-Webhook-Signature: t=<ms>,v1=<hex>`
+ * Signed value: HMAC_SHA256(secret, "<t>.<rawBody>")
+ * If no secret is configured we accept (and warn) so it can be enabled later.
  */
 export function verifyWebhook(rawBody: string, signatureHeader: string | null | undefined): boolean {
-  const secret = process.env.VALIDAPAY_WEBHOOK_SECRET || process.env.VALIDAPAY_CLIENT_SECRET;
+  const secret = process.env.VALIDAPAY_WEBHOOK_SECRET;
   if (!secret) {
-    console.warn("[validapay] no webhook secret — signature not verified");
+    console.warn("[validapay] VALIDAPAY_WEBHOOK_SECRET not set — webhook signature not verified");
     return true;
   }
   if (!signatureHeader) return false;
-  const expected = createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
-  const got = signatureHeader.replace(/^sha256=/, "").trim();
+
+  const parts = Object.fromEntries(
+    signatureHeader.split(",").map((kv) => {
+      const i = kv.indexOf("=");
+      return [kv.slice(0, i).trim(), kv.slice(i + 1).trim()];
+    }),
+  );
+  const t = parts["t"];
+  const v1 = parts["v1"] || signatureHeader.replace(/^sha256=/, "").trim();
+  if (!v1) return false;
+
+  const signed = t ? `${t}.${rawBody}` : rawBody;
+  const expected = createHmac("sha256", secret).update(signed, "utf8").digest("hex");
   const a = Buffer.from(expected, "utf8");
-  const b = Buffer.from(got, "utf8");
+  const b = Buffer.from(v1, "utf8");
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
