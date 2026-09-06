@@ -108,6 +108,13 @@ export function GravataTab({ pixKey, customUrl }: GravataTabProps) {
 
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="font-serif text-2xl font-semibold">Cofrinho / PIX</h2>
+        <p className="text-muted-foreground text-sm mt-1">
+          Contribuições dos convidados via PIX com QR Code
+        </p>
+      </div>
+
       {/* Header Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
@@ -148,17 +155,17 @@ export function GravataTab({ pixKey, customUrl }: GravataTabProps) {
       </div>
 
       {/* QR Code & PIX Key Section */}
-      <div className="bg-white rounded-xl border border-border p-6">
+      <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-serif font-semibold">Gravata Eternize</h3>
+          <h3 className="text-lg font-serif font-semibold">Cofrinho Eternize</h3>
         </div>
 
         {!pixKey ? (
           <div className="text-center py-8 text-muted-foreground">
             <AlertCircle className="w-12 h-12 mx-auto mb-3 text-amber-500" />
             <p className="mb-2">Configure sua chave PIX nas configurações</p>
-            <p className="text-sm">A Gravata Eternize permite que seus convidados façam contribuições via PIX com QR Code.</p>
+            <p className="text-sm">O Cofrinho Eternize permite que seus convidados façam contribuições via PIX com QR Code.</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-6">
@@ -192,7 +199,7 @@ export function GravataTab({ pixKey, customUrl }: GravataTabProps) {
 
               {gravataUrl && (
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Link da Gravata</label>
+                  <label className="text-sm font-medium text-muted-foreground">Link do Cofrinho</label>
                   <div className="flex gap-2 mt-1">
                     <div className="flex-1 bg-muted rounded-lg px-4 py-2 text-sm truncate">
                       {gravataUrl}
@@ -227,7 +234,7 @@ export function GravataTab({ pixKey, customUrl }: GravataTabProps) {
 
       {/* Pending Contributions */}
       {pendingContributions.length > 0 && (
-        <div className="bg-white rounded-xl border border-border p-6">
+        <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
           <h3 className="text-lg font-serif font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-orange-500" />
             Aguardando Confirmação ({pendingContributions.length})
@@ -284,7 +291,7 @@ export function GravataTab({ pixKey, customUrl }: GravataTabProps) {
       )}
 
       {/* Confirmed Contributions */}
-      <div className="bg-white rounded-xl border border-border p-6">
+      <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
         <h3 className="text-lg font-serif font-semibold mb-4 flex items-center gap-2">
           <CheckCircle className="w-5 h-5 text-green-500" />
           Contribuições Confirmadas ({confirmedContributions.length})

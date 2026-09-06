@@ -42,7 +42,7 @@ export function SettingsTab({
       
       {/* Publish Status Banner */}
       {wedding && (
-        <div className={`rounded-xl border p-6 mb-6 ${
+        <div className={`rounded-2xl border p-6 mb-6 ${
           wedding.is_published 
             ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200" 
             : "bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200"
@@ -118,7 +118,7 @@ export function SettingsTab({
       {/* Theme Editor Link */}
       <Link
         to="/dashboard/tema"
-        className="block bg-gradient-to-r from-primary/10 via-gold-light/10 to-primary/10 rounded-xl border border-primary/20 p-6 mb-4 hover:border-primary/40 transition-colors group"
+        className="block bg-gradient-to-r from-primary/10 via-gold-light/10 to-primary/10 rounded-2xl border border-primary/20 p-6 mb-4 hover:border-primary/40 transition-colors group"
       >
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-gold-light flex items-center justify-center">
@@ -137,7 +137,7 @@ export function SettingsTab({
       {/* Site Settings Link */}
       <Link
         to="/dashboard/configuracoes"
-        className="block bg-gradient-to-r from-secondary/30 via-primary/5 to-secondary/30 rounded-xl border border-secondary p-6 mb-6 hover:border-primary/40 transition-colors group"
+        className="block bg-gradient-to-r from-secondary/30 via-primary/5 to-secondary/30 rounded-2xl border border-secondary p-6 mb-6 hover:border-primary/40 transition-colors group"
       >
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary to-primary/30 flex items-center justify-center">

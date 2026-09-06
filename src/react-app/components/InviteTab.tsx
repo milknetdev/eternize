@@ -148,7 +148,7 @@ export function InviteTab({ wedding }: InviteTabProps) {
                   className={`relative p-3 rounded-xl border-2 transition-all ${
                     selectedStyle.id === style.id
                       ? "border-primary shadow-md"
-                      : "border-transparent hover:border-gray-200"
+                      : "border-transparent hover:border-border"
                   }`}
                 >
                   <div
@@ -185,7 +185,7 @@ export function InviteTab({ wedding }: InviteTabProps) {
                   className={`p-3 rounded-xl border-2 transition-all ${
                     selectedFont.id === font.id
                       ? "border-primary bg-primary/5"
-                      : "border-gray-200 hover:border-gray-300"
+                      : "border-border hover:border-primary/30"
                   }`}
                 >
                   <p
@@ -222,7 +222,7 @@ export function InviteTab({ wedding }: InviteTabProps) {
                     type="checkbox"
                     checked={showVenue}
                     onChange={(e) => setShowVenue(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary/25"
                   />
                   <span className="text-sm">Mostrar local</span>
                 </label>
@@ -231,7 +231,7 @@ export function InviteTab({ wedding }: InviteTabProps) {
                     type="checkbox"
                     checked={showTime}
                     onChange={(e) => setShowTime(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary/25"
                   />
                   <span className="text-sm">Mostrar horário</span>
                 </label>
