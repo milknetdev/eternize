@@ -201,37 +201,44 @@ r.get("/api/public/pix-debug", async (c) => {
 
   const cid = process.env.VALIDAPAY_CLIENT_ID || "";
   const csec = process.env.VALIDAPAY_CLIENT_SECRET || "";
-  const base = (process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br").replace(/\/+$/, "");
   const scope = process.env.VALIDAPAY_SCOPE || "";
   const basic = Buffer.from(`${cid}:${csec}`).toString("base64");
   const sc: Record<string, string> = scope ? { scope } : {};
-  const paths = ["/auth/token", "/oauth/token", "/v1/auth/token"];
 
-  const modes: Record<string, { headers: Record<string, string>; body: string }> = {
-    basic: {
-      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json", Authorization: `Basic ${basic}` },
-      body: new URLSearchParams({ grant_type: "client_credentials", ...sc }).toString(),
-    },
-    form: {
-      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-      body: new URLSearchParams({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc }).toString(),
-    },
-    json: {
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc }),
-    },
+  const bases = [
+    process.env.VALIDAPAY_API_URL,
+    "https://api.validapay.com.br",
+    "https://sandbox.validapay.com.br",
+  ].filter(Boolean).map((b) => (b as string).replace(/\/+$/, ""));
+  // de-dupe
+  const uniqueBases = [...new Set(bases)];
+
+  const bodyForm = new URLSearchParams({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc }).toString();
+  const bodyFormBasic = new URLSearchParams({ grant_type: "client_credentials", ...sc }).toString();
+  const bodyJson = JSON.stringify({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc });
+  const bodyJsonCamel = JSON.stringify({ grantType: "client_credentials", clientId: cid, clientSecret: csec, ...(scope ? { scope } : {}) });
+  const qs = new URLSearchParams({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc }).toString();
+
+  const H = { Accept: "application/json" };
+  const modes: Record<string, { path?: string; headers: Record<string, string>; body?: string }> = {
+    basic_form: { headers: { ...H, "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${basic}` }, body: bodyFormBasic },
+    body_form: { headers: { ...H, "Content-Type": "application/x-www-form-urlencoded" }, body: bodyForm },
+    body_json: { headers: { ...H, "Content-Type": "application/json" }, body: bodyJson },
+    body_json_camel: { headers: { ...H, "Content-Type": "application/json" }, body: bodyJsonCamel },
+    query_string: { path: `?${qs}`, headers: { ...H }, body: "" },
+    basic_only: { headers: { ...H, Authorization: `Basic ${basic}`, "Content-Type": "application/json" }, body: JSON.stringify({ grant_type: "client_credentials", ...sc }) },
   };
 
   const out: any[] = [];
-  for (const path of paths) {
+  for (const base of uniqueBases) {
     for (const [mode, cfg] of Object.entries(modes)) {
-      const url = `${base}${path}`;
+      const url = `${base}/auth/token${cfg.path || ""}`;
       try {
-        const res = await fetch(url, { method: "POST", headers: cfg.headers, body: cfg.body });
+        const res = await fetch(url, { method: "POST", headers: cfg.headers, body: cfg.body || undefined });
         const txt = (await res.text().catch(() => "")).slice(0, 220).replace(/\s+/g, " ");
-        out.push({ url, mode, status: res.status, body: txt });
+        out.push({ base, mode, status: res.status, body: txt });
       } catch (e) {
-        out.push({ url, mode, error: String((e as any)?.message || e).slice(0, 160) });
+        out.push({ base, mode, error: String((e as any)?.message || e).slice(0, 160) });
       }
     }
   }
