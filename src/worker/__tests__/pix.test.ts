@@ -5,18 +5,21 @@ import { makeFixture, type Fixture } from "./helpers";
 let fx: Fixture;
 let env: Record<string, unknown>;
 
-beforeEach(async () => {
-  delete process.env.NEON_DATABASE_URL;
+const clearEnv = () => {
   delete process.env.VALIDAPAY_TOKEN;
   delete process.env.VALIDAPAY_WEBHOOK_SECRET;
+  delete process.env.VALIDAPAY_CLIENT_ID;
+  delete process.env.VALIDAPAY_CLIENT_SECRET;
+};
+
+beforeEach(async () => {
+  delete process.env.NEON_DATABASE_URL;
+  clearEnv();
   fx = await makeFixture();
   env = { DB: fx.db } as unknown as Record<string, unknown>;
 });
 
-afterEach(() => {
-  delete process.env.VALIDAPAY_TOKEN;
-  delete process.env.VALIDAPAY_WEBHOOK_SECRET;
-});
+afterEach(clearEnv);
 
 const json = (r: Response) => r.json() as Promise<any>;
 const post = (path: string, body: unknown, headers: Record<string, string> = {}) =>

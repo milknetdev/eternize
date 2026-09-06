@@ -3318,6 +3318,7 @@ var platform_default = r14;
 // src/worker/lib/pix/validapay.ts
 import { createHmac, timingSafeEqual } from "node:crypto";
 var BASE_URL = () => (process.env.VALIDAPAY_API_URL || "https://app.validapay.com.br").replace(/\/+$/, "");
+var PATH_TOKEN = "/auth/token";
 var PATH_CREATE = "/v1/charges/pix";
 var PATH_GET = "/v1/charges/:id";
 var WEBHOOK_SIG_HEADER = "x-validapay-signature";
@@ -3329,12 +3330,38 @@ function normalizeStatus(raw2) {
   return "pending";
 }
 function isConfigured() {
-  return !!process.env.VALIDAPAY_TOKEN;
+  return !!process.env.VALIDAPAY_TOKEN || !!process.env.VALIDAPAY_CLIENT_ID && !!process.env.VALIDAPAY_CLIENT_SECRET;
 }
-function authHeaders() {
+var cachedToken = null;
+async function getAccessToken() {
+  if (process.env.VALIDAPAY_TOKEN) return process.env.VALIDAPAY_TOKEN;
+  if (cachedToken && cachedToken.expiresAt - 6e4 > Date.now()) {
+    return cachedToken.value;
+  }
+  const res = await fetch(`${BASE_URL()}${PATH_TOKEN}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      grant_type: "client_credentials",
+      client_id: process.env.VALIDAPAY_CLIENT_ID,
+      client_secret: process.env.VALIDAPAY_CLIENT_SECRET
+    })
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`ValidaPay auth ${res.status}: ${text.slice(0, 300)}`);
+  }
+  const j = await res.json();
+  const value = String(j.access_token ?? j.token ?? j.accessToken ?? "");
+  if (!value) throw new Error("ValidaPay auth: no token in response");
+  const ttlSec = Number(j.expires_in ?? j.expiresIn ?? 3600) || 3600;
+  cachedToken = { value, expiresAt: Date.now() + ttlSec * 1e3 };
+  return value;
+}
+async function authHeaders() {
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${process.env.VALIDAPAY_TOKEN || ""}`
+    Authorization: `Bearer ${await getAccessToken()}`
   };
 }
 function readCharge(j) {
@@ -3361,7 +3388,7 @@ async function createPixCharge(input) {
   };
   const res = await fetch(`${BASE_URL()}${PATH_CREATE}`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: await authHeaders(),
     body: JSON.stringify(body)
   });
   if (res.status === 409) {
@@ -3377,7 +3404,7 @@ async function createPixCharge(input) {
 }
 async function getCharge(chargeId) {
   const res = await fetch(`${BASE_URL()}${PATH_GET.replace(":id", encodeURIComponent(chargeId))}`, {
-    headers: authHeaders()
+    headers: await authHeaders()
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -3386,9 +3413,9 @@ async function getCharge(chargeId) {
   return readCharge(await res.json());
 }
 function verifyWebhook(rawBody, signatureHeader) {
-  const secret = process.env.VALIDAPAY_WEBHOOK_SECRET;
+  const secret = process.env.VALIDAPAY_WEBHOOK_SECRET || process.env.VALIDAPAY_CLIENT_SECRET;
   if (!secret) {
-    console.warn("[validapay] VALIDAPAY_WEBHOOK_SECRET not set \u2014 webhook signature not verified");
+    console.warn("[validapay] no webhook secret \u2014 signature not verified");
     return true;
   }
   if (!signatureHeader) return false;

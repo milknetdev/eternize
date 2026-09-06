@@ -6,13 +6,15 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * you have the sandbox reference.
  *
  * Config (Vercel env):
- *   VALIDAPAY_TOKEN          — API bearer token (required for checkout to work)
+ *   VALIDAPAY_CLIENT_ID / VALIDAPAY_CLIENT_SECRET  — OAuth2 client_credentials (preferred)
+ *   VALIDAPAY_TOKEN          — OR a ready static bearer token (overrides OAuth)
  *   VALIDAPAY_API_URL        — optional, defaults below
  *   VALIDAPAY_WEBHOOK_SECRET — optional; if set, webhook HMAC is verified
  */
 
 const BASE_URL = () =>
   (process.env.VALIDAPAY_API_URL || "https://app.validapay.com.br").replace(/\/+$/, "");
+const PATH_TOKEN = "/auth/token";
 const PATH_CREATE = "/v1/charges/pix";
 const PATH_GET = "/v1/charges/:id";
 export const WEBHOOK_SIG_HEADER = "x-validapay-signature";
@@ -28,13 +30,47 @@ function normalizeStatus(raw: unknown): PixStatus {
 }
 
 export function isConfigured(): boolean {
-  return !!process.env.VALIDAPAY_TOKEN;
+  return (
+    !!process.env.VALIDAPAY_TOKEN ||
+    (!!process.env.VALIDAPAY_CLIENT_ID && !!process.env.VALIDAPAY_CLIENT_SECRET)
+  );
 }
 
-function authHeaders(): Record<string, string> {
+// Cached OAuth token (module scope survives warm serverless invocations).
+let cachedToken: { value: string; expiresAt: number } | null = null;
+
+async function getAccessToken(): Promise<string> {
+  if (process.env.VALIDAPAY_TOKEN) return process.env.VALIDAPAY_TOKEN;
+
+  if (cachedToken && cachedToken.expiresAt - 60_000 > Date.now()) {
+    return cachedToken.value;
+  }
+
+  const res = await fetch(`${BASE_URL()}${PATH_TOKEN}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      grant_type: "client_credentials",
+      client_id: process.env.VALIDAPAY_CLIENT_ID,
+      client_secret: process.env.VALIDAPAY_CLIENT_SECRET,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`ValidaPay auth ${res.status}: ${text.slice(0, 300)}`);
+  }
+  const j = (await res.json()) as any;
+  const value = String(j.access_token ?? j.token ?? j.accessToken ?? "");
+  if (!value) throw new Error("ValidaPay auth: no token in response");
+  const ttlSec = Number(j.expires_in ?? j.expiresIn ?? 3600) || 3600;
+  cachedToken = { value, expiresAt: Date.now() + ttlSec * 1000 };
+  return value;
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${process.env.VALIDAPAY_TOKEN || ""}`,
+    Authorization: `Bearer ${await getAccessToken()}`,
   };
 }
 
@@ -81,7 +117,7 @@ export async function createPixCharge(input: CreateChargeInput): Promise<PixChar
 
   const res = await fetch(`${BASE_URL()}${PATH_CREATE}`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: await authHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -101,7 +137,7 @@ export async function createPixCharge(input: CreateChargeInput): Promise<PixChar
 
 export async function getCharge(chargeId: string): Promise<PixCharge> {
   const res = await fetch(`${BASE_URL()}${PATH_GET.replace(":id", encodeURIComponent(chargeId))}`, {
-    headers: authHeaders(),
+    headers: await authHeaders(),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -111,13 +147,14 @@ export async function getCharge(chargeId: string): Promise<PixCharge> {
 }
 
 /**
- * Verifies the webhook HMAC. If VALIDAPAY_WEBHOOK_SECRET is unset we accept the
- * request (and warn) so the integration can be brought up in stages.
+ * Verifies the webhook HMAC. Uses VALIDAPAY_WEBHOOK_SECRET if set, otherwise
+ * falls back to the client secret (a common signing key). If neither exists we
+ * accept the request (and warn) so the integration can be brought up in stages.
  */
 export function verifyWebhook(rawBody: string, signatureHeader: string | null | undefined): boolean {
-  const secret = process.env.VALIDAPAY_WEBHOOK_SECRET;
+  const secret = process.env.VALIDAPAY_WEBHOOK_SECRET || process.env.VALIDAPAY_CLIENT_SECRET;
   if (!secret) {
-    console.warn("[validapay] VALIDAPAY_WEBHOOK_SECRET not set — webhook signature not verified");
+    console.warn("[validapay] no webhook secret — signature not verified");
     return true;
   }
   if (!signatureHeader) return false;
