@@ -50,13 +50,13 @@ export function GuestModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
-          <h2 className="font-serif text-xl font-semibold dark:text-white">
+      <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="font-serif text-xl font-semibold">
             {guest ? "Editar Convidado" : "Novo Convidado"}
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-muted dark:hover:bg-gray-700 rounded-lg">
-            <X className="w-5 h-5 dark:text-white" />
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg">
+            <X className="w-5 h-5" />
           </button>
         </div>
         <form
@@ -71,13 +71,13 @@ export function GuestModal({
           className="p-6 space-y-4"
         >
           <div>
-            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Nome do Convidado *</label>
+            <label className="block text-sm font-medium mb-1">Nome do Convidado *</label>
             <input
               type="text"
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
             />
           </div>
           
@@ -87,17 +87,17 @@ export function GuestModal({
                 type="checkbox"
                 checked={formData.is_child}
                 onChange={(e) => setFormData({ ...formData, is_child: e.target.checked })}
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                className="w-4 h-4 rounded border-border text-primary focus:ring-primary/25"
               />
-              <span className="text-sm font-medium dark:text-gray-200">Criança</span>
+              <span className="text-sm font-medium">Criança</span>
             </label>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-muted dark:bg-gray-700 text-muted-foreground">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
               {formData.is_child ? "👶 Criança" : "👤 Adulto"}
             </span>
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2 dark:text-gray-200">Etiqueta</label>
+            <label className="block text-sm font-medium mb-2">Etiqueta</label>
             <div className="grid grid-cols-2 gap-2">
               {GUEST_LABELS.map((label) => (
                 <button
@@ -107,7 +107,7 @@ export function GuestModal({
                   className={`p-3 rounded-lg border text-left text-sm transition-all ${
                     formData.label === label.value
                       ? `${label.color} ring-2 ring-offset-1 ring-primary`
-                      : "bg-white dark:bg-gray-700 dark:text-white hover:bg-muted/50 dark:hover:bg-gray-600"
+                      : "bg-white hover:bg-muted/50"
                   }`}
                 >
                   {label.label}
@@ -118,33 +118,33 @@ export function GuestModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1 dark:text-gray-200">Telefone *</label>
+              <label className="block text-sm font-medium mb-1">Telefone *</label>
               <input
                 type="tel"
                 required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
                 placeholder="(11) 99999-9999"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1 dark:text-gray-200">E-mail</label>
+              <label className="block text-sm font-medium mb-1">E-mail</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
               />
             </div>
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Quantidade de Acompanhantes</label>
+            <label className="block text-sm font-medium mb-1">Quantidade de Acompanhantes</label>
             <select
               value={numCompanions}
               onChange={(e) => handleNumCompanionsChange(parseInt(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
             >
               {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                 <option key={n} value={n}>{n} {n === 1 ? "acompanhante" : "acompanhantes"}</option>
@@ -153,15 +153,15 @@ export function GuestModal({
           </div>
 
           {numCompanions > 0 && (
-            <div className="space-y-3 p-4 bg-muted/30 dark:bg-gray-700/50 rounded-lg">
-              <label className="block text-sm font-medium dark:text-gray-200">Acompanhantes</label>
+            <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+              <label className="block text-sm font-medium">Acompanhantes</label>
               {Array.from({ length: numCompanions }).map((_, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <input
                     type="text"
                     value={companions[index]?.name || ""}
                     onChange={(e) => updateCompanion(index, 'name', e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary/20"
+                    className="flex-1 px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
                     placeholder={`Acompanhante ${index + 1}`}
                   />
                   <label className="flex items-center gap-1 cursor-pointer whitespace-nowrap">
@@ -169,9 +169,9 @@ export function GuestModal({
                       type="checkbox"
                       checked={companions[index]?.is_child || false}
                       onChange={(e) => updateCompanion(index, 'is_child', e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary/25"
                     />
-                    <span className="text-xs dark:text-gray-300">
+                    <span className="text-xs">
                       {companions[index]?.is_child ? "👶" : "👤"}
                     </span>
                   </label>
@@ -183,11 +183,11 @@ export function GuestModal({
 
           {guest && (
             <div>
-              <label className="block text-sm font-medium mb-1 dark:text-gray-200">Status</label>
+              <label className="block text-sm font-medium mb-1">Status</label>
               <select
                 value={formData.rsvp_status}
                 onChange={(e) => setFormData({ ...formData, rsvp_status: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
               >
                 <option value="pending">Pendente</option>
                 <option value="confirmed">Confirmado</option>
@@ -197,12 +197,12 @@ export function GuestModal({
           )}
           
           <div>
-            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Restrições Alimentares</label>
+            <label className="block text-sm font-medium mb-1">Restrições Alimentares</label>
             <input
               type="text"
               value={formData.dietary_restrictions}
               onChange={(e) => setFormData({ ...formData, dietary_restrictions: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
               placeholder="Ex: Vegetariano, sem glúten..."
             />
           </div>

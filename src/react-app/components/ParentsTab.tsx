@@ -158,7 +158,7 @@ export function ParentsTab() {
       </div>
 
       {showForm && (
-        <div className="bg-white dark:bg-card rounded-xl border p-6">
+        <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-serif text-lg font-semibold">
               {editingItem ? 'Editar' : 'Novo Pai/Mãe'}
@@ -235,7 +235,7 @@ export function ParentsTab() {
       )}
 
       {parents.length === 0 && !showForm ? (
-        <div className="bg-white dark:bg-card rounded-xl border p-12 text-center">
+        <div className="bg-white rounded-2xl border border-border shadow-sm p-12 text-center">
           <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-serif text-xl font-semibold mb-2">Nenhum pai/mãe cadastrado</h3>
           <p className="text-muted-foreground mb-4">Adicione os pais dos noivos.</p>
@@ -243,7 +243,7 @@ export function ParentsTab() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {parents.map((item) => (
-            <div key={item.id} className="bg-white dark:bg-card rounded-xl border overflow-hidden group">
+            <div key={item.id} className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden group">
               {item.image_url && (
                 <div className="aspect-[4/3] overflow-hidden">
                   <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
