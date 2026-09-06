@@ -162,19 +162,19 @@ export default function TablesTab() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 border border-border">
+        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
           <p className="text-sm text-muted-foreground">Mesas</p>
           <p className="text-2xl font-semibold">{tables.length}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-border">
+        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
           <p className="text-sm text-muted-foreground">Lugares Totais</p>
           <p className="text-2xl font-semibold">{totalSeats}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-border">
+        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
           <p className="text-sm text-muted-foreground">Sentados</p>
           <p className="text-2xl font-semibold text-green-600">{totalSeated}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-border">
+        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
           <p className="text-sm text-muted-foreground">Sem Mesa</p>
           <p className="text-2xl font-semibold text-amber-600">{totalUnassigned}</p>
         </div>
@@ -182,7 +182,7 @@ export default function TablesTab() {
 
       {/* Unassigned Guests */}
       {unassignedGuests.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <Users className="w-5 h-5 text-amber-600" />
             <h3 className="font-medium text-amber-800">
@@ -210,7 +210,7 @@ export default function TablesTab() {
             ))}
           </div>
           <p className="text-xs text-amber-600 mt-2">
-            Arraste os convidados para as mesas abaixo
+            Arraste os convidados para as mesas — ou abra uma mesa e toque em "Adicionar convidado"
           </p>
         </div>
       )}
@@ -228,12 +228,13 @@ export default function TablesTab() {
             onRemoveGuest={(guestId) => handleAssignGuest(guestId, null)}
             draggedGuest={draggedGuest}
             onDropGuest={(guestId) => handleAssignGuest(guestId, table.id)}
+            unassignedGuests={unassignedGuests}
           />
         ))}
       </div>
 
       {tables.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-xl border border-border">
+        <div className="text-center py-12 bg-white rounded-2xl border border-border shadow-sm">
           <Users className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">Nenhuma mesa criada</h3>
           <p className="text-muted-foreground mb-4">
@@ -277,6 +278,7 @@ function TableCard({
   onRemoveGuest,
   draggedGuest,
   onDropGuest,
+  unassignedGuests,
 }: {
   table: Table;
   expanded: boolean;
@@ -286,8 +288,10 @@ function TableCard({
   onRemoveGuest: (guestId: number) => void;
   draggedGuest: Guest | null;
   onDropGuest: (guestId: number) => void;
+  unassignedGuests: Guest[];
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showAddPicker, setShowAddPicker] = useState(false);
   
   // Count total people including confirmed companions
   const totalPeopleAtTable = table.guests.reduce((sum, guest) => {
@@ -375,10 +379,10 @@ function TableCard({
 
       {/* Guests List */}
       {expanded && (
-        <div className="p-4">
+        <div className="p-4 space-y-3">
           {table.guests.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Arraste convidados para esta mesa
+            <p className="text-sm text-muted-foreground text-center py-2">
+              Arraste convidados para cá ou use o botão abaixo
             </p>
           ) : (
             <ul className="space-y-2">
@@ -407,6 +411,36 @@ function TableCard({
                 </li>
               ))}
             </ul>
+          )}
+
+          {!isFull && unassignedGuests.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowAddPicker((v) => !v)}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-border text-sm font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Adicionar convidado
+              </button>
+              {showAddPicker && (
+                <div className="mt-2 max-h-44 overflow-y-auto rounded-lg border border-border divide-y">
+                  {unassignedGuests.map((g) => (
+                    <button
+                      key={g.id}
+                      onClick={() => { onDropGuest(g.id); setShowAddPicker(false); }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between"
+                    >
+                      <span>{g.name}</span>
+                      {g.companions?.filter((c) => c.is_confirmed).length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          +{g.companions.filter((c) => c.is_confirmed).length}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
