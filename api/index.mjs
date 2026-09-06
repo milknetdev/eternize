@@ -3039,7 +3039,10 @@ r13.get("/api/public/confirm/:code", async (c) => {
       hasPhone: !!guest.phone,
       isConfirmed: Boolean(guest.is_confirmed),
       confirmedAt: guest.confirmed_at,
-      isChild: Boolean(guest.is_child)
+      isChild: Boolean(guest.is_child),
+      rsvpStatus: guest.rsvp_status,
+      dietaryRestrictions: guest.dietary_restrictions,
+      message: guest.message
     },
     companions: companions.results || [],
     wedding: {
@@ -3079,7 +3082,7 @@ r13.post("/api/public/confirm/:code", async (c) => {
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).bind(dietaryRestrictions || null, message || null, guest.id).run();
-  if (confirmedCompanionIds && confirmedCompanionIds.length > 0) {
+  if (Array.isArray(confirmedCompanionIds)) {
     await c.env.DB.prepare(
       "UPDATE guest_companions SET is_confirmed = FALSE WHERE guest_id = ?"
     ).bind(guest.id).run();

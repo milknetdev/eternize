@@ -11,6 +11,9 @@ interface GuestData {
   isConfirmed: boolean;
   confirmedAt: string | null;
   isChild?: boolean;
+  rsvpStatus?: string | null;
+  dietaryRestrictions?: string | null;
+  message?: string | null;
 }
 
 interface Companion {
@@ -68,9 +71,15 @@ export default function GuestConfirmation() {
         .filter((c: Companion) => c.is_confirmed === 1)
         .map((c: Companion) => c.id);
       setSelectedCompanions(confirmedIds);
-      
+
+      // Pre-fill previously saved answers so editing doesn't wipe them
+      setDietaryRestrictions(data.guest.dietaryRestrictions || '');
+      setMessage(data.guest.message || '');
+
       if (data.guest.isConfirmed) {
         setStep('already_confirmed');
+      } else if (data.guest.rsvpStatus === 'declined') {
+        setStep('declined');
       } else {
         setStep(data.guest.hasPhone ? 'verify' : 'confirm');
       }
@@ -146,9 +155,16 @@ export default function GuestConfirmation() {
   };
 
   const toggleCompanion = (id: number) => {
-    setSelectedCompanions(prev => 
+    setSelectedCompanions(prev =>
       prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]
     );
+  };
+
+  const handleEditResponse = () => {
+    setError('');
+    // Re-verify the phone before letting the guest change a saved answer
+    setPhoneLast4('');
+    setStep(guest?.hasPhone ? 'verify' : 'confirm');
   };
 
   const formatDate = (dateStr: string) => {
@@ -336,7 +352,7 @@ export default function GuestConfirmation() {
                       ))}
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
-                      Selecione os acompanhantes que irão comparecer
+                      Marque quem vai comparecer. Deixe desmarcado quem não poderá ir.
                     </p>
                   </div>
                 )}
@@ -469,9 +485,15 @@ export default function GuestConfirmation() {
                 <Heart className="w-8 h-8 text-gray-400" />
               </div>
               <h1 className="text-2xl font-serif text-gray-900 mb-2">Resposta Registrada</h1>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-4">
                 Que pena que não poderá comparecer. {wedding.partner1_name} & {wedding.partner2_name} agradecem por avisar!
               </p>
+              <button
+                onClick={handleEditResponse}
+                className="text-sm font-medium text-[#D4A574] hover:underline"
+              >
+                Mudou de ideia? Confirmar presença
+              </button>
             </motion.div>
           )}
 
@@ -494,7 +516,14 @@ export default function GuestConfirmation() {
                   Confirmado em {new Date(guest.confirmedAt).toLocaleDateString('pt-BR')}
                 </p>
               )}
-              
+
+              <button
+                onClick={handleEditResponse}
+                className="text-sm font-medium text-[#D4A574] hover:underline mb-2"
+              >
+                Precisa alterar? Atualizar minha resposta
+              </button>
+
               {/* Gift List CTA */}
               {wedding.show_gifts !== 0 && wedding.custom_url && (
                 <motion.div

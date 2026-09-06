@@ -59,20 +59,23 @@ r.get("/api/public/confirm/:code", async (c) => {
     venue_name: string;
     custom_url: string;
     show_gifts: number;
+    dietary_restrictions: string | null;
+    message: string | null;
+    rsvp_status: string | null;
   }>();
-  
+
   if (!guest) {
     return c.json({ error: "Invalid confirmation code" }, 404);
   }
-  
+
   // Get companions
   const companions = await c.env.DB.prepare(
     "SELECT id, name, is_confirmed, is_child FROM guest_companions WHERE guest_id = ?"
   ).bind(guest.id).all();
-  
+
   // Mask phone for security (show first 8 digits only)
   const phoneMask = guest.phone ? `${guest.phone.slice(0, 8)}****` : null;
-  
+
   return c.json({
     guest: {
       id: guest.id,
@@ -82,6 +85,9 @@ r.get("/api/public/confirm/:code", async (c) => {
       isConfirmed: Boolean(guest.is_confirmed),
       confirmedAt: guest.confirmed_at,
       isChild: Boolean(guest.is_child),
+      rsvpStatus: guest.rsvp_status,
+      dietaryRestrictions: guest.dietary_restrictions,
+      message: guest.message,
     },
     companions: companions.results || [],
     wedding: {
@@ -130,14 +136,15 @@ r.post("/api/public/confirm/:code", async (c) => {
     WHERE id = ?
   `).bind(dietaryRestrictions || null, message || null, guest.id).run();
   
-  // Update companions confirmation status
-  if (confirmedCompanionIds && confirmedCompanionIds.length > 0) {
-    // First reset all companions to not confirmed
+  // Update companions confirmation status. The client always sends the full
+  // list of companions that ARE coming, so an empty array means "none of the
+  // companions will attend" — we must still reset the ones that were confirmed
+  // before (e.g. on a corrected RSVP), which the old `length > 0` guard skipped.
+  if (Array.isArray(confirmedCompanionIds)) {
     await c.env.DB.prepare(
       "UPDATE guest_companions SET is_confirmed = FALSE WHERE guest_id = ?"
     ).bind(guest.id).run();
-    
-    // Then confirm the selected ones
+
     for (const compId of confirmedCompanionIds) {
       await c.env.DB.prepare(
         "UPDATE guest_companions SET is_confirmed = TRUE WHERE id = ? AND guest_id = ?"
