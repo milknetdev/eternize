@@ -41,7 +41,7 @@ const CATEGORIES = [
   { id: "Vestuário", color: "#EF4444", bg: "bg-rose-100 text-rose-700 border-rose-200" },
   { id: "Beleza", color: "#D946EF", bg: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200" },
   { id: "Papelaria", color: "#14B8A6", bg: "bg-teal-100 text-teal-700 border-teal-200" },
-  { id: "Outros", color: "#6B7280", bg: "bg-gray-100 text-gray-700 border-gray-200" },
+  { id: "Outros", color: "#6B7280", bg: "bg-gray-100 text-foreground border-gray-200" },
 ];
 
 export function BudgetTab() {
@@ -212,7 +212,7 @@ export function BudgetTab() {
         {/* Total Budget Card */}
         <div className="bg-gradient-to-br from-primary/10 to-gold-light/10 border border-primary/20 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-500">Orçamento Total</span>
+            <span className="text-sm text-muted-foreground">Orçamento Total</span>
             <Wallet className="w-5 h-5 text-primary" />
           </div>
           {editingBudget ? (
@@ -228,7 +228,7 @@ export function BudgetTab() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-gray-800">
+              <span className="text-2xl font-bold text-foreground">
                 {totalBudget ? formatCurrency(totalBudget) : "Não definido"}
               </span>
               <button
@@ -236,7 +236,7 @@ export function BudgetTab() {
                   setTempBudget(totalBudget?.toString() || "");
                   setEditingBudget(true);
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-muted-foreground hover:text-muted-foreground"
               >
                 <Pencil className="w-4 h-4" />
               </button>
@@ -247,10 +247,10 @@ export function BudgetTab() {
         {/* Estimated Total */}
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-500">Total Estimado</span>
+            <span className="text-sm text-muted-foreground">Total Estimado</span>
             <TrendingUp className="w-5 h-5 text-blue-500" />
           </div>
-          <span className="text-2xl font-bold text-gray-800">
+          <span className="text-2xl font-bold text-foreground">
             {formatCurrency(totalEstimated)}
           </span>
           {budgetRemaining !== null && (
@@ -263,13 +263,13 @@ export function BudgetTab() {
         {/* Paid */}
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-500">Já Pago</span>
+            <span className="text-sm text-muted-foreground">Já Pago</span>
             <CheckCircle2 className="w-5 h-5 text-green-500" />
           </div>
           <span className="text-2xl font-bold text-green-600">
             {formatCurrency(totalPaid)}
           </span>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {totalEstimated > 0 ? Math.round((totalPaid / totalEstimated) * 100) : 0}% do total
           </p>
         </div>
@@ -277,13 +277,13 @@ export function BudgetTab() {
         {/* Pending */}
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-500">A Pagar</span>
+            <span className="text-sm text-muted-foreground">A Pagar</span>
             <AlertCircle className="w-5 h-5 text-amber-500" />
           </div>
           <span className="text-2xl font-bold text-amber-600">
             {formatCurrency(totalPending)}
           </span>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {expenses.filter(e => !e.is_paid).length} itens pendentes
           </p>
         </div>
@@ -294,7 +294,7 @@ export function BudgetTab() {
         {/* Pie Chart */}
         {categoryData.length > 0 && (
           <div className="bg-white border border-gray-200 rounded-xl p-4 lg:col-span-1">
-            <h3 className="font-medium text-gray-800 mb-4">Gastos por Categoria</h3>
+            <h3 className="font-medium text-foreground mb-4">Gastos por Categoria</h3>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -321,7 +321,7 @@ export function BudgetTab() {
               {categoryData.map((cat) => (
                 <div key={cat.name} className="flex items-center gap-1 text-xs">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
-                  <span className="text-gray-600">{cat.name}</span>
+                  <span className="text-muted-foreground">{cat.name}</span>
                 </div>
               ))}
             </div>
@@ -331,7 +331,7 @@ export function BudgetTab() {
         {/* Actions & List */}
         <div className={`bg-white border border-gray-200 rounded-xl p-4 ${categoryData.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-gray-800">Despesas</h3>
+            <h3 className="font-medium text-foreground">Despesas</h3>
             <div className="flex gap-2">
               {expenses.length === 0 && (
                 <Button
@@ -357,7 +357,7 @@ export function BudgetTab() {
 
           {/* Expense List */}
           {expenses.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-muted-foreground">
               <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>Nenhuma despesa cadastrada</p>
               <p className="text-sm mt-1">Use a lista sugerida ou adicione manualmente</p>
@@ -371,8 +371,8 @@ export function BudgetTab() {
                   <div key={cat.id} className="mb-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
-                      <span className="text-sm font-medium text-gray-700">{cat.id}</span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-sm font-medium text-foreground">{cat.id}</span>
+                      <span className="text-xs text-muted-foreground">
                         {formatCurrency(catExpenses.reduce((s, e) => s + e.estimated_amount, 0))}
                       </span>
                     </div>
@@ -404,15 +404,15 @@ export function BudgetTab() {
                               {expense.is_paid ? (
                                 <CheckCircle2 className="w-5 h-5 text-green-500" />
                               ) : (
-                                <Circle className="w-5 h-5 text-gray-300" />
+                                <Circle className="w-5 h-5 text-muted-foreground/50" />
                               )}
                             </button>
                             <div className="flex-1 min-w-0">
-                              <p className={`text-sm font-medium truncate ${expense.is_paid ? "text-gray-400 line-through" : "text-gray-800"}`}>
+                              <p className={`text-sm font-medium truncate ${expense.is_paid ? "text-muted-foreground line-through" : "text-foreground"}`}>
                                 {expense.name}
                               </p>
                               {expense.vendor_name && (
-                                <p className="text-xs text-gray-400 flex items-center gap-1">
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
                                   <Building2 className="w-3 h-3" />
                                   {expense.vendor_name}
                                 </p>
@@ -421,7 +421,7 @@ export function BudgetTab() {
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="text-right">
-                              <p className="text-sm font-medium text-gray-800">
+                              <p className="text-sm font-medium text-foreground">
                                 {formatCurrency(expense.estimated_amount)}
                               </p>
                               {expense.paid_amount > 0 && expense.paid_amount < expense.estimated_amount && (
@@ -433,13 +433,13 @@ export function BudgetTab() {
                             <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
                               <button
                                 onClick={() => openEditForm(expense)}
-                                className="p-1 text-gray-400 hover:text-blue-500"
+                                className="p-1 text-muted-foreground hover:text-blue-500"
                               >
                                 <Pencil className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDelete(expense.id)}
-                                className="p-1 text-gray-400 hover:text-red-500"
+                                className="p-1 text-muted-foreground hover:text-red-500"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -474,17 +474,17 @@ export function BudgetTab() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">
+                <h3 className="text-lg font-semibold text-foreground">
                   {editingExpense ? "Editar Despesa" : "Nova Despesa"}
                 </h3>
-                <button onClick={resetForm} className="text-gray-400 hover:text-gray-600">
+                <button onClick={resetForm} className="text-muted-foreground hover:text-muted-foreground">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Nome da despesa *
                   </label>
                   <input
@@ -499,7 +499,7 @@ export function BudgetTab() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       Categoria
                     </label>
                     <select
@@ -513,7 +513,7 @@ export function BudgetTab() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       Fornecedor
                     </label>
                     <input
@@ -528,7 +528,7 @@ export function BudgetTab() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       Valor Estimado *
                     </label>
                     <input
@@ -542,7 +542,7 @@ export function BudgetTab() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-foreground mb-1">
                       Valor Pago
                     </label>
                     <input
@@ -557,11 +557,11 @@ export function BudgetTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Data de Vencimento
                   </label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="date"
                       value={formData.due_date}
@@ -572,7 +572,7 @@ export function BudgetTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Observações
                   </label>
                   <textarea
@@ -591,7 +591,7 @@ export function BudgetTab() {
                     onChange={(e) => setFormData({ ...formData, is_paid: e.target.checked })}
                     className="w-4 h-4 text-primary border-border rounded focus:ring-primary/25"
                   />
-                  <span className="text-sm text-gray-700">Marcar como pago</span>
+                  <span className="text-sm text-foreground">Marcar como pago</span>
                 </label>
 
                 <div className="flex gap-3 pt-2">

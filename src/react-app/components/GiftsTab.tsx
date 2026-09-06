@@ -88,7 +88,7 @@ export function GiftsTab({
                     R$ {gift.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </p>
                   <span className={`text-xs px-2 py-1 rounded-full ${
-                    gift.is_available ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                    gift.is_available ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
                   }`}>
                     {gift.is_available ? "Disponível" : "Indisponível"}
                   </span>

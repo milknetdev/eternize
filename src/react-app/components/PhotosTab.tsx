@@ -94,7 +94,7 @@ export function PhotosTab({
       </div>
 
       {photos.length === 0 ? (
-        <div className="bg-white rounded-xl border p-12 text-center">
+        <div className="bg-white rounded-2xl border border-border shadow-sm p-12 text-center">
           <Image className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-serif text-xl font-semibold mb-2">Nenhuma foto ainda</h3>
           <p className="text-muted-foreground mb-4">
@@ -115,7 +115,7 @@ export function PhotosTab({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {photos.map((photo) => (
-            <div key={photo.id} className="group relative bg-white rounded-xl border overflow-hidden">
+            <div key={photo.id} className="group relative bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
               <div className="aspect-square">
                 <img
                   src={`/api/files/${photo.storage_key}`}

@@ -77,7 +77,7 @@ export function GuestModal({
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
             />
           </div>
           
@@ -124,7 +124,7 @@ export function GuestModal({
                 required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                 placeholder="(11) 99999-9999"
               />
             </div>
@@ -134,7 +134,7 @@ export function GuestModal({
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
               />
             </div>
           </div>
@@ -144,7 +144,7 @@ export function GuestModal({
             <select
               value={numCompanions}
               onChange={(e) => handleNumCompanionsChange(parseInt(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
             >
               {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                 <option key={n} value={n}>{n} {n === 1 ? "acompanhante" : "acompanhantes"}</option>
@@ -161,7 +161,7 @@ export function GuestModal({
                     type="text"
                     value={companions[index]?.name || ""}
                     onChange={(e) => updateCompanion(index, 'name', e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                     placeholder={`Acompanhante ${index + 1}`}
                   />
                   <label className="flex items-center gap-1 cursor-pointer whitespace-nowrap">
@@ -187,7 +187,7 @@ export function GuestModal({
               <select
                 value={formData.rsvp_status}
                 onChange={(e) => setFormData({ ...formData, rsvp_status: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
               >
                 <option value="pending">Pendente</option>
                 <option value="confirmed">Confirmado</option>
@@ -202,7 +202,7 @@ export function GuestModal({
               type="text"
               value={formData.dietary_restrictions}
               onChange={(e) => setFormData({ ...formData, dietary_restrictions: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
               placeholder="Ex: Vegetariano, sem glúten..."
             />
           </div>
