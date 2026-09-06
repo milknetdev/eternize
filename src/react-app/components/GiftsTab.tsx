@@ -30,7 +30,7 @@ export function GiftsTab({
             placeholder="Buscar presentes..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25"
           />
         </div>
         <div className="flex gap-2">
@@ -46,7 +46,7 @@ export function GiftsTab({
       </div>
 
       {gifts.length === 0 ? (
-        <div className="bg-white rounded-xl border p-12 text-center">
+        <div className="bg-white rounded-2xl border border-border shadow-sm p-12 text-center">
           <Gift className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-serif text-xl font-semibold mb-2">Nenhum presente ainda</h3>
           <p className="text-muted-foreground mb-4">
@@ -66,7 +66,7 @@ export function GiftsTab({
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {gifts.map((gift) => (
-            <div key={gift.id} className="bg-white rounded-xl border overflow-hidden group">
+            <div key={gift.id} className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden group">
               {gift.image_url ? (
                 <img
                   src={gift.image_url}

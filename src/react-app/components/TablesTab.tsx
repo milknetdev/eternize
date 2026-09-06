@@ -311,7 +311,7 @@ function TableCard({
         }
         setIsDragOver(false);
       }}
-      className={`bg-white rounded-xl border transition-all ${
+      className={`bg-white rounded-2xl border border-border shadow-sm transition-all ${
         isDragOver ? "border-primary ring-2 ring-primary/20" : "border-border"
       } ${isFull ? "opacity-75" : ""}`}
     >
@@ -455,7 +455,7 @@ function TableModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Mesa dos Padrinhos"
-              className="w-full px-3 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/25"
               required
             />
           </div>
@@ -469,7 +469,7 @@ function TableModal({
                 onChange={(e) => setCapacity(parseInt(e.target.value) || 10)}
                 min={1}
                 max={50}
-                className="w-full px-3 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/25"
               />
             </div>
             <div>
@@ -480,7 +480,7 @@ function TableModal({
                 onChange={(e) => setTableNumber(e.target.value ? parseInt(e.target.value) : undefined)}
                 min={1}
                 placeholder="Ex: 1"
-                className="w-full px-3 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/25"
               />
             </div>
           </div>

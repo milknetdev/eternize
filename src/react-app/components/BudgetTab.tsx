@@ -200,7 +200,7 @@ export function BudgetTab() {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D4A574]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
@@ -210,10 +210,10 @@ export function BudgetTab() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Budget Card */}
-        <div className="bg-gradient-to-br from-[#D4A574]/10 to-[#D4A574]/5 border border-[#D4A574]/20 rounded-xl p-4">
+        <div className="bg-gradient-to-br from-primary/10 to-gold-light/10 border border-primary/20 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-500">Orçamento Total</span>
-            <Wallet className="w-5 h-5 text-[#D4A574]" />
+            <Wallet className="w-5 h-5 text-primary" />
           </div>
           {editingBudget ? (
             <div className="flex items-center gap-2">
@@ -338,7 +338,7 @@ export function BudgetTab() {
                   variant="outline"
                   size="sm"
                   onClick={handleSeedExpenses}
-                  className="text-[#D4A574] border-[#D4A574]/30 hover:bg-[#D4A574]/10"
+                  className="text-primary border-primary/25 hover:bg-primary/10"
                 >
                   <Sparkles className="w-4 h-4 mr-1" />
                   Usar lista sugerida
@@ -347,7 +347,7 @@ export function BudgetTab() {
               <Button
                 size="sm"
                 onClick={() => setShowAddForm(true)}
-                className="bg-[#D4A574] hover:bg-[#C49464]"
+                className="bg-primary hover:bg-primary/90"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Adicionar
@@ -492,7 +492,7 @@ export function BudgetTab() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4A574]/50 focus:border-[#D4A574]"
+                    className="w-full px-3 py-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                     placeholder="Ex: Fotógrafo"
                   />
                 </div>
@@ -505,7 +505,7 @@ export function BudgetTab() {
                     <select
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4A574]/50 focus:border-[#D4A574]"
+                      className="w-full px-3 py-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                     >
                       {CATEGORIES.map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.id}</option>
@@ -520,7 +520,7 @@ export function BudgetTab() {
                       type="text"
                       value={formData.vendor_name}
                       onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4A574]/50 focus:border-[#D4A574]"
+                      className="w-full px-3 py-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                       placeholder="Nome do fornecedor"
                     />
                   </div>
@@ -537,7 +537,7 @@ export function BudgetTab() {
                       value={formData.estimated_amount}
                       onChange={(e) => setFormData({ ...formData, estimated_amount: e.target.value })}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4A574]/50 focus:border-[#D4A574]"
+                      className="w-full px-3 py-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                       placeholder="R$ 0,00"
                     />
                   </div>
@@ -550,7 +550,7 @@ export function BudgetTab() {
                       step="0.01"
                       value={formData.paid_amount}
                       onChange={(e) => setFormData({ ...formData, paid_amount: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4A574]/50 focus:border-[#D4A574]"
+                      className="w-full px-3 py-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                       placeholder="R$ 0,00"
                     />
                   </div>
@@ -566,7 +566,7 @@ export function BudgetTab() {
                       type="date"
                       value={formData.due_date}
                       onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4A574]/50 focus:border-[#D4A574]"
+                      className="w-full pl-10 pr-3 py-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                     />
                   </div>
                 </div>
@@ -579,7 +579,7 @@ export function BudgetTab() {
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4A574]/50 focus:border-[#D4A574]"
+                    className="w-full px-3 py-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                     placeholder="Anotações adicionais..."
                   />
                 </div>
@@ -589,7 +589,7 @@ export function BudgetTab() {
                     type="checkbox"
                     checked={formData.is_paid}
                     onChange={(e) => setFormData({ ...formData, is_paid: e.target.checked })}
-                    className="w-4 h-4 text-[#D4A574] border-gray-300 rounded focus:ring-[#D4A574]"
+                    className="w-4 h-4 text-primary border-border rounded focus:ring-primary/25"
                   />
                   <span className="text-sm text-gray-700">Marcar como pago</span>
                 </label>
@@ -605,7 +605,7 @@ export function BudgetTab() {
                   </Button>
                   <Button
                     type="submit"
-                    className="flex-1 bg-[#D4A574] hover:bg-[#C49464]"
+                    className="flex-1 bg-primary hover:bg-primary/90"
                   >
                     {editingExpense ? "Salvar" : "Adicionar"}
                   </Button>

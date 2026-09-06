@@ -160,10 +160,10 @@ export function GiftTemplateSelector({ isOpen, onClose, onAddGifts }: GiftTempla
         {/* Header */}
         <div className="p-6 border-b flex items-center justify-between shrink-0">
           <div>
-            <h2 className="font-serif text-2xl font-bold text-gray-900">Adicionar Presentes</h2>
+            <h2 className="font-serif text-2xl font-semibold text-foreground">Adicionar Presentes</h2>
             <p className="text-muted-foreground mt-1">Escolha itens da lista pronta ou adicione manualmente</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -183,10 +183,8 @@ export function GiftTemplateSelector({ isOpen, onClose, onAddGifts }: GiftTempla
                     onClick={() => { setActiveListId(list.id); setSelectedCategory(null); }}
                     className={`flex-1 min-w-[140px] py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
                       activeListId === list.id
-                        ? index === 0 
-                          ? "bg-primary text-white shadow-lg"
-                          : "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        ? "bg-primary text-white shadow-md"
+                        : "bg-muted text-muted-foreground hover:bg-muted/70"
                     }`}
                   >
                     {index === 0 ? <Home className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
@@ -211,7 +209,7 @@ export function GiftTemplateSelector({ isOpen, onClose, onAddGifts }: GiftTempla
                   placeholder="Buscar presentes..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                 />
               </div>
               
@@ -220,8 +218,8 @@ export function GiftTemplateSelector({ isOpen, onClose, onAddGifts }: GiftTempla
                   onClick={() => setSelectedCategory(null)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                     selectedCategory === null
-                      ? "bg-gray-900 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      ? "bg-foreground text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70"
                   }`}
                 >
                   Todos
@@ -232,7 +230,7 @@ export function GiftTemplateSelector({ isOpen, onClose, onAddGifts }: GiftTempla
                     onClick={() => setSelectedCategory(cat.name)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       selectedCategory === cat.name
-                        ? "bg-gray-900 text-white"
+                        ? "bg-foreground text-white"
                         : `${cat.color_class} hover:opacity-80`
                     }`}
                   >
@@ -258,7 +256,7 @@ export function GiftTemplateSelector({ isOpen, onClose, onAddGifts }: GiftTempla
                       <button onClick={selectAll} className="text-sm text-primary hover:underline">
                         Selecionar todos
                       </button>
-                      <span className="text-gray-300">|</span>
+                      <span className="text-border">|</span>
                       <button onClick={clearSelection} className="text-sm text-muted-foreground hover:underline">
                         Limpar
                       </button>
@@ -273,7 +271,7 @@ export function GiftTemplateSelector({ isOpen, onClose, onAddGifts }: GiftTempla
                         className={`text-left p-4 rounded-xl border-2 transition-all ${
                           isSelected(gift)
                             ? "border-primary bg-primary/5 shadow-md"
-                            : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                            : "border-border hover:border-primary/30 hover:shadow-sm"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -285,7 +283,7 @@ export function GiftTemplateSelector({ isOpen, onClose, onAddGifts }: GiftTempla
                                 </span>
                               </div>
                             )}
-                            <h3 className="font-medium text-gray-900 line-clamp-1">{gift.name}</h3>
+                            <h3 className="font-medium text-foreground line-clamp-1">{gift.name}</h3>
                             <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                               {gift.description}
                             </p>
@@ -296,7 +294,7 @@ export function GiftTemplateSelector({ isOpen, onClose, onAddGifts }: GiftTempla
                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
                             isSelected(gift)
                               ? "bg-primary border-primary text-white"
-                              : "border-gray-300"
+                              : "border-border"
                           }`}>
                             {isSelected(gift) && <Check className="w-4 h-4" />}
                           </div>
@@ -315,7 +313,7 @@ export function GiftTemplateSelector({ isOpen, onClose, onAddGifts }: GiftTempla
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t bg-gray-50 flex items-center justify-between shrink-0 rounded-b-2xl">
+            <div className="p-4 border-t bg-muted/40 flex items-center justify-between shrink-0 rounded-b-2xl">
               <span className="text-sm font-medium">
                 {selectedGifts.size} presente{selectedGifts.size !== 1 ? "s" : ""} selecionado{selectedGifts.size !== 1 ? "s" : ""}
               </span>

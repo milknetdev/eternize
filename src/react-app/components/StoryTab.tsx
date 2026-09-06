@@ -214,7 +214,7 @@ export function StoryTab() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ex: Como nos conhecemos"
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   required
                 />
               </div>
@@ -230,7 +230,7 @@ export function StoryTab() {
                     type="date"
                     value={storyDate}
                     onChange={(e) => setStoryDate(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="w-full pl-10 pr-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   />
                 </div>
               </div>
@@ -246,7 +246,7 @@ export function StoryTab() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Conte como foi esse momento especial..."
                 rows={4}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary resize-none"
               />
             </div>
 

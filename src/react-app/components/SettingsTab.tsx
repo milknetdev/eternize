@@ -153,7 +153,7 @@ export function SettingsTab({
         </div>
       </Link>
       
-      <div className="bg-white rounded-xl border p-6 space-y-6">
+      <div className="bg-white rounded-2xl border border-border shadow-sm p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-medium">Informações do Casamento</h3>

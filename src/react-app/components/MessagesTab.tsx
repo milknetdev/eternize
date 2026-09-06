@@ -33,7 +33,7 @@ export function MessagesTab({
       </div>
 
       {messages.length === 0 ? (
-        <div className="bg-white rounded-xl border p-12 text-center">
+        <div className="bg-white rounded-2xl border border-border shadow-sm p-12 text-center">
           <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-medium text-lg mb-2">Nenhuma mensagem ainda</h3>
           <p className="text-muted-foreground">
@@ -118,7 +118,7 @@ function MessageCard({
   status?: "approved" | "rejected";
 }) {
   return (
-    <div className={`bg-white rounded-xl border p-5 ${status === "rejected" ? "opacity-60" : ""}`}>
+    <div className={`bg-white rounded-2xl border border-border shadow-sm p-5 ${status === "rejected" ? "opacity-60" : ""}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">

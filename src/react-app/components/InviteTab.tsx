@@ -135,7 +135,7 @@ export function InviteTab({ wedding }: InviteTabProps) {
         {/* Customization Panel */}
         <div className="space-y-6">
           {/* Style Selection */}
-          <div className="bg-white rounded-xl border p-6">
+          <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
               <Palette className="w-5 h-5 text-primary" />
               <h3 className="font-medium">Estilo</h3>
@@ -172,7 +172,7 @@ export function InviteTab({ wedding }: InviteTabProps) {
           </div>
 
           {/* Font Selection */}
-          <div className="bg-white rounded-xl border p-6">
+          <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
               <Type className="w-5 h-5 text-primary" />
               <h3 className="font-medium">Fonte</h3>
@@ -201,7 +201,7 @@ export function InviteTab({ wedding }: InviteTabProps) {
           </div>
 
           {/* Content Options */}
-          <div className="bg-white rounded-xl border p-6">
+          <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
               <ImageIcon className="w-5 h-5 text-primary" />
               <h3 className="font-medium">Conteúdo</h3>
@@ -213,7 +213,7 @@ export function InviteTab({ wedding }: InviteTabProps) {
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}
                   rows={2}
-                  className="w-full p-3 rounded-xl border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none resize-none text-sm"
+                  className="w-full p-3 rounded-xl border focus:border-primary focus:ring-2 focus:ring-primary/25 outline-none resize-none text-sm"
                 />
               </div>
               <div className="flex items-center gap-4">
@@ -242,7 +242,7 @@ export function InviteTab({ wedding }: InviteTabProps) {
 
         {/* Preview */}
         <div className="lg:sticky lg:top-24">
-          <div className="bg-white rounded-xl border p-6">
+          <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
             <h3 className="font-medium mb-4 text-center">Preview do Convite</h3>
             
             {/* Invite Card */}
