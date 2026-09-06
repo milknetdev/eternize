@@ -26,6 +26,7 @@ import contributionsRoutes from "./routes/contributions";
 import guestPhotosRoutes from "./routes/guest-photos";
 import dashboardRoutes from "./routes/dashboard";
 import platformRoutes from "./routes/platform";
+import webhookRoutes from "./routes/webhooks";
 
 const app = new Hono<AppEnv>();
 
@@ -67,5 +68,6 @@ app.route("/", contributionsRoutes);
 app.route("/", guestPhotosRoutes);
 app.route("/", dashboardRoutes);
 app.route("/", platformRoutes);
+app.route("/", webhookRoutes);
 
 export default app;

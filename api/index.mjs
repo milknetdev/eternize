@@ -788,15 +788,15 @@ var Hono = class {
   errorHandler = errorHandler;
   route(path, app2) {
     const subApp = this.basePath(path);
-    app2.routes.map((r26) => {
+    app2.routes.map((r27) => {
       let handler;
       if (app2.errorHandler === errorHandler) {
-        handler = r26.handler;
+        handler = r27.handler;
       } else {
-        handler = async (c, next) => (await compose([], app2.errorHandler)(c, () => r26.handler(c, next))).res;
-        handler[COMPOSED_HANDLER] = r26.handler;
+        handler = async (c, next) => (await compose([], app2.errorHandler)(c, () => r27.handler(c, next))).res;
+        handler[COMPOSED_HANDLER] = r27.handler;
       }
-      subApp.#addRoute(r26.method, r26.path, handler);
+      subApp.#addRoute(r27.method, r27.path, handler);
     });
     return this;
   }
@@ -857,9 +857,9 @@ var Hono = class {
   #addRoute(method, path, handler) {
     method = method.toUpperCase();
     path = mergePath(this._basePath, path);
-    const r26 = { path, method, handler };
-    this.router.add(method, path, [handler, r26]);
-    this.routes.push(r26);
+    const r27 = { path, method, handler };
+    this.router.add(method, path, [handler, r27]);
+    this.routes.push(r27);
   }
   #handleError(err, c) {
     if (err instanceof Error) {
@@ -1270,14 +1270,14 @@ var RegExpRouter = class {
   #buildMatcher(method) {
     const routes = [];
     let hasOwnRoute = method === METHOD_NAME_ALL;
-    [this.#middleware, this.#routes].forEach((r26) => {
-      const ownRoute = r26[method] ? Object.keys(r26[method]).map((path) => [path, r26[method][path]]) : [];
+    [this.#middleware, this.#routes].forEach((r27) => {
+      const ownRoute = r27[method] ? Object.keys(r27[method]).map((path) => [path, r27[method][path]]) : [];
       if (ownRoute.length !== 0) {
         hasOwnRoute ||= true;
         routes.push(...ownRoute);
       } else if (method !== METHOD_NAME_ALL) {
         routes.push(
-          ...Object.keys(r26[METHOD_NAME_ALL]).map((path) => [path, r26[METHOD_NAME_ALL][path]])
+          ...Object.keys(r27[METHOD_NAME_ALL]).map((path) => [path, r27[METHOD_NAME_ALL][path]])
         );
       }
     });
@@ -3315,6 +3315,90 @@ r14.get("/api/admin/platform/revenue", adminMiddleware, async (c) => {
 });
 var platform_default = r14;
 
+// src/worker/lib/pix/validapay.ts
+import { createHmac, timingSafeEqual } from "node:crypto";
+var BASE_URL = () => (process.env.VALIDAPAY_API_URL || "https://app.validapay.com.br").replace(/\/+$/, "");
+var PATH_CREATE = "/v1/charges/pix";
+var PATH_GET = "/v1/charges/:id";
+var WEBHOOK_SIG_HEADER = "x-validapay-signature";
+function normalizeStatus(raw2) {
+  const s = String(raw2 || "").toUpperCase();
+  if (s === "PAID" || s === "APPROVED" || s === "COMPLETED") return "paid";
+  if (s === "EXPIRED") return "expired";
+  if (s === "FAILED" || s === "CANCELED" || s === "CANCELLED" || s === "REFUSED") return "failed";
+  return "pending";
+}
+function isConfigured() {
+  return !!process.env.VALIDAPAY_TOKEN;
+}
+function authHeaders() {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${process.env.VALIDAPAY_TOKEN || ""}`
+  };
+}
+function readCharge(j) {
+  return {
+    chargeId: String(j.chargeId ?? j.id ?? j.charge_id ?? ""),
+    emv: String(j.emv ?? j.pixCopiaECola ?? j.copyPaste ?? j.brcode ?? ""),
+    qrCode: String(j.qrCode ?? j.qrcode ?? j.qr_code_image ?? j.qrCodeImage ?? ""),
+    status: normalizeStatus(j.status),
+    expiresAt: j.expiresAt ?? j.expiration_date ?? null
+  };
+}
+async function createPixCharge(input) {
+  const body = {
+    amount: Math.round(input.amountCents),
+    externalId: input.checkoutRef,
+    expiration: input.expiration ?? 1800,
+    description: input.description,
+    customer: {
+      name: input.customer.name,
+      email: input.customer.email || void 0,
+      documentNumber: input.customer.document || void 0
+    },
+    metadata: { checkoutRef: input.checkoutRef }
+  };
+  const res = await fetch(`${BASE_URL()}${PATH_CREATE}`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(body)
+  });
+  if (res.status === 409) {
+    const dup = await res.json().catch(() => ({}));
+    const id = dup?.chargeId ?? dup?.id;
+    if (id) return getCharge(String(id));
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`ValidaPay create charge ${res.status}: ${text.slice(0, 300)}`);
+  }
+  return readCharge(await res.json());
+}
+async function getCharge(chargeId) {
+  const res = await fetch(`${BASE_URL()}${PATH_GET.replace(":id", encodeURIComponent(chargeId))}`, {
+    headers: authHeaders()
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`ValidaPay get charge ${res.status}: ${text.slice(0, 300)}`);
+  }
+  return readCharge(await res.json());
+}
+function verifyWebhook(rawBody, signatureHeader) {
+  const secret = process.env.VALIDAPAY_WEBHOOK_SECRET;
+  if (!secret) {
+    console.warn("[validapay] VALIDAPAY_WEBHOOK_SECRET not set \u2014 webhook signature not verified");
+    return true;
+  }
+  if (!signatureHeader) return false;
+  const expected = createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
+  const got = signatureHeader.replace(/^sha256=/, "").trim();
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(got, "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 // src/worker/routes/payments.ts
 var r15 = new Hono2();
 r15.get("/api/gift-orders", authMiddleware, async (c) => {
@@ -3459,6 +3543,70 @@ r15.post("/api/withdrawals", authMiddleware, async (c) => {
     remaining -= Number(order.share) || 0;
   }
   return c.json({ success: true, withdrawalId: result.meta?.last_row_id });
+});
+r15.post("/api/public/pix-charge", async (c) => {
+  if (!isConfigured()) {
+    return c.json({ configured: false, error: "Gateway de pagamento n\xE3o configurado" }, 503);
+  }
+  const body = await c.req.json().catch(() => ({}));
+  const ref = String(body.checkout_ref || "").trim();
+  const amount = Number(body.amount) || 0;
+  if (!ref || amount <= 0) return c.json({ error: "Dados inv\xE1lidos" }, 400);
+  try {
+    const charge = await createPixCharge({
+      amountCents: Math.round(amount * 100),
+      checkoutRef: ref,
+      description: String(body.description || "Presente de casamento"),
+      customer: {
+        name: String(body.customer?.name || "Convidado"),
+        email: body.customer?.email || null,
+        document: (body.customer?.document || "").replace(/\D/g, "") || null
+      }
+    });
+    if (charge.chargeId) {
+      try {
+        await c.env.DB.prepare(
+          "UPDATE gift_orders SET pix_transaction_id = ? WHERE pix_transaction_id = ?"
+        ).bind(charge.chargeId, ref).run();
+      } catch {
+      }
+    }
+    return c.json({
+      configured: true,
+      chargeId: charge.chargeId,
+      emv: charge.emv,
+      qrCode: charge.qrCode,
+      expiresAt: charge.expiresAt,
+      // the client keeps polling by chargeId when we swapped the ref
+      ref: charge.chargeId || ref
+    });
+  } catch (err) {
+    console.error("pix-charge failed:", err);
+    return c.json({ error: "N\xE3o foi poss\xEDvel gerar o PIX. Tente novamente." }, 502);
+  }
+});
+r15.get("/api/public/checkout-status/:ref", async (c) => {
+  const ref = c.req.param("ref");
+  const row = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE payment_status = 'paid') AS paid FROM gift_orders WHERE pix_transaction_id = ?"
+  ).bind(ref).first();
+  const total = Number(row?.total) || 0;
+  let paidCount = Number(row?.paid) || 0;
+  if (total > 0 && paidCount < total && c.req.query("reconcile") === "1" && isConfigured()) {
+    try {
+      const charge = await getCharge(ref);
+      if (charge.status === "paid") {
+        await c.env.DB.prepare(
+          `UPDATE gift_orders SET payment_status = 'paid', paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+           WHERE pix_transaction_id = ? AND payment_status <> 'paid'`
+        ).bind(ref).run();
+        paidCount = total;
+      }
+    } catch (e) {
+      console.error("reconcile failed:", e);
+    }
+  }
+  return c.json({ paid: total > 0 && paidCount >= total, total, paidCount });
 });
 var payments_default = r15;
 
@@ -4271,6 +4419,7 @@ r23.post("/api/public/gift-order", async (c) => {
   const amount = Number(body.amount) || 0;
   const cardPrice = Number(body.card_price) || 0;
   const split = await computeSplit(c, amount, cardPrice, !!body.apply_maintenance_fee);
+  const checkoutRef = body.checkout_ref ? String(body.checkout_ref) : null;
   const common = [
     body.wedding_id,
     body.gift_id,
@@ -4281,17 +4430,18 @@ r23.post("/api/public/gift-order", async (c) => {
     body.card_type || "gratis",
     body.card_sender_name || body.guest_name,
     body.card_message || null,
-    cardPrice
+    cardPrice,
+    checkoutRef
   ];
   let id;
   try {
     const result = await c.env.DB.prepare(`
       INSERT INTO gift_orders (
         wedding_id, gift_id, guest_name, guest_email, amount, message,
-        card_type, card_sender_name, card_message, card_price,
+        card_type, card_sender_name, card_message, card_price, pix_transaction_id,
         maintenance_fee, commission_pct, commission_amount, platform_amount, couple_amount,
         payment_status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `).bind(
       ...common,
       split.maintenance_fee,
@@ -4305,9 +4455,9 @@ r23.post("/api/public/gift-order", async (c) => {
     const result = await c.env.DB.prepare(`
       INSERT INTO gift_orders (
         wedding_id, gift_id, guest_name, guest_email, amount, message,
-        card_type, card_sender_name, card_message, card_price,
+        card_type, card_sender_name, card_message, card_price, pix_transaction_id,
         payment_status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `).bind(...common).run();
     id = result.meta.last_row_id;
   }
@@ -4477,6 +4627,42 @@ r25.get("/api/dashboard/stats", authMiddleware, async (c) => {
 });
 var dashboard_default = r25;
 
+// src/worker/routes/webhooks.ts
+var r26 = new Hono2();
+async function markCheckoutPaid(db, checkoutRef) {
+  await db.prepare(
+    `UPDATE gift_orders
+         SET payment_status = 'paid', paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE pix_transaction_id = ? AND payment_status <> 'paid'`
+  ).bind(checkoutRef).run();
+  try {
+    await db.prepare(
+      "UPDATE gift_orders SET couple_amount = amount WHERE pix_transaction_id = ? AND (couple_amount IS NULL OR couple_amount = 0)"
+    ).bind(checkoutRef).run();
+  } catch {
+  }
+}
+r26.post("/api/webhooks/validapay", async (c) => {
+  const raw2 = await c.req.text();
+  const sig = c.req.header(WEBHOOK_SIG_HEADER);
+  if (!verifyWebhook(raw2, sig)) {
+    return c.json({ error: "invalid signature" }, 401);
+  }
+  let body;
+  try {
+    body = JSON.parse(raw2);
+  } catch {
+    return c.json({ error: "invalid body" }, 400);
+  }
+  const status = normalizeStatus(body.status ?? (body.event === "payment.success" ? "PAID" : ""));
+  const ref = body?.metadata?.checkoutRef || body?.externalId || body?.metadata?.orderId;
+  if (status === "paid" && ref) {
+    await markCheckoutPaid(c.env.DB, String(ref));
+  }
+  return c.json({ received: true });
+});
+var webhooks_default = r26;
+
 // src/worker/index.ts
 var app = new Hono2();
 app.use("*", async (c, next) => {
@@ -4512,6 +4698,7 @@ app.route("/", contributions_default);
 app.route("/", guest_photos_default);
 app.route("/", dashboard_default);
 app.route("/", platform_default);
+app.route("/", webhooks_default);
 var index_default = app;
 export {
   index_default as default

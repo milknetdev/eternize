@@ -218,6 +218,7 @@ CREATE TABLE gift_orders (
   card_sender_name TEXT,
   card_message TEXT,
   card_price DOUBLE PRECISION DEFAULT 0,
+  pix_transaction_id TEXT,
   maintenance_fee DOUBLE PRECISION DEFAULT 0,
   commission_pct DOUBLE PRECISION DEFAULT 0,
   commission_amount DOUBLE PRECISION DEFAULT 0,

@@ -104,6 +104,8 @@ r.post("/api/public/gift-order", async (c) => {
   // flag on the first cart item only.
   const split = await computeSplit(c, amount, cardPrice, !!body.apply_maintenance_fee);
 
+  const checkoutRef = body.checkout_ref ? String(body.checkout_ref) : null;
+
   const common = [
     body.wedding_id,
     body.gift_id,
@@ -115,6 +117,7 @@ r.post("/api/public/gift-order", async (c) => {
     body.card_sender_name || body.guest_name,
     body.card_message || null,
     cardPrice,
+    checkoutRef,
   ];
 
   let id: number | string | undefined;
@@ -122,10 +125,10 @@ r.post("/api/public/gift-order", async (c) => {
     const result = await c.env.DB.prepare(`
       INSERT INTO gift_orders (
         wedding_id, gift_id, guest_name, guest_email, amount, message,
-        card_type, card_sender_name, card_message, card_price,
+        card_type, card_sender_name, card_message, card_price, pix_transaction_id,
         maintenance_fee, commission_pct, commission_amount, platform_amount, couple_amount,
         payment_status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `).bind(
       ...common,
       split.maintenance_fee,
@@ -140,9 +143,9 @@ r.post("/api/public/gift-order", async (c) => {
     const result = await c.env.DB.prepare(`
       INSERT INTO gift_orders (
         wedding_id, gift_id, guest_name, guest_email, amount, message,
-        card_type, card_sender_name, card_message, card_price,
+        card_type, card_sender_name, card_message, card_price, pix_transaction_id,
         payment_status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `).bind(...common).run();
     id = result.meta.last_row_id;
   }

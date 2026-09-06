@@ -43,6 +43,16 @@ describe("route modules are mounted", () => {
     expect(res.status).toBe(401);
   });
 
+  it("webhooks module is mounted (validapay endpoint accepts POST)", async () => {
+    const res = await req("/api/webhooks/validapay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event: "ping" }),
+    });
+    // 200 (accepted/ignored) — anything but 404 proves the route exists
+    expect(res.status).not.toBe(404);
+  });
+
   it("og module serves an HTML shell for /c/:customUrl", async () => {
     const res = await req("/c/whatever");
     expect(res.status).toBe(200);

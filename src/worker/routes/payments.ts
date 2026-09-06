@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { authMiddleware } from "../local-auth-backend";
 import type { AppEnv } from "../lib/types";
 import { sumOrders } from "./platform";
+import { isConfigured, createPixCharge, getCharge } from "../lib/pix/validapay";
 
 const r = new Hono<AppEnv>();
 // =====================
@@ -186,6 +187,84 @@ r.post("/api/withdrawals", authMiddleware, async (c) => {
   }
 
   return c.json({ success: true, withdrawalId: result.meta?.last_row_id });
+});
+
+// =====================
+// PUBLIC — PIX CHARGE (ValidaPay)
+// =====================
+
+// Create one PIX charge for a whole checkout. The gift_orders must already exist
+// (created via /api/public/gift-order with the same checkout_ref).
+r.post("/api/public/pix-charge", async (c) => {
+  if (!isConfigured()) {
+    return c.json({ configured: false, error: "Gateway de pagamento não configurado" }, 503);
+  }
+  const body = await c.req.json().catch(() => ({} as any));
+  const ref = String(body.checkout_ref || "").trim();
+  const amount = Number(body.amount) || 0;
+  if (!ref || amount <= 0) return c.json({ error: "Dados inválidos" }, 400);
+
+  try {
+    const charge = await createPixCharge({
+      amountCents: Math.round(amount * 100),
+      checkoutRef: ref,
+      description: String(body.description || "Presente de casamento"),
+      customer: {
+        name: String(body.customer?.name || "Convidado"),
+        email: body.customer?.email || null,
+        document: (body.customer?.document || "").replace(/\D/g, "") || null,
+      },
+    });
+    // remember the gateway id on the order rows (best-effort)
+    if (charge.chargeId) {
+      try {
+        await c.env.DB.prepare(
+          "UPDATE gift_orders SET pix_transaction_id = ? WHERE pix_transaction_id = ?",
+        ).bind(charge.chargeId, ref).run();
+      } catch { /* ignore */ }
+    }
+    return c.json({
+      configured: true,
+      chargeId: charge.chargeId,
+      emv: charge.emv,
+      qrCode: charge.qrCode,
+      expiresAt: charge.expiresAt,
+      // the client keeps polling by chargeId when we swapped the ref
+      ref: charge.chargeId || ref,
+    });
+  } catch (err) {
+    console.error("pix-charge failed:", err);
+    return c.json({ error: "Não foi possível gerar o PIX. Tente novamente." }, 502);
+  }
+});
+
+// Poll: is this checkout paid yet?
+r.get("/api/public/checkout-status/:ref", async (c) => {
+  const ref = c.req.param("ref");
+  const row = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE payment_status = 'paid') AS paid FROM gift_orders WHERE pix_transaction_id = ?",
+  ).bind(ref).first<{ total: number; paid: number }>();
+
+  const total = Number(row?.total) || 0;
+  let paidCount = Number(row?.paid) || 0;
+
+  // Safety net if the webhook was missed: reconcile with the gateway on demand.
+  if (total > 0 && paidCount < total && c.req.query("reconcile") === "1" && isConfigured()) {
+    try {
+      const charge = await getCharge(ref);
+      if (charge.status === "paid") {
+        await c.env.DB.prepare(
+          `UPDATE gift_orders SET payment_status = 'paid', paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+           WHERE pix_transaction_id = ? AND payment_status <> 'paid'`,
+        ).bind(ref).run();
+        paidCount = total;
+      }
+    } catch (e) {
+      console.error("reconcile failed:", e);
+    }
+  }
+
+  return c.json({ paid: total > 0 && paidCount >= total, total, paidCount });
 });
 
 export default r;
