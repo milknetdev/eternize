@@ -197,7 +197,7 @@ export function TasksTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -205,20 +205,20 @@ export function TasksTab() {
   return (
     <div className="space-y-6">
       {/* Header & Progress */}
-      <div className="bg-gradient-to-r from-[#D4AF37]/10 to-[#FFD700]/10 rounded-2xl p-6 border border-[#D4AF37]/20">
+      <div className="bg-gradient-to-r from-primary/10 to-gold-light/10 rounded-2xl p-6 border border-primary/20">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-xl font-semibold text-[#1a1a2e]">Progresso do Planejamento</h3>
-            <p className="text-[#666] text-sm mt-1">
+            <h3 className="text-xl font-semibold text-foreground">Progresso do Planejamento</h3>
+            <p className="text-muted-foreground text-sm mt-1">
               {completedTasks} de {totalTasks} tarefas concluídas
             </p>
           </div>
-          <div className="text-3xl font-bold text-[#D4AF37]">{progress}%</div>
+          <div className="text-3xl font-bold text-primary">{progress}%</div>
         </div>
         
         <div className="h-4 bg-white/50 rounded-full overflow-hidden shadow-inner">
           <motion.div
-            className="h-full bg-gradient-to-r from-[#D4AF37] to-[#FFD700] rounded-full"
+            className="h-full bg-gradient-to-r from-primary to-gold-light rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -228,20 +228,20 @@ export function TasksTab() {
 
       {/* Empty State */}
       {tasks.length === 0 && (
-        <div className="bg-white rounded-2xl p-8 text-center border border-gray-100 shadow-sm">
-          <div className="w-16 h-16 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-8 h-8 text-[#D4AF37]" />
+        <div className="bg-white rounded-2xl p-8 text-center border border-border shadow-sm">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="w-8 h-8 text-primary" />
           </div>
-          <h3 className="text-lg font-semibold text-[#1a1a2e] mb-2">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
             Comece seu planejamento
           </h3>
-          <p className="text-[#666] mb-6 max-w-md mx-auto">
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Adicione tarefas para organizar seu casamento ou comece com nossa lista sugerida de 26 itens essenciais.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
               onClick={handleSeedTasks}
-              className="bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#8B6914] text-white"
+              className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white"
             >
               <Sparkles className="w-4 h-4 mr-2" />
               Usar lista sugerida
@@ -249,7 +249,7 @@ export function TasksTab() {
             <Button
               onClick={() => setShowAddForm(true)}
               variant="outline"
-              className="border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37]/10"
+              className="border-primary text-primary hover:bg-primary/10"
             >
               <Plus className="w-4 h-4 mr-2" />
               Criar do zero
@@ -266,12 +266,12 @@ export function TasksTab() {
               onClick={() => setShowFilters(!showFilters)}
               variant="outline"
               size="sm"
-              className={showFilters ? "bg-[#D4AF37]/10 border-[#D4AF37]" : ""}
+              className={showFilters ? "bg-primary/10 border-primary" : ""}
             >
               <Filter className="w-4 h-4 mr-2" />
               Filtrar
               {filterCategory && (
-                <span className="ml-2 px-2 py-0.5 bg-[#D4AF37] text-white text-xs rounded-full">
+                <span className="ml-2 px-2 py-0.5 bg-primary text-white text-xs rounded-full">
                   1
                 </span>
               )}
@@ -280,7 +280,7 @@ export function TasksTab() {
           
           <Button
             onClick={() => setShowAddForm(true)}
-            className="bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#8B6914] text-white"
+            className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nova Tarefa
@@ -301,8 +301,8 @@ export function TasksTab() {
               onClick={() => setFilterCategory(null)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                 !filterCategory
-                  ? "bg-[#D4AF37] text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-primary text-white"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70"
               }`}
             >
               Todas
@@ -316,7 +316,7 @@ export function TasksTab() {
                   onClick={() => setFilterCategory(cat.id)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                     filterCategory === cat.id
-                      ? "bg-[#D4AF37] text-white"
+                      ? "bg-primary text-white"
                       : `${cat.color} border hover:opacity-80`
                   }`}
                 >
@@ -335,36 +335,36 @@ export function TasksTab() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm"
+            className="bg-white rounded-2xl p-5 border border-border shadow-sm"
           >
             <div className="flex items-center justify-between mb-4">
-              <h4 className="font-semibold text-[#1a1a2e]">
+              <h4 className="font-semibold text-foreground">
                 {editingTask ? "Editar Tarefa" : "Nova Tarefa"}
               </h4>
-              <button onClick={resetForm} className="text-gray-400 hover:text-gray-600">
+              <button onClick={resetForm} className="text-muted-foreground hover:text-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-[#666] mb-1">Título *</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Título *</label>
                 <input
                   type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="Ex: Contratar fotógrafo"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37]"
+                  className="w-full px-4 py-2.5 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                 />
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#666] mb-1">Categoria</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Categoria</label>
                   <select
                     value={category}
                     onChange={e => setCategory(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37]"
+                    className="w-full px-4 py-2.5 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   >
                     {CATEGORIES.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.id}</option>
@@ -373,24 +373,24 @@ export function TasksTab() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-[#666] mb-1">Data Limite</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Data Limite</label>
                   <input
                     type="date"
                     value={dueDate}
                     onChange={e => setDueDate(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37]"
+                    className="w-full px-4 py-2.5 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   />
                 </div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-[#666] mb-1">Descrição (opcional)</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Descrição (opcional)</label>
                 <textarea
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Detalhes ou anotações..."
                   rows={2}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37] resize-none"
+                  className="w-full px-4 py-2.5 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary resize-none"
                 />
               </div>
               
@@ -400,7 +400,7 @@ export function TasksTab() {
                 </Button>
                 <Button
                   onClick={editingTask ? handleUpdateTask : handleAddTask}
-                  className="bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#8B6914] text-white"
+                  className="bg-gradient-to-r from-primary to-gold-light hover:opacity-90 text-white"
                 >
                   {editingTask ? "Salvar" : "Adicionar"}
                 </Button>
@@ -421,23 +421,23 @@ export function TasksTab() {
             const completedInCat = catTasks.filter(t => t.is_completed).length;
             
             return (
-              <div key={cat.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div key={cat.id} className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
                 <button
                   onClick={() => toggleCategoryExpand(cat.id)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium border ${cat.color}`}>
                       {cat.id}
                     </span>
-                    <span className="text-sm text-[#666]">
+                    <span className="text-sm text-muted-foreground">
                       {completedInCat}/{catTasks.length} concluídas
                     </span>
                   </div>
                   {isExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
                   )}
                 </button>
                 
@@ -449,11 +449,11 @@ export function TasksTab() {
                       exit={{ height: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="border-t border-gray-100">
+                      <div className="border-t border-border">
                         {catTasks.map(task => (
                           <div
                             key={task.id}
-                            className={`flex items-start gap-3 p-4 border-b border-gray-50 last:border-b-0 hover:bg-gray-50/50 transition-colors ${
+                            className={`flex items-start gap-3 p-4 border-b border-border last:border-b-0 hover:bg-muted/50 transition-colors ${
                               task.is_completed ? "opacity-60" : ""
                             }`}
                           >
@@ -464,19 +464,19 @@ export function TasksTab() {
                               {task.is_completed ? (
                                 <CheckCircle2 className="w-5 h-5 text-green-500" />
                               ) : (
-                                <Circle className="w-5 h-5 text-gray-300 hover:text-[#D4AF37] transition-colors" />
+                                <Circle className="w-5 h-5 text-muted-foreground/50 hover:text-primary transition-colors" />
                               )}
                             </button>
                             
                             <div className="flex-1 min-w-0">
-                              <p className={`font-medium ${task.is_completed ? "line-through text-gray-400" : "text-[#1a1a2e]"}`}>
+                              <p className={`font-medium ${task.is_completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
                                 {task.title}
                               </p>
                               {task.description && (
-                                <p className="text-sm text-[#666] mt-0.5">{task.description}</p>
+                                <p className="text-sm text-muted-foreground mt-0.5">{task.description}</p>
                               )}
                               {task.due_date && (
-                                <div className="flex items-center gap-1.5 mt-1.5 text-xs text-[#888]">
+                                <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
                                   <Calendar className="w-3.5 h-3.5" />
                                   {new Date(task.due_date).toLocaleDateString("pt-BR")}
                                 </div>
@@ -486,13 +486,13 @@ export function TasksTab() {
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => startEditing(task)}
-                                className="p-1.5 text-gray-400 hover:text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded-lg transition-colors"
+                                className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                               >
                                 <Pencil className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteTask(task.id)}
-                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>

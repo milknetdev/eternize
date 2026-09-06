@@ -342,15 +342,24 @@ Aguardamos você! 💕`;
     confirmed: guests.filter(g => g.label === label.value && g.rsvp_status === "confirmed").length,
   }));
 
+  const totalConfirmed = guests.filter((g) => g.rsvp_status === "confirmed").length;
+
   return (
     <>
+      <div className="mb-6">
+        <h2 className="font-serif text-2xl font-semibold">Lista de Convidados</h2>
+        <p className="text-muted-foreground text-sm mt-1">
+          {guests.length} {guests.length === 1 ? "convidado" : "convidados"} · {totalConfirmed} confirmado{totalConfirmed === 1 ? "" : "s"}
+        </p>
+      </div>
+
       {/* Stats by label */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {statsByLabel.map((stat) => (
           <button
             key={stat.value}
             onClick={() => onLabelFilterChange(labelFilter === stat.value ? null : stat.value)}
-            className={`p-4 rounded-xl border text-left transition-all ${
+            className={`p-4 rounded-2xl border text-left transition-all ${
               labelFilter === stat.value 
                 ? "ring-2 ring-primary ring-offset-2" 
                 : "hover:border-primary/50"
@@ -374,7 +383,7 @@ Aguardamos você! 💕`;
             placeholder="Buscar convidados..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -446,7 +455,7 @@ Aguardamos você! 💕`;
                   value={invitationMessage}
                   onChange={(e) => setInvitationMessage(e.target.value)}
                   placeholder={defaultMessageTemplate}
-                  className="w-full h-48 px-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                  className="w-full h-48 px-4 py-3 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary resize-none"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Deixe em branco para usar a mensagem padrão.
@@ -475,7 +484,7 @@ Aguardamos você! 💕`;
       )}
 
       {guests.length === 0 ? (
-        <div className="bg-white rounded-xl border p-12 text-center">
+        <div className="bg-white rounded-2xl border border-border shadow-sm p-12 text-center">
           <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-serif text-xl font-semibold mb-2">Nenhum convidado ainda</h3>
           <p className="text-muted-foreground mb-4">
@@ -487,7 +496,7 @@ Aguardamos você! 💕`;
           </Button>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-muted/50">
