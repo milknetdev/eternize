@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import GiftTemplatesAdmin from "../components/GiftTemplatesAdmin";
 import SupportConsole from "../components/admin/SupportConsole";
+import MonetizationConsole from "../components/admin/MonetizationConsole";
 
 function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
   const [password, setPassword] = useState("");
@@ -86,6 +87,7 @@ interface AdminStats {
   publishedWeddings: number;
   totalGuests: number;
   totalGiftsValue: number;
+  platformRevenue: number;
   pendingWithdrawals: number;
   pendingWithdrawalsAmount: number;
   totalRevenue: number;
@@ -119,7 +121,7 @@ interface Withdrawal {
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const [activeTab, setActiveTab] = useState<"support" | "overview" | "weddings" | "withdrawals" | "templates">("support");
+  const [activeTab, setActiveTab] = useState<"support" | "overview" | "weddings" | "withdrawals" | "templates" | "finance">("support");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [weddings, setWeddings] = useState<Wedding[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
@@ -251,6 +253,7 @@ export default function AdminDashboard() {
           {[
             { id: "support", label: "Suporte", icon: LifeBuoy },
             { id: "overview", label: "Visão Geral", icon: TrendingUp },
+            { id: "finance", label: "Monetização", icon: DollarSign },
             { id: "weddings", label: "Casamentos", icon: Heart },
             { id: "withdrawals", label: "Saques", icon: Wallet },
             { id: "templates", label: "Templates Presentes", icon: Package },
@@ -277,6 +280,8 @@ export default function AdminDashboard() {
 
         {activeTab === "support" && <SupportConsole />}
 
+        {activeTab === "finance" && <MonetizationConsole />}
+
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <div className="space-y-6">
@@ -297,15 +302,16 @@ export default function AdminDashboard() {
               />
               <StatCard
                 icon={Gift}
-                label="Presentes Vendidos"
-                value={`R$ ${((stats?.totalGiftsValue || 0) / 100).toLocaleString("pt-BR")}`}
+                label="Presentes (volume bruto)"
+                value={`R$ ${(stats?.totalGiftsValue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                subtext={`Plataforma: R$ ${(stats?.platformRevenue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                 color="purple"
               />
               <StatCard
                 icon={DollarSign}
                 label="Saques Pendentes"
                 value={stats?.pendingWithdrawals || 0}
-                subtext={`R$ ${((stats?.pendingWithdrawalsAmount || 0) / 100).toLocaleString("pt-BR")}`}
+                subtext={`R$ ${(stats?.pendingWithdrawalsAmount || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                 color="orange"
                 highlight={stats?.pendingWithdrawals ? true : false}
               />

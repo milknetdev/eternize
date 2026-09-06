@@ -38,7 +38,7 @@ interface Wedding {
 }
 
 interface CardType {
-  id: string;
+  id: number | string;
   name: string;
   price: number;
   description: string;
@@ -47,61 +47,19 @@ interface CardType {
   borderColor: string;
 }
 
-const CARD_TYPES: CardType[] = [
-  {
-    id: "gratis",
-    name: "Grátis",
-    price: 0,
-    description: "Cartão simples com seu nome e mensagem",
-    icon: <Gift className="w-6 h-6" />,
-    gradient: "from-gray-100 to-gray-200",
-    borderColor: "border-gray-300",
-  },
-  {
-    id: "simples",
-    name: "Simples",
-    price: 15.5,
-    description: "Design elegante com moldura decorativa",
-    icon: <Heart className="w-6 h-6" />,
-    gradient: "from-pink-100 to-rose-200",
-    borderColor: "border-pink-300",
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    price: 25.9,
-    description: "Cartão sofisticado com detalhes dourados",
-    icon: <Star className="w-6 h-6" />,
-    gradient: "from-amber-100 to-yellow-200",
-    borderColor: "border-amber-400",
-  },
-  {
-    id: "elegante",
-    name: "Elegante",
-    price: 49.0,
-    description: "Design exclusivo com acabamento luxuoso",
-    icon: <Gem className="w-6 h-6" />,
-    gradient: "from-purple-100 to-violet-200",
-    borderColor: "border-purple-400",
-  },
-  {
-    id: "animado",
-    name: "Animado",
-    price: 70.0,
-    description: "Cartão interativo com efeitos especiais",
-    icon: <PartyPopper className="w-6 h-6" />,
-    gradient: "from-cyan-100 to-blue-200",
-    borderColor: "border-cyan-400",
-  },
-  {
-    id: "vip",
-    name: "VIP",
-    price: 120.0,
-    description: "Experiência premium com personalização total",
-    icon: <Crown className="w-6 h-6" />,
-    gradient: "from-yellow-200 to-amber-300",
-    borderColor: "border-yellow-500",
-  },
+// Card tiers come from the admin (GET /api/public/platform-config); the visual
+// style is assigned by position.
+const CARD_STYLES = [
+  { icon: <Gift className="w-6 h-6" />, gradient: "from-gray-100 to-gray-200", borderColor: "border-gray-300" },
+  { icon: <Heart className="w-6 h-6" />, gradient: "from-pink-100 to-rose-200", borderColor: "border-pink-300" },
+  { icon: <Star className="w-6 h-6" />, gradient: "from-amber-100 to-yellow-200", borderColor: "border-amber-400" },
+  { icon: <Gem className="w-6 h-6" />, gradient: "from-purple-100 to-violet-200", borderColor: "border-purple-400" },
+  { icon: <PartyPopper className="w-6 h-6" />, gradient: "from-cyan-100 to-blue-200", borderColor: "border-cyan-400" },
+  { icon: <Crown className="w-6 h-6" />, gradient: "from-yellow-200 to-amber-300", borderColor: "border-yellow-500" },
+];
+
+const FALLBACK_CARDS: CardType[] = [
+  { id: "gratis", name: "Grátis", price: 0, description: "Cartão simples com seu nome e mensagem", ...CARD_STYLES[0] },
 ];
 
 function formatPrice(price: number): string {
@@ -117,7 +75,10 @@ export default function GiftCheckout() {
   const [step, setStep] = useState<"card" | "info" | "pix" | "success">("card");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wedding, setWedding] = useState<Wedding | null>(null);
-  const [selectedCard, setSelectedCard] = useState<CardType>(CARD_TYPES[0]);
+  const [cards, setCards] = useState<CardType[]>(FALLBACK_CARDS);
+  const [selectedCard, setSelectedCard] = useState<CardType>(FALLBACK_CARDS[0]);
+  const [commissionPct, setCommissionPct] = useState(0);
+  const [maintenanceFee, setMaintenanceFee] = useState(0);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -128,14 +89,24 @@ export default function GiftCheckout() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
+    fetch("/api/public/platform-config")
+      .then((r) => r.json())
+      .then((cfg) => {
+        setCommissionPct(Number(cfg.commissionPct) || 0);
+        setMaintenanceFee(Number(cfg.maintenanceFee) || 0);
+        const opts: CardType[] = (cfg.cardOptions || []).map((o: any, i: number) => ({
+          id: o.id,
+          name: o.name,
+          price: Number(o.price) || 0,
+          description: o.description || "",
+          ...CARD_STYLES[i % CARD_STYLES.length],
+        }));
+        if (opts.length > 0) {
+          setCards(opts);
+          setSelectedCard(opts[0]);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -161,7 +132,8 @@ export default function GiftCheckout() {
     (sum, item) => sum + item.gift.price * item.quantity,
     0
   );
-  const total = giftsTotal + selectedCard.price;
+  const total = giftsTotal + selectedCard.price + maintenanceFee;
+  const coupleReceives = giftsTotal * (1 - commissionPct / 100);
 
   const primaryColor = wedding?.theme_primary_color || "#d4a574";
   const secondaryColor = wedding?.theme_secondary_color || "#c9a86c";
@@ -186,7 +158,9 @@ export default function GiftCheckout() {
   const handleConfirmPayment = async () => {
     setLoading(true);
     try {
-      // Submit order to API
+      // Submit order to API. The card price and the flat maintenance fee are
+      // charged once per checkout — attach them to the first item only.
+      let idx = 0;
       for (const item of cart) {
         await authFetch("/api/public/gift-order", {
           method: "POST",
@@ -198,12 +172,14 @@ export default function GiftCheckout() {
             guest_email: formData.email,
             amount: item.gift.price * item.quantity,
             message: formData.cardMessage,
-            card_type: selectedCard.id,
+            card_type: String(selectedCard.name).toLowerCase(),
             card_sender_name: formData.cardSenderName || formData.name,
             card_message: formData.cardMessage,
-            card_price: selectedCard.price,
+            card_price: idx === 0 ? selectedCard.price : 0,
+            apply_maintenance_fee: idx === 0,
           }),
         });
+        idx += 1;
       }
 
       // Clear cart
@@ -298,7 +274,7 @@ export default function GiftCheckout() {
                 </p>
 
                 <div className="grid sm:grid-cols-2 gap-4 mb-8">
-                  {CARD_TYPES.map((card) => (
+                  {cards.map((card) => (
                     <button
                       key={card.id}
                       onClick={() => setSelectedCard(card)}
@@ -564,7 +540,7 @@ export default function GiftCheckout() {
                 </p>
 
                 {/* Card Preview */}
-                {selectedCard.id !== "gratis" && (
+                {selectedCard.price > 0 && (
                   <div
                     className={`p-6 rounded-xl bg-gradient-to-br ${selectedCard.gradient} border-2 ${selectedCard.borderColor} mb-6 text-left`}
                   >
@@ -681,10 +657,21 @@ export default function GiftCheckout() {
                     )}
                   </span>
                 </div>
+                {maintenanceFee > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Taxa de manutenção do site</span>
+                    <span>{formatPrice(maintenanceFee)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-semibold text-lg pt-2 border-t">
                   <span>Total</span>
                   <span style={{ color: primaryColor }}>{formatPrice(total)}</span>
                 </div>
+                {commissionPct > 0 && giftsTotal > 0 && (
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Os noivos recebem {formatPrice(coupleReceives)} (taxa de serviço de {commissionPct}% sobre o valor do presente).
+                  </p>
+                )}
               </div>
 
               <div className="mt-6 pt-4 border-t text-center">

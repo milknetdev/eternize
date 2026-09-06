@@ -12,6 +12,8 @@ interface GiftOrder {
   guest_name: string;
   guest_email: string;
   amount: number;
+  commission_amount: number;
+  couple_amount: number;
   payment_status: string;
   is_converted: number;
   converted_at: string;
@@ -32,6 +34,7 @@ interface Balance {
   availableBalance: number;
   convertedTotal: number;
   pendingWithdrawal: number;
+  serviceFeesTotal: number;
   pixKey: string | null;
 }
 
@@ -135,8 +138,12 @@ export function FinanceiroTab() {
         )}
       </div>
 
+      <p className="text-sm text-muted-foreground -mt-2">
+        Os valores abaixo já são líquidos: o valor de cada presente menos a taxa de serviço da plataforma.
+      </p>
+
       {/* Balance Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
@@ -168,6 +175,17 @@ export function FinanceiroTab() {
           </div>
           <p className="text-2xl font-bold text-amber-600">
             {formatCurrency(balance?.pendingWithdrawal || 0)}
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <span className="text-sm text-muted-foreground">Taxa de serviço retida</span>
+          </div>
+          <p className="text-2xl font-bold text-muted-foreground">
+            {formatCurrency(balance?.serviceFeesTotal || 0)}
           </p>
         </div>
       </div>
@@ -207,8 +225,13 @@ export function FinanceiroTab() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-green-600">{formatCurrency(order.amount)}</p>
-                  <div className="flex items-center gap-1 text-xs">
+                  <p className="font-semibold text-green-600">{formatCurrency(order.couple_amount || order.amount)}</p>
+                  {order.commission_amount > 0 && (
+                    <p className="text-[11px] text-muted-foreground">
+                      {formatCurrency(order.amount)} − {formatCurrency(order.commission_amount)} taxa
+                    </p>
+                  )}
+                  <div className="flex items-center gap-1 text-xs justify-end">
                     {order.is_converted ? (
                       <span className="text-blue-600 flex items-center gap-1">
                         <Check className="w-3 h-3" /> Convertido
