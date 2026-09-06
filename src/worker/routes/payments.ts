@@ -203,24 +203,32 @@ r.get("/api/public/pix-debug", async (c) => {
   const csec = process.env.VALIDAPAY_CLIENT_SECRET || "";
   const base = (process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br").replace(/\/+$/, "");
   const scope = process.env.VALIDAPAY_SCOPE || "";
+  const basic = Buffer.from(`${cid}:${csec}`).toString("base64");
+  const sc: Record<string, string> = scope ? { scope } : {};
   const paths = ["/auth/token", "/oauth/token", "/v1/auth/token"];
-  const creds: Record<string, string> = { grant_type: "client_credentials", client_id: cid, client_secret: csec };
-  if (scope) creds.scope = scope;
+
+  const modes: Record<string, { headers: Record<string, string>; body: string }> = {
+    basic: {
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json", Authorization: `Basic ${basic}` },
+      body: new URLSearchParams({ grant_type: "client_credentials", ...sc }).toString(),
+    },
+    form: {
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: new URLSearchParams({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc }).toString(),
+    },
+    json: {
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc }),
+    },
+  };
 
   const out: any[] = [];
   for (const path of paths) {
-    for (const mode of ["form", "json"] as const) {
+    for (const [mode, cfg] of Object.entries(modes)) {
       const url = `${base}${path}`;
       try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": mode === "form" ? "application/x-www-form-urlencoded" : "application/json",
-            Accept: "application/json",
-          },
-          body: mode === "form" ? new URLSearchParams(creds).toString() : JSON.stringify(creds),
-        });
-        const txt = (await res.text().catch(() => "")).slice(0, 200).replace(/\s+/g, " ");
+        const res = await fetch(url, { method: "POST", headers: cfg.headers, body: cfg.body });
+        const txt = (await res.text().catch(() => "")).slice(0, 220).replace(/\s+/g, " ");
         out.push({ url, mode, status: res.status, body: txt });
       } catch (e) {
         out.push({ url, mode, error: String((e as any)?.message || e).slice(0, 160) });

@@ -3339,27 +3339,37 @@ async function getAccessToken() {
     return cachedToken.value;
   }
   const url = `${BASE_URL()}${PATH_TOKEN}`;
-  const creds = {
-    grant_type: "client_credentials",
-    client_id: process.env.VALIDAPAY_CLIENT_ID || "",
-    client_secret: process.env.VALIDAPAY_CLIENT_SECRET || ""
-  };
-  if (process.env.VALIDAPAY_SCOPE) creds.scope = process.env.VALIDAPAY_SCOPE;
-  let res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-    body: new URLSearchParams(creds).toString()
-  });
-  if (!res.ok && (res.status === 400 || res.status === 415 || res.status === 422)) {
-    res = await fetch(url, {
-      method: "POST",
+  const id = process.env.VALIDAPAY_CLIENT_ID || "";
+  const secret = process.env.VALIDAPAY_CLIENT_SECRET || "";
+  const scope = process.env.VALIDAPAY_SCOPE || "";
+  const basic = Buffer.from(`${id}:${secret}`).toString("base64");
+  const attempts = [
+    // 1) RFC 6749: HTTP Basic header + form body
+    {
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json", Authorization: `Basic ${basic}` },
+      body: new URLSearchParams({ grant_type: "client_credentials", ...scope ? { scope } : {} }).toString()
+    },
+    // 2) creds in the form body
+    {
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: new URLSearchParams({ grant_type: "client_credentials", client_id: id, client_secret: secret, ...scope ? { scope } : {} }).toString()
+    },
+    // 3) creds in a JSON body
+    {
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(creds)
-    });
+      body: JSON.stringify({ grant_type: "client_credentials", client_id: id, client_secret: secret, ...scope ? { scope } : {} })
+    }
+  ];
+  let res = null;
+  let lastText = "";
+  for (const a of attempts) {
+    res = await fetch(url, { method: "POST", headers: a.headers, body: a.body });
+    if (res.ok) break;
+    lastText = await res.text().catch(() => "");
+    if (res.status !== 400 && res.status !== 401 && res.status !== 415 && res.status !== 422) break;
   }
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`ValidaPay auth ${res.status} @ ${PATH_TOKEN}: ${text.slice(0, 300)}`);
+  if (!res || !res.ok) {
+    throw new Error(`ValidaPay auth ${res?.status} @ ${PATH_TOKEN}: ${lastText.slice(0, 300)}`);
   }
   const j = await res.json();
   const value = String(j.access_token ?? j.token ?? j.accessToken ?? "");
@@ -3594,23 +3604,30 @@ r15.get("/api/public/pix-debug", async (c) => {
   const csec = process.env.VALIDAPAY_CLIENT_SECRET || "";
   const base = (process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br").replace(/\/+$/, "");
   const scope = process.env.VALIDAPAY_SCOPE || "";
+  const basic = Buffer.from(`${cid}:${csec}`).toString("base64");
+  const sc = scope ? { scope } : {};
   const paths = ["/auth/token", "/oauth/token", "/v1/auth/token"];
-  const creds = { grant_type: "client_credentials", client_id: cid, client_secret: csec };
-  if (scope) creds.scope = scope;
+  const modes = {
+    basic: {
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json", Authorization: `Basic ${basic}` },
+      body: new URLSearchParams({ grant_type: "client_credentials", ...sc }).toString()
+    },
+    form: {
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: new URLSearchParams({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc }).toString()
+    },
+    json: {
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ grant_type: "client_credentials", client_id: cid, client_secret: csec, ...sc })
+    }
+  };
   const out = [];
   for (const path of paths) {
-    for (const mode of ["form", "json"]) {
+    for (const [mode, cfg] of Object.entries(modes)) {
       const url = `${base}${path}`;
       try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": mode === "form" ? "application/x-www-form-urlencoded" : "application/json",
-            Accept: "application/json"
-          },
-          body: mode === "form" ? new URLSearchParams(creds).toString() : JSON.stringify(creds)
-        });
-        const txt = (await res.text().catch(() => "")).slice(0, 200).replace(/\s+/g, " ");
+        const res = await fetch(url, { method: "POST", headers: cfg.headers, body: cfg.body });
+        const txt = (await res.text().catch(() => "")).slice(0, 220).replace(/\s+/g, " ");
         out.push({ url, mode, status: res.status, body: txt });
       } catch (e) {
         out.push({ url, mode, error: String(e?.message || e).slice(0, 160) });

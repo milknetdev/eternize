@@ -48,29 +48,39 @@ async function getAccessToken(): Promise<string> {
   }
 
   const url = `${BASE_URL()}${PATH_TOKEN}`;
-  const creds: Record<string, string> = {
-    grant_type: "client_credentials",
-    client_id: process.env.VALIDAPAY_CLIENT_ID || "",
-    client_secret: process.env.VALIDAPAY_CLIENT_SECRET || "",
-  };
-  if (process.env.VALIDAPAY_SCOPE) creds.scope = process.env.VALIDAPAY_SCOPE;
+  const id = process.env.VALIDAPAY_CLIENT_ID || "";
+  const secret = process.env.VALIDAPAY_CLIENT_SECRET || "";
+  const scope = process.env.VALIDAPAY_SCOPE || "";
+  const basic = Buffer.from(`${id}:${secret}`).toString("base64");
 
-  // OAuth2 token endpoints use form-urlencoded (RFC 6749). Fall back to JSON.
-  let res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-    body: new URLSearchParams(creds).toString(),
-  });
-  if (!res.ok && (res.status === 400 || res.status === 415 || res.status === 422)) {
-    res = await fetch(url, {
-      method: "POST",
+  const attempts: { headers: Record<string, string>; body: string }[] = [
+    // 1) RFC 6749: HTTP Basic header + form body
+    {
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json", Authorization: `Basic ${basic}` },
+      body: new URLSearchParams({ grant_type: "client_credentials", ...(scope ? { scope } : {}) }).toString(),
+    },
+    // 2) creds in the form body
+    {
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: new URLSearchParams({ grant_type: "client_credentials", client_id: id, client_secret: secret, ...(scope ? { scope } : {}) }).toString(),
+    },
+    // 3) creds in a JSON body
+    {
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(creds),
-    });
+      body: JSON.stringify({ grant_type: "client_credentials", client_id: id, client_secret: secret, ...(scope ? { scope } : {}) }),
+    },
+  ];
+
+  let res: Response | null = null;
+  let lastText = "";
+  for (const a of attempts) {
+    res = await fetch(url, { method: "POST", headers: a.headers, body: a.body });
+    if (res.ok) break;
+    lastText = await res.text().catch(() => "");
+    if (res.status !== 400 && res.status !== 401 && res.status !== 415 && res.status !== 422) break;
   }
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`ValidaPay auth ${res.status} @ ${PATH_TOKEN}: ${text.slice(0, 300)}`);
+  if (!res || !res.ok) {
+    throw new Error(`ValidaPay auth ${res?.status} @ ${PATH_TOKEN}: ${lastText.slice(0, 300)}`);
   }
   const j = (await res.json()) as any;
   const value = String(j.access_token ?? j.token ?? j.accessToken ?? "");
