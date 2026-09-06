@@ -300,7 +300,7 @@ export function GuestPhotosTab() {
 
       {/* Photo Grid */}
       {filteredPhotos.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-border">
+        <div className="text-center py-16 bg-white rounded-2xl border border-border shadow-sm">
           <Image className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
           <h3 className="text-lg font-medium mb-2">
             {filter === "pending" && "Nenhuma foto pendente"}

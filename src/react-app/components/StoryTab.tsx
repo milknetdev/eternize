@@ -189,7 +189,7 @@ export function StoryTab() {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white rounded-xl border border-border p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-border shadow-sm p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground">
               {editingItem ? "Editar Momento" : "Novo Momento"}
@@ -320,7 +320,7 @@ export function StoryTab() {
 
       {/* Items List */}
       {items.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl border border-border">
+        <div className="text-center py-12 bg-white rounded-2xl border border-border shadow-sm">
           <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
           <h3 className="font-medium text-foreground mb-1">
             Nenhum momento adicionado
@@ -340,7 +340,7 @@ export function StoryTab() {
           {items.map((item) => (
             <div
               key={item.id}
-              className="bg-white rounded-xl border border-border p-4 shadow-sm hover:shadow-md transition-shadow"
+              className="bg-white rounded-2xl border border-border shadow-sm p-4 shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="flex items-start gap-4">
                 {/* Drag handle */}

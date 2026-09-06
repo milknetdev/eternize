@@ -137,7 +137,7 @@ export function FinanceiroTab() {
 
       {/* Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-6 border border-border">
+        <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
               <DollarSign className="w-5 h-5 text-green-600" />
@@ -148,7 +148,7 @@ export function FinanceiroTab() {
             {formatCurrency(balance?.availableBalance || 0)}
           </p>
         </div>
-        <div className="bg-white rounded-xl p-6 border border-border">
+        <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
               <ArrowDownCircle className="w-5 h-5 text-blue-600" />
@@ -159,7 +159,7 @@ export function FinanceiroTab() {
             {formatCurrency(balance?.convertedTotal || 0)}
           </p>
         </div>
-        <div className="bg-white rounded-xl p-6 border border-border">
+        <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
               <Clock className="w-5 h-5 text-amber-600" />
@@ -173,7 +173,7 @@ export function FinanceiroTab() {
       </div>
 
       {/* Recent Orders */}
-      <div className="bg-white rounded-xl border border-border">
+      <div className="bg-white rounded-2xl border border-border shadow-sm">
         <div className="p-4 border-b border-border">
           <h3 className="font-semibold flex items-center gap-2">
             <Gift className="w-5 h-5 text-primary" />
@@ -228,7 +228,7 @@ export function FinanceiroTab() {
       </div>
 
       {/* Withdrawal History */}
-      <div className="bg-white rounded-xl border border-border">
+      <div className="bg-white rounded-2xl border border-border shadow-sm">
         <div className="p-4 border-b border-border">
           <h3 className="font-semibold flex items-center gap-2">
             <Wallet className="w-5 h-5 text-primary" />
@@ -305,7 +305,7 @@ export function FinanceiroTab() {
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                     max={balance?.availableBalance || 0}
-                    className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full pl-10 pr-4 py-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                     placeholder="0,00"
                   />
                 </div>
@@ -322,7 +322,7 @@ export function FinanceiroTab() {
                 <select
                   value={pixKeyType}
                   onChange={(e) => setPixKeyType(e.target.value)}
-                  className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-4 py-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                 >
                   <option value="cpf">CPF</option>
                   <option value="cnpj">CNPJ</option>
@@ -338,7 +338,7 @@ export function FinanceiroTab() {
                   type="text"
                   value={pixKey}
                   onChange={(e) => setPixKey(e.target.value)}
-                  className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-4 py-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
                   placeholder={pixKeyType === "cpf" ? "000.000.000-00" : pixKeyType === "email" ? "email@exemplo.com" : "Sua chave PIX"}
                 />
               </div>
