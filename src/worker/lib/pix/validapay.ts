@@ -14,9 +14,10 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 const BASE_URL = () =>
   (process.env.VALIDAPAY_API_URL || "https://app.validapay.com.br").replace(/\/+$/, "");
-const PATH_TOKEN = "/auth/token";
-const PATH_CREATE = "/v1/charges/pix";
-const PATH_GET = "/v1/charges/:id";
+// Best guesses — overridable per-env so we don't need a redeploy to adjust.
+const PATH_TOKEN = process.env.VALIDAPAY_TOKEN_PATH || "/auth/token";
+const PATH_CREATE = process.env.VALIDAPAY_CHARGE_PATH || "/v1/charges/pix";
+const PATH_GET = process.env.VALIDAPAY_CHARGE_GET_PATH || "/v1/charges/:id";
 export const WEBHOOK_SIG_HEADER = "x-validapay-signature";
 
 export type PixStatus = "pending" | "paid" | "expired" | "failed";
@@ -46,18 +47,29 @@ async function getAccessToken(): Promise<string> {
     return cachedToken.value;
   }
 
-  const res = await fetch(`${BASE_URL()}${PATH_TOKEN}`, {
+  const url = `${BASE_URL()}${PATH_TOKEN}`;
+  const creds = {
+    grant_type: "client_credentials",
+    client_id: process.env.VALIDAPAY_CLIENT_ID || "",
+    client_secret: process.env.VALIDAPAY_CLIENT_SECRET || "",
+  };
+
+  // Try JSON first, then form-urlencoded — providers differ.
+  let res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      grant_type: "client_credentials",
-      client_id: process.env.VALIDAPAY_CLIENT_ID,
-      client_secret: process.env.VALIDAPAY_CLIENT_SECRET,
-    }),
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(creds),
   });
+  if (!res.ok && (res.status === 400 || res.status === 415 || res.status === 422)) {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: new URLSearchParams(creds).toString(),
+    });
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`ValidaPay auth ${res.status}: ${text.slice(0, 300)}`);
+    throw new Error(`ValidaPay auth ${res.status} @ ${PATH_TOKEN}: ${text.slice(0, 300)}`);
   }
   const j = (await res.json()) as any;
   const value = String(j.access_token ?? j.token ?? j.accessToken ?? "");
@@ -115,24 +127,29 @@ export async function createPixCharge(input: CreateChargeInput): Promise<PixChar
     metadata: { checkoutRef: input.checkoutRef },
   };
 
-  const res = await fetch(`${BASE_URL()}${PATH_CREATE}`, {
-    method: "POST",
-    headers: await authHeaders(),
-    body: JSON.stringify(body),
-  });
+  const headers = await authHeaders();
+  const paths = [PATH_CREATE, "/v1/charges", "/v1/pix/charges", "/charges/pix"].filter(
+    (p, i, a) => a.indexOf(p) === i,
+  );
 
-  if (res.status === 409) {
-    // Idempotency: a charge for this externalId already exists — fetch it.
-    const dup = (await res.json().catch(() => ({}))) as any;
-    const id = dup?.chargeId ?? dup?.id;
-    if (id) return getCharge(String(id));
+  let res: Response | null = null;
+  let lastText = "";
+  for (const path of paths) {
+    res = await fetch(`${BASE_URL()}${path}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(path === "/v1/charges" ? { ...body, type: "pix", method: "pix" } : body),
+    });
+    if (res.status === 409) {
+      const dup = (await res.json().catch(() => ({}))) as any;
+      const id = dup?.chargeId ?? dup?.id;
+      if (id) return getCharge(String(id));
+    }
+    if (res.ok) return readCharge(await res.json());
+    lastText = await res.text().catch(() => "");
+    if (res.status !== 404) break; // only fall through on "wrong path"
   }
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`ValidaPay create charge ${res.status}: ${text.slice(0, 300)}`);
-  }
-  return readCharge(await res.json());
+  throw new Error(`ValidaPay create charge ${res?.status} @ ${paths[0]}: ${lastText.slice(0, 300)}`);
 }
 
 export async function getCharge(chargeId: string): Promise<PixCharge> {

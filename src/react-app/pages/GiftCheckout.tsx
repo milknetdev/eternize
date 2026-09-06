@@ -183,7 +183,10 @@ export default function GiftCheckout() {
       }
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        setPayError(d.error || "Não foi possível gerar o PIX. Tente novamente.");
+        setPayError(
+          (d.error || "Não foi possível gerar o PIX. Tente novamente.") +
+            (d.detail ? `\n\n${d.detail}` : ""),
+        );
         return;
       }
       const data = await res.json();
@@ -500,7 +503,7 @@ export default function GiftCheckout() {
                     </div>
                   )}
                   {payError && (
-                    <p className="text-sm text-red-500">{payError}</p>
+                    <p className="text-sm text-red-500 whitespace-pre-wrap break-words">{payError}</p>
                   )}
 
                   <div className="flex gap-3 pt-4">
@@ -579,7 +582,7 @@ export default function GiftCheckout() {
                   Aguardando o pagamento… a tela avança sozinha quando o PIX cair.
                 </div>
 
-                {payError && <p className="text-sm text-red-500 mb-3">{payError}</p>}
+                {payError && <p className="text-sm text-red-500 mb-3 whitespace-pre-wrap break-words">{payError}</p>}
 
                 <div className="flex gap-3">
                   <Button

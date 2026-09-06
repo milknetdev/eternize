@@ -3318,9 +3318,9 @@ var platform_default = r14;
 // src/worker/lib/pix/validapay.ts
 import { createHmac, timingSafeEqual } from "node:crypto";
 var BASE_URL = () => (process.env.VALIDAPAY_API_URL || "https://app.validapay.com.br").replace(/\/+$/, "");
-var PATH_TOKEN = "/auth/token";
-var PATH_CREATE = "/v1/charges/pix";
-var PATH_GET = "/v1/charges/:id";
+var PATH_TOKEN = process.env.VALIDAPAY_TOKEN_PATH || "/auth/token";
+var PATH_CREATE = process.env.VALIDAPAY_CHARGE_PATH || "/v1/charges/pix";
+var PATH_GET = process.env.VALIDAPAY_CHARGE_GET_PATH || "/v1/charges/:id";
 var WEBHOOK_SIG_HEADER = "x-validapay-signature";
 function normalizeStatus(raw2) {
   const s = String(raw2 || "").toUpperCase();
@@ -3338,18 +3338,27 @@ async function getAccessToken() {
   if (cachedToken && cachedToken.expiresAt - 6e4 > Date.now()) {
     return cachedToken.value;
   }
-  const res = await fetch(`${BASE_URL()}${PATH_TOKEN}`, {
+  const url = `${BASE_URL()}${PATH_TOKEN}`;
+  const creds = {
+    grant_type: "client_credentials",
+    client_id: process.env.VALIDAPAY_CLIENT_ID || "",
+    client_secret: process.env.VALIDAPAY_CLIENT_SECRET || ""
+  };
+  let res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      grant_type: "client_credentials",
-      client_id: process.env.VALIDAPAY_CLIENT_ID,
-      client_secret: process.env.VALIDAPAY_CLIENT_SECRET
-    })
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(creds)
   });
+  if (!res.ok && (res.status === 400 || res.status === 415 || res.status === 422)) {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: new URLSearchParams(creds).toString()
+    });
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`ValidaPay auth ${res.status}: ${text.slice(0, 300)}`);
+    throw new Error(`ValidaPay auth ${res.status} @ ${PATH_TOKEN}: ${text.slice(0, 300)}`);
   }
   const j = await res.json();
   const value = String(j.access_token ?? j.token ?? j.accessToken ?? "");
@@ -3386,21 +3395,28 @@ async function createPixCharge(input) {
     },
     metadata: { checkoutRef: input.checkoutRef }
   };
-  const res = await fetch(`${BASE_URL()}${PATH_CREATE}`, {
-    method: "POST",
-    headers: await authHeaders(),
-    body: JSON.stringify(body)
-  });
-  if (res.status === 409) {
-    const dup = await res.json().catch(() => ({}));
-    const id = dup?.chargeId ?? dup?.id;
-    if (id) return getCharge(String(id));
+  const headers = await authHeaders();
+  const paths = [PATH_CREATE, "/v1/charges", "/v1/pix/charges", "/charges/pix"].filter(
+    (p, i, a) => a.indexOf(p) === i
+  );
+  let res = null;
+  let lastText = "";
+  for (const path of paths) {
+    res = await fetch(`${BASE_URL()}${path}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(path === "/v1/charges" ? { ...body, type: "pix", method: "pix" } : body)
+    });
+    if (res.status === 409) {
+      const dup = await res.json().catch(() => ({}));
+      const id = dup?.chargeId ?? dup?.id;
+      if (id) return getCharge(String(id));
+    }
+    if (res.ok) return readCharge(await res.json());
+    lastText = await res.text().catch(() => "");
+    if (res.status !== 404) break;
   }
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`ValidaPay create charge ${res.status}: ${text.slice(0, 300)}`);
-  }
-  return readCharge(await res.json());
+  throw new Error(`ValidaPay create charge ${res?.status} @ ${paths[0]}: ${lastText.slice(0, 300)}`);
 }
 async function getCharge(chargeId) {
   const res = await fetch(`${BASE_URL()}${PATH_GET.replace(":id", encodeURIComponent(chargeId))}`, {
@@ -3609,7 +3625,13 @@ r15.post("/api/public/pix-charge", async (c) => {
     });
   } catch (err) {
     console.error("pix-charge failed:", err);
-    return c.json({ error: "N\xE3o foi poss\xEDvel gerar o PIX. Tente novamente." }, 502);
+    return c.json(
+      {
+        error: "N\xE3o foi poss\xEDvel gerar o PIX.",
+        detail: String(err?.message || err).slice(0, 500)
+      },
+      502
+    );
   }
 });
 r15.get("/api/public/checkout-status/:ref", async (c) => {

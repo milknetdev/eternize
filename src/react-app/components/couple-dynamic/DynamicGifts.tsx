@@ -1,5 +1,6 @@
 import { authFetch } from "@/react-app/lib/api";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { useWedding } from "@/react-app/contexts/WeddingContext";
 import { Gift, Heart, Check, Copy, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
@@ -15,6 +16,7 @@ interface GiftItem {
 
 export default function DynamicGifts() {
   const { wedding, theme, demo } = useWedding();
+  const navigate = useNavigate();
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPixModal, setShowPixModal] = useState(false);
@@ -55,6 +57,28 @@ export default function DynamicGifts() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  // Seed a single-item cart and go to the checkout — same contract PublicGiftList uses.
+  const presentear = (gift: GiftItem) => {
+    if (demo || !wedding.custom_url) {
+      setShowPixModal(true);
+      return;
+    }
+    const cart = [
+      {
+        gift: {
+          id: gift.id,
+          name: gift.name,
+          price: gift.price,
+          image_url: gift.image_url || "",
+        },
+        quantity: 1,
+      },
+    ];
+    sessionStorage.setItem(`cart_${wedding.custom_url}`, JSON.stringify(cart));
+    sessionStorage.setItem(`wedding_${wedding.custom_url}`, JSON.stringify(wedding));
+    navigate(`/c/${wedding.custom_url}/checkout`);
   };
 
   const formatCurrency = (value: number) => {
@@ -184,10 +208,11 @@ export default function DynamicGifts() {
                     </span>
                     {!gift.is_reserved && (
                       <button
-                        className="px-4 py-2 rounded-full text-sm font-medium transition-colors"
-                        style={{ 
+                        onClick={() => presentear(gift)}
+                        className="px-4 py-2 rounded-full text-sm font-medium transition-colors hover:opacity-90"
+                        style={{
                           backgroundColor: `${theme.primary}20`,
-                          color: theme.primary
+                          color: theme.primary,
                         }}
                       >
                         Presentear

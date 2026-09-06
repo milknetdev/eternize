@@ -234,7 +234,13 @@ r.post("/api/public/pix-charge", async (c) => {
     });
   } catch (err) {
     console.error("pix-charge failed:", err);
-    return c.json({ error: "Não foi possível gerar o PIX. Tente novamente." }, 502);
+    return c.json(
+      {
+        error: "Não foi possível gerar o PIX.",
+        detail: String((err as any)?.message || err).slice(0, 500),
+      },
+      502,
+    );
   }
 });
 
