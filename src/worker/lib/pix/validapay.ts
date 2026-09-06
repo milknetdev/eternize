@@ -13,7 +13,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  */
 
 const BASE_URL = () =>
-  (process.env.VALIDAPAY_API_URL || "https://app.validapay.com.br").replace(/\/+$/, "");
+  (process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br").replace(/\/+$/, "");
 // Best guesses — overridable per-env so we don't need a redeploy to adjust.
 const PATH_TOKEN = process.env.VALIDAPAY_TOKEN_PATH || "/auth/token";
 const PATH_CREATE = process.env.VALIDAPAY_CHARGE_PATH || "/v1/charges/pix";
@@ -48,23 +48,24 @@ async function getAccessToken(): Promise<string> {
   }
 
   const url = `${BASE_URL()}${PATH_TOKEN}`;
-  const creds = {
+  const creds: Record<string, string> = {
     grant_type: "client_credentials",
     client_id: process.env.VALIDAPAY_CLIENT_ID || "",
     client_secret: process.env.VALIDAPAY_CLIENT_SECRET || "",
   };
+  if (process.env.VALIDAPAY_SCOPE) creds.scope = process.env.VALIDAPAY_SCOPE;
 
-  // Try JSON first, then form-urlencoded — providers differ.
+  // OAuth2 token endpoints use form-urlencoded (RFC 6749). Fall back to JSON.
   let res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(creds),
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+    body: new URLSearchParams(creds).toString(),
   });
   if (!res.ok && (res.status === 400 || res.status === 415 || res.status === 422)) {
     res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-      body: new URLSearchParams(creds).toString(),
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(creds),
     });
   }
   if (!res.ok) {

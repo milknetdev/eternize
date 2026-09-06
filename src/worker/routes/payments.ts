@@ -201,29 +201,29 @@ r.get("/api/public/pix-debug", async (c) => {
 
   const cid = process.env.VALIDAPAY_CLIENT_ID || "";
   const csec = process.env.VALIDAPAY_CLIENT_SECRET || "";
-  const bases = [
-    process.env.VALIDAPAY_API_URL,
-    "https://api.validapay.com.br",
-    "https://api.validapix.com.br",
-    "https://app.validapay.com.br/api",
-    "https://gateway.validapay.com.br",
-  ].filter(Boolean) as string[];
-  const paths = ["/auth/token", "/oauth/token", "/v1/auth/token", "/v1/oauth/token", "/api/auth/token"];
+  const base = (process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br").replace(/\/+$/, "");
+  const scope = process.env.VALIDAPAY_SCOPE || "";
+  const paths = ["/auth/token", "/oauth/token", "/v1/auth/token"];
+  const creds: Record<string, string> = { grant_type: "client_credentials", client_id: cid, client_secret: csec };
+  if (scope) creds.scope = scope;
 
   const out: any[] = [];
-  for (const base of bases) {
-    for (const path of paths) {
-      const url = `${base.replace(/\/+$/, "")}${path}`;
+  for (const path of paths) {
+    for (const mode of ["form", "json"] as const) {
+      const url = `${base}${path}`;
       try {
         const res = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ grant_type: "client_credentials", client_id: cid, client_secret: csec }),
+          headers: {
+            "Content-Type": mode === "form" ? "application/x-www-form-urlencoded" : "application/json",
+            Accept: "application/json",
+          },
+          body: mode === "form" ? new URLSearchParams(creds).toString() : JSON.stringify(creds),
         });
-        const txt = (await res.text().catch(() => "")).slice(0, 160).replace(/\s+/g, " ");
-        out.push({ url, status: res.status, ct: res.headers.get("content-type"), body: txt });
+        const txt = (await res.text().catch(() => "")).slice(0, 200).replace(/\s+/g, " ");
+        out.push({ url, mode, status: res.status, body: txt });
       } catch (e) {
-        out.push({ url, error: String((e as any)?.message || e).slice(0, 160) });
+        out.push({ url, mode, error: String((e as any)?.message || e).slice(0, 160) });
       }
     }
   }
@@ -231,6 +231,7 @@ r.get("/api/public/pix-debug", async (c) => {
     hasClientId: !!cid,
     hasClientSecret: !!csec,
     apiUrlEnv: process.env.VALIDAPAY_API_URL || null,
+    scopeEnv: scope || null,
     tries: out,
   });
 });

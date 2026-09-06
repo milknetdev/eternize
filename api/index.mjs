@@ -3317,7 +3317,7 @@ var platform_default = r14;
 
 // src/worker/lib/pix/validapay.ts
 import { createHmac, timingSafeEqual } from "node:crypto";
-var BASE_URL = () => (process.env.VALIDAPAY_API_URL || "https://app.validapay.com.br").replace(/\/+$/, "");
+var BASE_URL = () => (process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br").replace(/\/+$/, "");
 var PATH_TOKEN = process.env.VALIDAPAY_TOKEN_PATH || "/auth/token";
 var PATH_CREATE = process.env.VALIDAPAY_CHARGE_PATH || "/v1/charges/pix";
 var PATH_GET = process.env.VALIDAPAY_CHARGE_GET_PATH || "/v1/charges/:id";
@@ -3344,16 +3344,17 @@ async function getAccessToken() {
     client_id: process.env.VALIDAPAY_CLIENT_ID || "",
     client_secret: process.env.VALIDAPAY_CLIENT_SECRET || ""
   };
+  if (process.env.VALIDAPAY_SCOPE) creds.scope = process.env.VALIDAPAY_SCOPE;
   let res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(creds)
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+    body: new URLSearchParams(creds).toString()
   });
   if (!res.ok && (res.status === 400 || res.status === 415 || res.status === 422)) {
     res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-      body: new URLSearchParams(creds).toString()
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(creds)
     });
   }
   if (!res.ok) {
@@ -3591,28 +3592,28 @@ r15.get("/api/public/pix-debug", async (c) => {
   if (c.req.query("probe") !== "1") return c.json({ error: "add ?probe=1" }, 400);
   const cid = process.env.VALIDAPAY_CLIENT_ID || "";
   const csec = process.env.VALIDAPAY_CLIENT_SECRET || "";
-  const bases = [
-    process.env.VALIDAPAY_API_URL,
-    "https://api.validapay.com.br",
-    "https://api.validapix.com.br",
-    "https://app.validapay.com.br/api",
-    "https://gateway.validapay.com.br"
-  ].filter(Boolean);
-  const paths = ["/auth/token", "/oauth/token", "/v1/auth/token", "/v1/oauth/token", "/api/auth/token"];
+  const base = (process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br").replace(/\/+$/, "");
+  const scope = process.env.VALIDAPAY_SCOPE || "";
+  const paths = ["/auth/token", "/oauth/token", "/v1/auth/token"];
+  const creds = { grant_type: "client_credentials", client_id: cid, client_secret: csec };
+  if (scope) creds.scope = scope;
   const out = [];
-  for (const base of bases) {
-    for (const path of paths) {
-      const url = `${base.replace(/\/+$/, "")}${path}`;
+  for (const path of paths) {
+    for (const mode of ["form", "json"]) {
+      const url = `${base}${path}`;
       try {
         const res = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ grant_type: "client_credentials", client_id: cid, client_secret: csec })
+          headers: {
+            "Content-Type": mode === "form" ? "application/x-www-form-urlencoded" : "application/json",
+            Accept: "application/json"
+          },
+          body: mode === "form" ? new URLSearchParams(creds).toString() : JSON.stringify(creds)
         });
-        const txt = (await res.text().catch(() => "")).slice(0, 160).replace(/\s+/g, " ");
-        out.push({ url, status: res.status, ct: res.headers.get("content-type"), body: txt });
+        const txt = (await res.text().catch(() => "")).slice(0, 200).replace(/\s+/g, " ");
+        out.push({ url, mode, status: res.status, body: txt });
       } catch (e) {
-        out.push({ url, error: String(e?.message || e).slice(0, 160) });
+        out.push({ url, mode, error: String(e?.message || e).slice(0, 160) });
       }
     }
   }
@@ -3620,6 +3621,7 @@ r15.get("/api/public/pix-debug", async (c) => {
     hasClientId: !!cid,
     hasClientSecret: !!csec,
     apiUrlEnv: process.env.VALIDAPAY_API_URL || null,
+    scopeEnv: scope || null,
     tries: out
   });
 });
