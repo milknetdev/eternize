@@ -473,7 +473,7 @@ export default function Dashboard() {
 
         {/* Invite Tab */}
         {activeTab === "invite" && wedding && (
-          <InviteTab wedding={wedding} />
+          <InviteTab wedding={wedding} onSaved={fetchData} />
         )}
 
         {/* Godparents Tab */}

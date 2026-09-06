@@ -13,8 +13,11 @@ import {
   Heart,
   Sparkles,
   Check,
+  Loader2,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
+import { authFetch } from "@/react-app/lib/api";
 
 interface Wedding {
   id: number;
@@ -28,10 +31,12 @@ interface Wedding {
   reception_venue?: string;
   reception_address?: string;
   reception_time?: string;
+  invitation_message?: string | null;
 }
 
 interface InviteTabProps {
   wedding: Wedding;
+  onSaved?: () => void;
 }
 
 const INVITE_STYLES = [
@@ -50,14 +55,40 @@ const FONTS = [
   { id: "elegant", name: "Elegante", family: "'Playfair Display', serif" },
 ];
 
-export function InviteTab({ wedding }: InviteTabProps) {
+export function InviteTab({ wedding, onSaved }: InviteTabProps) {
   const inviteRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState(INVITE_STYLES[0]);
   const [selectedFont, setSelectedFont] = useState(FONTS[0]);
   const [showVenue, setShowVenue] = useState(true);
   const [showTime, setShowTime] = useState(true);
-  const [customMessage, setCustomMessage] = useState("Você está convidado(a) para celebrar conosco!");
+  const [customMessage, setCustomMessage] = useState(
+    wedding.invitation_message || "Você está convidado(a) para celebrar conosco!"
+  );
+  const [savingMessage, setSavingMessage] = useState(false);
+  const [savedMessage, setSavedMessage] = useState(false);
+
+  const savedInvitation = wedding.invitation_message || "";
+  const messageDirty = customMessage.trim() !== savedInvitation.trim();
+
+  const saveMessage = async () => {
+    setSavingMessage(true);
+    setSavedMessage(false);
+    try {
+      await authFetch("/api/wedding/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invitation_message: customMessage.trim() || null }),
+      });
+      setSavedMessage(true);
+      onSaved?.();
+      setTimeout(() => setSavedMessage(false), 2500);
+    } catch (err) {
+      console.error("Failed to save invitation message:", err);
+    } finally {
+      setSavingMessage(false);
+    }
+  };
 
   const weddingUrl = `${window.location.origin}/c/${wedding.custom_url}`;
   
@@ -208,13 +239,39 @@ export function InviteTab({ wedding }: InviteTabProps) {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Mensagem personalizada</label>
+                <label className="text-sm font-medium mb-2 block">Mensagem do convite</label>
                 <textarea
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}
-                  rows={2}
-                  className="w-full p-3 rounded-xl border focus:border-primary focus:ring-2 focus:ring-primary/25 outline-none resize-none text-sm"
+                  rows={3}
+                  className="w-full p-3 rounded-xl border border-border bg-white focus:border-primary focus:ring-2 focus:ring-primary/25 outline-none resize-none text-sm"
                 />
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Aparece na imagem do convite e na página que os convidados abrem pelo WhatsApp.
+                  Variáveis opcionais: <code className="px-1 rounded bg-muted">{"{nome}"}</code>{" "}
+                  <code className="px-1 rounded bg-muted">{"{link}"}</code>
+                </p>
+                <button
+                  onClick={saveMessage}
+                  disabled={savingMessage || !messageDirty}
+                  className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                >
+                  {savingMessage ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : savedMessage ? (
+                    <Check className="w-4 h-4" />
+                  ) : null}
+                  {savedMessage ? "Mensagem salva" : "Salvar mensagem"}
+                </button>
+              </div>
+
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/5 border border-primary/15">
+                <MessageCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground">
+                  Ao enviar o convite pelo WhatsApp (aba <strong>Lista de Convidados</strong>), o
+                  convidado recebe um link para <strong>este</strong> convite, com botão de confirmar
+                  presença.
+                </p>
               </div>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">

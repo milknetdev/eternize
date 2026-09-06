@@ -39,6 +39,28 @@ const companionState = async () => {
   return results;
 };
 
+describe("GET /api/public/confirm/:code — invite fields", () => {
+  it("returns the wedding invitation message and venue details for the invite page", async () => {
+    await fx.db
+      .prepare(
+        "UPDATE weddings SET invitation_message = ?, ceremony_time = ?, ceremony_venue = ? WHERE id = ?",
+      )
+      .bind("Olá {nome}, celebre conosco!", "16h", "Fazenda Aurora", fx.weddingA)
+      .run();
+
+    const res = await app.request(
+      "/api/public/confirm/testcode",
+      {},
+      { DB: fx.db } as unknown as Record<string, unknown>,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { wedding: Record<string, unknown> };
+    expect(body.wedding.invitation_message).toBe("Olá {nome}, celebre conosco!");
+    expect(body.wedding.ceremony_time).toBe("16h");
+    expect(body.wedding.ceremony_venue).toBe("Fazenda Aurora");
+  });
+});
+
 describe("POST /api/public/confirm/:code — companion attendance", () => {
   it("un-confirms every companion when the list is empty (guest comes alone)", async () => {
     const res = await post({ confirmedCompanionIds: [] });

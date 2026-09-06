@@ -117,22 +117,24 @@ Aguardamos você! 💕`;
     );
   };
 
+  // The link we share is the digital invite page (styled with the couple's
+  // message + wedding details); it carries a "Confirmar presença" button.
+  const inviteLink = (guest: Guest) =>
+    `${window.location.origin}/c/${wedding?.custom_url}/convite/${guest.confirmation_code}`;
+
   const copyConfirmationLink = async (guest: Guest) => {
     if (!guest.confirmation_code) return;
-    const baseUrl = window.location.origin;
-    const link = `${baseUrl}/c/${wedding?.custom_url}/confirmar/${guest.confirmation_code}`;
-    await navigator.clipboard.writeText(link);
+    await navigator.clipboard.writeText(inviteLink(guest));
     setCopiedId(guest.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
   const shareWhatsApp = (guest: Guest) => {
     if (!guest.confirmation_code || !guest.phone) return;
-    const baseUrl = window.location.origin;
-    const link = `${baseUrl}/c/${wedding?.custom_url}/confirmar/${guest.confirmation_code}`;
-    
+    const link = inviteLink(guest);
+
     // Use custom message or default
-    const defaultMessage = `Olá ${guest.name.split(' ')[0]}! 💒\n\nVocê está convidado(a) para nosso casamento! Por favor, confirme sua presença através deste link:\n\n${link}\n\nAguardamos você! 💕`;
+    const defaultMessage = `Olá ${guest.name.split(' ')[0]}! 💒\n\nVocê está convidado(a) para o nosso casamento. Abra o convite e confirme sua presença:\n\n${link}\n\nAguardamos você! 💕`;
     
     let finalMessage = defaultMessage;
     if (wedding?.invitation_message) {
@@ -571,7 +573,7 @@ Aguardamos você! 💕`;
                                 ? "bg-green-100 text-green-600" 
                                 : "hover:bg-muted text-muted-foreground hover:text-foreground"
                             }`}
-                            title="Copiar link de confirmação"
+                            title="Copiar link do convite"
                           >
                             {copiedId === guest.id ? (
                               <Check className="w-4 h-4" />

@@ -23,6 +23,7 @@ import AdminDashboard from "@/react-app/pages/AdminDashboard";
 import GravataPage from "@/react-app/pages/GravataPage";
 import GuestGalleryUpload from "@/react-app/pages/GuestGalleryUpload";
 import GiftCheckout from "@/react-app/pages/GiftCheckout";
+import InvitePage from "@/react-app/pages/InvitePage";
 import NotFound from "@/react-app/pages/NotFound";
 import SupportBanner from "@/react-app/components/SupportBanner";
 import ScrollToTop from "@/react-app/components/ScrollToTop";
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/c/:customUrl/gravata" element={<GravataPage />} />
           <Route path="/c/:customUrl/galeria" element={<GuestGalleryUpload />} />
           <Route path="/c/:customUrl/checkout" element={<GiftCheckout />} />
+          <Route path="/c/:customUrl/convite/:code" element={<InvitePage />} />
           <Route path="/c/:customUrl/confirmar" element={<GuestFindConfirmation />} />
           <Route path="/c/:customUrl/confirmar/:code" element={<GuestConfirmation />} />
           <Route path="/confirmar/:code" element={<GuestConfirmation />} />

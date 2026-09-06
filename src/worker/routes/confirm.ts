@@ -42,7 +42,8 @@ r.get("/api/public/confirm/:code", async (c) => {
   const code = c.req.param("code");
   
   const guest = await c.env.DB.prepare(`
-    SELECT g.*, w.partner1_name, w.partner2_name, w.wedding_date, w.venue_name, w.custom_url, w.show_gifts
+    SELECT g.*, w.partner1_name, w.partner2_name, w.wedding_date, w.venue_name, w.custom_url, w.show_gifts,
+           w.invitation_message, w.ceremony_time, w.ceremony_venue, w.reception_venue
     FROM guests g
     JOIN weddings w ON g.wedding_id = w.id
     WHERE g.confirmation_code = ?
@@ -62,6 +63,10 @@ r.get("/api/public/confirm/:code", async (c) => {
     dietary_restrictions: string | null;
     message: string | null;
     rsvp_status: string | null;
+    invitation_message: string | null;
+    ceremony_time: string | null;
+    ceremony_venue: string | null;
+    reception_venue: string | null;
   }>();
 
   if (!guest) {
@@ -97,6 +102,10 @@ r.get("/api/public/confirm/:code", async (c) => {
       venue_name: guest.venue_name,
       custom_url: guest.custom_url,
       show_gifts: guest.show_gifts,
+      invitation_message: guest.invitation_message,
+      ceremony_time: guest.ceremony_time,
+      ceremony_venue: guest.ceremony_venue,
+      reception_venue: guest.reception_venue,
     }
   });
 });
