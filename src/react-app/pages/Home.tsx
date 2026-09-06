@@ -5,7 +5,6 @@ import FeaturesSection from "@/react-app/components/home/FeaturesSection";
 import HowItWorksSection from "@/react-app/components/home/HowItWorksSection";
 import TestimonialsSection from "@/react-app/components/home/TestimonialsSection";
 import StatsSection from "@/react-app/components/home/StatsSection";
-import PricingSection from "@/react-app/components/home/PricingSection";
 import CTASection from "@/react-app/components/home/CTASection";
 
 export default function HomePage() {
@@ -18,7 +17,6 @@ export default function HomePage() {
         <HowItWorksSection />
         <StatsSection />
         <TestimonialsSection />
-        <PricingSection />
         <CTASection />
       </main>
       <Footer />

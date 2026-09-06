@@ -294,7 +294,7 @@ export default function ThemeEditor() {
                       )}
                       {template.isPremium && (
                         <div className="absolute top-2 left-2 px-2 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full text-white text-xs font-medium">
-                          Premium
+                          Destaque
                         </div>
                       )}
                     </button>

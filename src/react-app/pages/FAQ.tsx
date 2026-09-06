@@ -46,8 +46,8 @@ const faqData: FAQCategory[] = [
         answer: "Não! O Eternize foi criado para ser fácil de usar. Você não precisa saber programar ou ter experiência com criação de sites. Basta escolher um template, personalizar com suas informações e publicar."
       },
       {
-        question: "Posso usar o Eternize gratuitamente?",
-        answer: "Sim! Oferecemos um plano gratuito que inclui as funcionalidades essenciais: site personalizado, lista de presentes, RSVP online e galeria de fotos. Para recursos avançados como domínio personalizado e templates premium, oferecemos planos pagos."
+        question: "Quanto custa o Eternize?",
+        answer: "O site é grátis para o casal: todos os recursos, todos os templates, sem plano e sem mensalidade. O Eternize se sustenta com uma pequena taxa de serviço nas compras da lista de presentes, paga pelo convidado no momento do pagamento. Você recebe o valor do presente já com o desconto dessa taxa."
       },
       {
         question: "Quanto tempo leva para criar meu site?",
@@ -116,15 +116,15 @@ const faqData: FAQCategory[] = [
     items: [
       {
         question: "Quantas fotos posso enviar?",
-        answer: "No plano gratuito, você pode enviar até 50 fotos. Nos planos Premium e Luxo, o limite aumenta para 200 e ilimitado, respectivamente."
+        answer: "Você pode montar a galeria do casal e ativar a galeria colaborativa dos convidados sem limite de plano — tudo já vem incluído."
       },
       {
         question: "Os convidados podem enviar fotos?",
-        answer: "Nos planos pagos, sim! Você pode habilitar uma galeria colaborativa onde os convidados enviam fotos do casamento, criando um álbum coletivo."
+        answer: "Sim! Você pode habilitar uma galeria colaborativa onde os convidados enviam fotos do casamento, criando um álbum coletivo. Você aprova o que aparece no site."
       },
       {
         question: "Qual o tamanho máximo por foto?",
-        answer: "Cada foto pode ter até 10MB. Aceitamos formatos JPG, PNG e WEBP. As fotos são otimizadas automaticamente para carregamento rápido."
+        answer: "As fotos são otimizadas automaticamente para carregar rápido. Aceitamos JPG, PNG e WEBP."
       },
       {
         question: "Posso baixar todas as fotos de uma vez?",
@@ -152,25 +152,29 @@ const faqData: FAQCategory[] = [
     ]
   },
   {
-    id: "pagamento",
-    name: "Pagamentos e Planos",
+    id: "custos",
+    name: "Custos e Pagamentos",
     icon: CreditCard,
     items: [
       {
-        question: "Quais são os planos disponíveis?",
-        answer: "Temos 3 planos: Grátis (funcionalidades básicas), Premium (R$99 - recursos avançados) e Luxo (R$249 - tudo ilimitado + suporte prioritário). Todos são pagamento único, sem mensalidade."
+        question: "O casal paga alguma coisa?",
+        answer: "Não. Criar o site, usar todos os templates, a lista de presentes, o RSVP, os convites e a galeria — tudo é grátis para o casal, sem plano e sem mensalidade."
       },
       {
-        question: "Posso mudar de plano depois?",
-        answer: "Sim! Você pode fazer upgrade a qualquer momento. O valor já pago é descontado do novo plano."
+        question: "Então como o Eternize se sustenta?",
+        answer: "Por uma pequena taxa de serviço nas compras da lista de presentes, sempre paga pelo convidado no momento do pagamento: um percentual sobre o valor do presente, o valor do cartão de presente (se ele escolher um cartão pago) e uma taxa fixa de serviço por compra."
       },
       {
-        question: "Quais formas de pagamento são aceitas?",
-        answer: "Aceitamos PIX, cartão de crédito (em até 12x) e boleto bancário."
+        question: "Quanto o casal recebe de cada presente?",
+        answer: "O valor do presente menos o percentual de serviço. Esse valor fica disponível no painel (aba Recebimentos) para você transferir por PIX quando quiser, sem custo de saque."
       },
       {
-        question: "Vocês oferecem reembolso?",
-        answer: "Sim! Se você não ficar satisfeito, oferecemos reembolso integral em até 7 dias após a compra, sem perguntas."
+        question: "O cartão de presente é obrigatório?",
+        answer: "Não. O convidado pode escolher o cartão gratuito. Se escolher um cartão pago, esse valor é do serviço, não entra no valor que o casal recebe."
+      },
+      {
+        question: "Como o convidado paga?",
+        answer: "Por PIX, direto na tela de finalização do presente. O total mostra o presente, o cartão (se houver) e a taxa de serviço separados."
       },
     ]
   },
@@ -184,8 +188,8 @@ const faqData: FAQCategory[] = [
         answer: "Isso é raro, mas se acontecer, escreva para contato@eternize.com que a gente resolve o quanto antes."
       },
       {
-        question: "Posso usar meu próprio domínio?",
-        answer: "Sim! Nos planos Premium e Luxo, você pode conectar seu próprio domínio (ex: anajoao.com.br) ao seu site Eternize."
+        question: "Meu site tem endereço próprio?",
+        answer: "Sim! Cada casal tem uma URL personalizada (eternize.com/c/seu-casamento) que você escolhe nas configurações do site."
       },
       {
         question: "O site funciona em celular?",
@@ -412,7 +416,7 @@ export default function FAQ() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { name: "Como Funciona", href: "/#how-it-works", icon: HelpCircle },
-              { name: "Planos e Preços", href: "/#pricing", icon: CreditCard },
+              { name: "Como funcionam os custos", href: "/faq", icon: CreditCard },
               { name: "Templates", href: "/templates", icon: Settings },
               { name: "Demonstração", href: "/demo/ana-e-joao", icon: Camera },
             ].map((link, i) => (

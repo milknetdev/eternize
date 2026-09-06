@@ -179,11 +179,11 @@ function TemplateCard({
       className="group relative"
     >
       <div className="relative bg-card rounded-2xl overflow-hidden shadow-lg border border-border/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2">
-        {/* Premium Badge */}
+        {/* Featured badge */}
         {template.isPremium && (
           <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-white text-xs font-semibold shadow-lg">
             <Crown className="w-3.5 h-3.5" />
-            Premium
+            Destaque
           </div>
         )}
 
@@ -333,7 +333,7 @@ function TemplatePreviewModal({ template, onClose, onSelect }: TemplatePreviewMo
             {template.isPremium && (
               <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-white text-sm font-semibold shadow-lg">
                 <Crown className="w-4 h-4" />
-                Premium
+                Destaque
               </div>
             )}
           </div>

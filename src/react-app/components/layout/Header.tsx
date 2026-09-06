@@ -23,7 +23,7 @@ export default function Header() {
     { label: "Funcionalidades", to: "/#features" },
     { label: "Templates", to: "/templates" },
     { label: "Como Funciona", to: "/#how-it-works" },
-    { label: "Planos", to: "/#pricing" },
+    { label: "Dúvidas", to: "/faq" },
   ];
 
   return (
