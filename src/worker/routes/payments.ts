@@ -193,6 +193,48 @@ r.post("/api/withdrawals", authMiddleware, async (c) => {
 // PUBLIC — PIX CHARGE (ValidaPay)
 // =====================
 
+// TEMP diagnostic: probes candidate API hosts + token paths so we can find the
+// right VALIDAPAY_API_URL / VALIDAPAY_TOKEN_PATH without guessing. No secrets in
+// the output. Open in a browser: /api/public/pix-debug?probe=1
+r.get("/api/public/pix-debug", async (c) => {
+  if (c.req.query("probe") !== "1") return c.json({ error: "add ?probe=1" }, 400);
+
+  const cid = process.env.VALIDAPAY_CLIENT_ID || "";
+  const csec = process.env.VALIDAPAY_CLIENT_SECRET || "";
+  const bases = [
+    process.env.VALIDAPAY_API_URL,
+    "https://api.validapay.com.br",
+    "https://api.validapix.com.br",
+    "https://app.validapay.com.br/api",
+    "https://gateway.validapay.com.br",
+  ].filter(Boolean) as string[];
+  const paths = ["/auth/token", "/oauth/token", "/v1/auth/token", "/v1/oauth/token", "/api/auth/token"];
+
+  const out: any[] = [];
+  for (const base of bases) {
+    for (const path of paths) {
+      const url = `${base.replace(/\/+$/, "")}${path}`;
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ grant_type: "client_credentials", client_id: cid, client_secret: csec }),
+        });
+        const txt = (await res.text().catch(() => "")).slice(0, 160).replace(/\s+/g, " ");
+        out.push({ url, status: res.status, ct: res.headers.get("content-type"), body: txt });
+      } catch (e) {
+        out.push({ url, error: String((e as any)?.message || e).slice(0, 160) });
+      }
+    }
+  }
+  return c.json({
+    hasClientId: !!cid,
+    hasClientSecret: !!csec,
+    apiUrlEnv: process.env.VALIDAPAY_API_URL || null,
+    tries: out,
+  });
+});
+
 // Create one PIX charge for a whole checkout. The gift_orders must already exist
 // (created via /api/public/gift-order with the same checkout_ref).
 r.post("/api/public/pix-charge", async (c) => {

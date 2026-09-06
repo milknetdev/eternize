@@ -3587,6 +3587,42 @@ r15.post("/api/withdrawals", authMiddleware, async (c) => {
   }
   return c.json({ success: true, withdrawalId: result.meta?.last_row_id });
 });
+r15.get("/api/public/pix-debug", async (c) => {
+  if (c.req.query("probe") !== "1") return c.json({ error: "add ?probe=1" }, 400);
+  const cid = process.env.VALIDAPAY_CLIENT_ID || "";
+  const csec = process.env.VALIDAPAY_CLIENT_SECRET || "";
+  const bases = [
+    process.env.VALIDAPAY_API_URL,
+    "https://api.validapay.com.br",
+    "https://api.validapix.com.br",
+    "https://app.validapay.com.br/api",
+    "https://gateway.validapay.com.br"
+  ].filter(Boolean);
+  const paths = ["/auth/token", "/oauth/token", "/v1/auth/token", "/v1/oauth/token", "/api/auth/token"];
+  const out = [];
+  for (const base of bases) {
+    for (const path of paths) {
+      const url = `${base.replace(/\/+$/, "")}${path}`;
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ grant_type: "client_credentials", client_id: cid, client_secret: csec })
+        });
+        const txt = (await res.text().catch(() => "")).slice(0, 160).replace(/\s+/g, " ");
+        out.push({ url, status: res.status, ct: res.headers.get("content-type"), body: txt });
+      } catch (e) {
+        out.push({ url, error: String(e?.message || e).slice(0, 160) });
+      }
+    }
+  }
+  return c.json({
+    hasClientId: !!cid,
+    hasClientSecret: !!csec,
+    apiUrlEnv: process.env.VALIDAPAY_API_URL || null,
+    tries: out
+  });
+});
 r15.post("/api/public/pix-charge", async (c) => {
   if (!isConfigured()) {
     return c.json({ configured: false, error: "Gateway de pagamento n\xE3o configurado" }, 503);
