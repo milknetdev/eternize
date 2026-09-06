@@ -1,5 +1,5 @@
 // Shared types for the dashboard shell and its tab components.
-export type Tab = "overview" | "guests" | "tables" | "tasks" | "budget" | "gifts" | "photos" | "story" | "guest-photos" | "messages" | "financeiro" | "gravata" | "invite" | "godparents" | "parents" | "accommodations" | "settings";
+export type Tab = "overview" | "guests" | "tables" | "tasks" | "budget" | "gifts" | "site" | "photos" | "story" | "guest-photos" | "messages" | "financeiro" | "gravata" | "invite" | "godparents" | "parents" | "accommodations" | "settings";
 
 export interface Companion {
   id?: number;

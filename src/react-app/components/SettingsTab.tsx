@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router";
 import { authFetch } from "@/react-app/lib/api";
 import { Button } from "@/react-app/components/ui/button";
-import { Settings, Loader2, ExternalLink, X, Check, Palette, AlertCircle } from "lucide-react";
+import { Loader2, ExternalLink, X, Check, Globe, AlertCircle } from "lucide-react";
 import type { Wedding } from "@/react-app/components/dashboard-types";
 
 // Settings Tab Component
@@ -115,44 +114,14 @@ export function SettingsTab({
         </div>
       )}
       
-      {/* Theme Editor Link */}
-      <Link
-        to="/dashboard/tema"
-        className="block bg-gradient-to-r from-primary/10 via-gold-light/10 to-primary/10 rounded-2xl border border-primary/20 p-6 mb-4 hover:border-primary/40 transition-colors group"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-gold-light flex items-center justify-center">
-            <Palette className="w-6 h-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-medium group-hover:text-primary transition-colors">Personalizar Tema</h3>
-            <p className="text-sm text-muted-foreground">
-              Customize cores, fontes e escolha um template para seu site
-            </p>
-          </div>
-          <ExternalLink className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-        </div>
-      </Link>
-      
-      {/* Site Settings Link */}
-      <Link
-        to="/dashboard/configuracoes"
-        className="block bg-gradient-to-r from-secondary/30 via-primary/5 to-secondary/30 rounded-2xl border border-secondary p-6 mb-6 hover:border-primary/40 transition-colors group"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary to-primary/30 flex items-center justify-center">
-            <Settings className="w-6 h-6 text-primary" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-medium group-hover:text-primary transition-colors">Configurações do Site</h3>
-            <p className="text-sm text-muted-foreground">
-              Seções visíveis, conteúdo, horários e mídia
-            </p>
-          </div>
-          <ExternalLink className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-        </div>
-      </Link>
-      
+      <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 mb-6 flex items-start gap-3">
+        <Globe className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-muted-foreground">
+          A aparência, as seções e o conteúdo do site agora ficam em{" "}
+          <strong className="text-foreground">Meu Site</strong> (no menu lateral) — tudo num lugar só.
+        </p>
+      </div>
+
       <div className="bg-white rounded-2xl border border-border shadow-sm p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>

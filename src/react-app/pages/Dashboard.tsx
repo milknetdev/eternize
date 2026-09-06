@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router";
 import { useAuth } from "@/local-auth/react";
 import { authFetch } from "@/react-app/lib/api";
-import { Heart, Users, Gift, MessageCircle, Settings, LogOut, BarChart3, Loader2, ExternalLink, Image, Wallet, Share2, ChevronUp, X, UtensilsCrossed, CheckSquare, Sparkles, BookOpen, Crown, Hotel, AlertTriangle } from "lucide-react";
+import { Heart, Users, Gift, MessageCircle, Settings, LogOut, BarChart3, Loader2, ExternalLink, Wallet, Share2, ChevronUp, X, UtensilsCrossed, CheckSquare, Sparkles, Globe, AlertTriangle } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
 import TablesTab from "@/react-app/components/TablesTab";
 import { TasksTab } from "@/react-app/components/TasksTab";
@@ -10,22 +10,17 @@ import { BudgetTab } from "@/react-app/components/BudgetTab";
 import { GiftTemplateSelector } from "@/react-app/components/GiftTemplateSelector";
 import { GravataTab } from "@/react-app/components/GravataTab";
 import { InviteTab } from "@/react-app/components/InviteTab";
-import { StoryTab } from "@/react-app/components/StoryTab";
-import { GuestPhotosTab } from "@/react-app/components/GuestPhotosTab";
+import { SiteTab } from "@/react-app/components/SiteTab";
 import { DashboardHome } from "@/react-app/components/DashboardHome";
 import { GiftTemplate } from "@/data/giftTemplates";
 import { GuestsTab } from "@/react-app/components/GuestsTab";
 import { GiftsTab } from "@/react-app/components/GiftsTab";
-import { PhotosTab } from "@/react-app/components/PhotosTab";
 import { MessagesTab } from "@/react-app/components/MessagesTab";
 import { FinanceiroTab } from "@/react-app/components/FinanceiroTab";
 import { SettingsTab } from "@/react-app/components/SettingsTab";
 import { WeddingModal } from "@/react-app/components/WeddingModal";
 import { GuestModal } from "@/react-app/components/GuestModal";
 import { GiftModal } from "@/react-app/components/GiftModal";
-import { GodparentsTab } from "@/react-app/components/GodparentsTab";
-import { ParentsTab } from "@/react-app/components/ParentsTab";
-import { AccommodationsTab } from "@/react-app/components/AccommodationsTab";
 import type { Tab, Guest, GiftItem, GuestMessage, Photo, Wedding, Stats } from "@/react-app/components/dashboard-types";
 
 export default function Dashboard() {
@@ -171,14 +166,14 @@ export default function Dashboard() {
     },
     {
       label: "Nosso Site",
+      tabs: [{ id: "site", label: "Meu Site", icon: Globe }],
+    },
+    {
+      label: "Presentes",
       tabs: [
-        { id: "story", label: "Nossa História", icon: BookOpen },
-        { id: "photos", label: "Fotos do Casal", icon: Image },
-        { id: "guest-photos", label: "Galeria dos Convidados", icon: Image },
         { id: "gifts", label: "Lista de Presentes", icon: Gift },
-        { id: "godparents", label: "Padrinhos", icon: Crown },
-        { id: "parents", label: "Pais", icon: Users },
-        { id: "accommodations", label: "Hospedagem", icon: Hotel },
+        { id: "financeiro", label: "Recebimentos", icon: Wallet },
+        { id: "gravata", label: "Cofrinho / PIX", icon: Sparkles },
       ],
     },
     {
@@ -186,13 +181,6 @@ export default function Dashboard() {
       tabs: [
         { id: "tasks", label: "Tarefas", icon: CheckSquare },
         { id: "budget", label: "Orçamento", icon: Wallet },
-      ],
-    },
-    {
-      label: "Financeiro",
-      tabs: [
-        { id: "financeiro", label: "Recebimentos", icon: Wallet },
-        { id: "gravata", label: "Cofrinho / PIX", icon: Sparkles },
       ],
     },
     {
@@ -314,7 +302,7 @@ export default function Dashboard() {
         {/* Mobile Tabs */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border z-50 shadow-[0_-4px_16px_-8px_rgba(0,0,0,0.15)]">
           <div className="flex">
-            {tabs.slice(0, 5).map((tab) => {
+            {tabs.slice(0, 6).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -342,7 +330,7 @@ export default function Dashboard() {
           </div>
           {moreOpen && (
             <div className="border-t border-border grid grid-cols-3 gap-2 p-3 max-h-[60vh] overflow-y-auto">
-              {tabs.slice(5).map((tab) => {
+              {tabs.slice(6).map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
                 return (
@@ -427,17 +415,11 @@ export default function Dashboard() {
           />
         )}
 
-        {/* Photos Tab */}
-        {activeTab === "photos" && (
-          <PhotosTab
-            photos={photos}
-            onRefresh={fetchData}
-          />
+        {/* Site (unified builder: appearance, sections, story, photos, guest gallery,
+            godparents, parents, accommodations, publish) */}
+        {activeTab === "site" && (
+          <SiteTab wedding={wedding} photos={photos} onRefresh={fetchData} />
         )}
-
-        {activeTab === "story" && <StoryTab />}
-
-        {activeTab === "guest-photos" && <GuestPhotosTab />}
 
         {/* Messages Tab */}
         {activeTab === "messages" && (
@@ -474,21 +456,6 @@ export default function Dashboard() {
         {/* Invite Tab */}
         {activeTab === "invite" && wedding && (
           <InviteTab wedding={wedding} onSaved={fetchData} />
-        )}
-
-        {/* Godparents Tab */}
-        {activeTab === "godparents" && (
-          <GodparentsTab />
-        )}
-
-        {/* Parents Tab */}
-        {activeTab === "parents" && (
-          <ParentsTab />
-        )}
-
-        {/* Accommodations Tab */}
-        {activeTab === "accommodations" && (
-          <AccommodationsTab />
         )}
 
         {/* Settings Tab */}
