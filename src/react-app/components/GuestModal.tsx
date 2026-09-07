@@ -12,7 +12,11 @@ export function GuestModal({
 }: {
   guest: Guest | null;
   onClose: () => void;
-  onSave: (data: Partial<Guest> & { companions?: { name: string; is_child: boolean }[] }) => void;
+  onSave: (
+    data: Partial<Guest> & {
+      companions?: { name: string; is_child: boolean; dietary_restrictions?: string }[];
+    },
+  ) => void;
 }) {
   const [formData, setFormData] = useState({
     name: guest?.name || "",
@@ -25,8 +29,14 @@ export function GuestModal({
     is_child: guest?.is_child === 1,
   });
   
-  const [companions, setCompanions] = useState<{ name: string; is_child: boolean }[]>(
-    guest?.companions?.map(c => ({ name: c.name, is_child: c.is_child === 1 })) || []
+  type CompanionDraft = { name: string; is_child: boolean; dietary_restrictions: string };
+
+  const [companions, setCompanions] = useState<CompanionDraft[]>(
+    guest?.companions?.map(c => ({
+      name: c.name,
+      is_child: c.is_child === 1,
+      dietary_restrictions: c.dietary_restrictions || "",
+    })) || []
   );
   const [numCompanions, setNumCompanions] = useState(
     guest?.companions?.length || 0
@@ -34,15 +44,24 @@ export function GuestModal({
 
   const handleNumCompanionsChange = (num: number) => {
     setNumCompanions(num);
-    // Adjust companions array
+    // Adjust companions array (build fresh objects — never Array.fill a shared ref)
     if (num > companions.length) {
-      setCompanions([...companions, ...Array(num - companions.length).fill({ name: "", is_child: false })]);
+      const extra = Array.from({ length: num - companions.length }, () => ({
+        name: "",
+        is_child: false,
+        dietary_restrictions: "",
+      }));
+      setCompanions([...companions, ...extra]);
     } else {
       setCompanions(companions.slice(0, num));
     }
   };
 
-  const updateCompanion = (index: number, field: 'name' | 'is_child', value: string | boolean) => {
+  const updateCompanion = (
+    index: number,
+    field: keyof CompanionDraft,
+    value: string | boolean,
+  ) => {
     const newCompanions = [...companions];
     newCompanions[index] = { ...newCompanions[index], [field]: value };
     setCompanions(newCompanions);
@@ -156,28 +175,39 @@ export function GuestModal({
             <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
               <label className="block text-sm font-medium">Acompanhantes</label>
               {Array.from({ length: numCompanions }).map((_, index) => (
-                <div key={index} className="flex items-center gap-2">
+                <div key={index} className="space-y-2 pb-3 border-b border-border/60 last:border-0 last:pb-0">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={companions[index]?.name || ""}
+                      onChange={(e) => updateCompanion(index, 'name', e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
+                      placeholder={`Acompanhante ${index + 1}`}
+                    />
+                    <label className="flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={companions[index]?.is_child || false}
+                        onChange={(e) => updateCompanion(index, 'is_child', e.target.checked)}
+                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary/25"
+                      />
+                      <span className="text-xs">
+                        {companions[index]?.is_child ? "👶" : "👤"}
+                      </span>
+                    </label>
+                  </div>
                   <input
                     type="text"
-                    value={companions[index]?.name || ""}
-                    onChange={(e) => updateCompanion(index, 'name', e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
-                    placeholder={`Acompanhante ${index + 1}`}
+                    value={companions[index]?.dietary_restrictions || ""}
+                    onChange={(e) => updateCompanion(index, 'dietary_restrictions', e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
+                    placeholder="Restrição alimentar (opcional)"
                   />
-                  <label className="flex items-center gap-1 cursor-pointer whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={companions[index]?.is_child || false}
-                      onChange={(e) => updateCompanion(index, 'is_child', e.target.checked)}
-                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary/25"
-                    />
-                    <span className="text-xs">
-                      {companions[index]?.is_child ? "👶" : "👤"}
-                    </span>
-                  </label>
                 </div>
               ))}
-              <p className="text-xs text-muted-foreground">Marque a caixa para indicar criança</p>
+              <p className="text-xs text-muted-foreground">
+                Marque a caixa para indicar criança. A restrição alimentar é individual.
+              </p>
             </div>
           )}
 
@@ -197,7 +227,9 @@ export function GuestModal({
           )}
           
           <div>
-            <label className="block text-sm font-medium mb-1">Restrições Alimentares</label>
+            <label className="block text-sm font-medium mb-1">
+              Restrições Alimentares {numCompanions > 0 && <span className="text-muted-foreground font-normal">(do convidado principal)</span>}
+            </label>
             <input
               type="text"
               value={formData.dietary_restrictions}

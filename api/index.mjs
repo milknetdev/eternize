@@ -2090,6 +2090,32 @@ async function getWeddingId(c) {
 
 // src/worker/routes/guests.ts
 var r4 = new Hono2();
+function normalizeCompanions(raw2) {
+  if (!Array.isArray(raw2)) return [];
+  return raw2.map((comp) => {
+    const isObj = typeof comp === "object" && comp !== null;
+    const name = (isObj ? comp.name : comp) || "";
+    return {
+      name: String(name).trim(),
+      isChild: isObj ? !!comp.is_child : false,
+      isConfirmed: isObj ? !!comp.is_confirmed : false,
+      diet: isObj && comp.dietary_restrictions ? String(comp.dietary_restrictions).trim() : null
+    };
+  }).filter((comp) => comp.name.length > 0);
+}
+async function insertCompanion(db, guestId, comp) {
+  try {
+    await db.prepare(
+      `INSERT INTO guest_companions (guest_id, name, is_confirmed, is_child, dietary_restrictions)
+         VALUES (?, ?, ?, ?, ?)`
+    ).bind(guestId, comp.name, comp.isConfirmed, comp.isChild, comp.diet).run();
+  } catch {
+    await db.prepare(
+      `INSERT INTO guest_companions (guest_id, name, is_confirmed, is_child)
+         VALUES (?, ?, ?, ?)`
+    ).bind(guestId, comp.name, comp.isConfirmed, comp.isChild).run();
+  }
+}
 r4.get("/api/guests", authMiddleware, async (c) => {
   const user = c.get("user");
   const wedding = await c.env.DB.prepare(
@@ -2127,31 +2153,26 @@ r4.post("/api/guests", authMiddleware, async (c) => {
     return c.json({ error: "Wedding not found" }, 404);
   }
   const confirmationCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-  const result = await c.env.DB.prepare(`
+  const companions = normalizeCompanions(body.companions);
+  const guestsCount = Math.max(Number(body.guests_count) || 1, 1 + companions.length);
+  const inserted = await c.env.DB.prepare(`
     INSERT INTO guests (wedding_id, name, email, phone, guests_count, label, confirmation_code, is_child)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    RETURNING id
   `).bind(
     wedding.id,
     body.name,
     body.email,
     body.phone,
-    body.guests_count || 1,
+    guestsCount,
     body.label || null,
     confirmationCode,
     body.is_child ? true : false
-  ).run();
-  const guestId = result.meta.last_row_id;
-  if (body.companions && Array.isArray(body.companions)) {
-    for (const comp of body.companions) {
-      const compName = typeof comp === "string" ? comp : comp.name;
-      const isChild = typeof comp === "object" ? comp.is_child ? true : false : 0;
-      if (compName && compName.trim()) {
-        await c.env.DB.prepare(`
-          INSERT INTO guest_companions (guest_id, name, is_child)
-          VALUES (?, ?, ?)
-        `).bind(guestId, compName.trim(), isChild).run();
-      }
-    }
+  ).first();
+  const guestId = inserted?.id;
+  if (!guestId) return c.json({ error: "Failed to create guest" }, 500);
+  for (const comp of companions) {
+    await insertCompanion(c.env.DB, guestId, comp);
   }
   return c.json({ success: true, id: guestId, confirmation_code: confirmationCode });
 });
@@ -2160,6 +2181,8 @@ r4.put("/api/guests/:id", authMiddleware, async (c) => {
   const weddingId = await getWeddingId(c);
   if (!weddingId) return c.json({ error: "Wedding not found" }, 404);
   const body = await c.req.json();
+  const companions = normalizeCompanions(body.companions);
+  const guestsCount = Math.max(Number(body.guests_count) || 1, 1 + companions.length);
   const res = await c.env.DB.prepare(`
     UPDATE guests SET
       name = ?, email = ?, phone = ?, guests_count = ?, rsvp_status = ?,
@@ -2169,7 +2192,7 @@ r4.put("/api/guests/:id", authMiddleware, async (c) => {
     body.name,
     body.email,
     body.phone,
-    body.guests_count,
+    guestsCount,
     body.rsvp_status,
     body.dietary_restrictions,
     body.label || null,
@@ -2179,18 +2202,8 @@ r4.put("/api/guests/:id", authMiddleware, async (c) => {
   ).run();
   if (!res.meta.changes) return c.json({ error: "Guest not found" }, 404);
   await c.env.DB.prepare("DELETE FROM guest_companions WHERE guest_id = ?").bind(id).run();
-  if (body.companions && Array.isArray(body.companions)) {
-    for (const comp of body.companions) {
-      const compName = typeof comp === "string" ? comp : comp.name;
-      const isConfirmed = typeof comp === "object" ? comp.is_confirmed ? true : false : 0;
-      const isChild = typeof comp === "object" ? comp.is_child ? true : false : 0;
-      if (compName && compName.trim()) {
-        await c.env.DB.prepare(`
-          INSERT INTO guest_companions (guest_id, name, is_confirmed, is_child)
-          VALUES (?, ?, ?, ?)
-        `).bind(id, compName.trim(), isConfirmed, isChild).run();
-      }
-    }
+  for (const comp of companions) {
+    await insertCompanion(c.env.DB, id, comp);
   }
   return c.json({ success: true });
 });
@@ -3029,7 +3042,7 @@ r13.get("/api/public/confirm/:code", async (c) => {
     return c.json({ error: "Invalid confirmation code" }, 404);
   }
   const companions = await c.env.DB.prepare(
-    "SELECT id, name, is_confirmed, is_child FROM guest_companions WHERE guest_id = ?"
+    "SELECT * FROM guest_companions WHERE guest_id = ?"
   ).bind(guest.id).all();
   const phoneMask = guest.phone ? `${guest.phone.slice(0, 8)}****` : null;
   return c.json({

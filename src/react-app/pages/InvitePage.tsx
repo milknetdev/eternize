@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
 import { QRCodeSVG } from "qrcode.react";
 import { motion } from "framer-motion";
-import { Heart, Calendar, MapPin, Clock, Check, Loader2, AlertCircle } from "lucide-react";
+import { Heart, Calendar, MapPin, Clock, Check, Loader2, AlertCircle, Globe } from "lucide-react";
 
 interface InviteData {
   guestName: string;
@@ -63,9 +63,12 @@ export default function InvitePage() {
     };
   }, [code]);
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return "";
-    const d = new Date(dateStr + "T12:00:00");
+    // wedding_date may be "YYYY-MM-DD" or a full ISO timestamp.
+    const iso = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr}T12:00:00` : dateStr;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
     return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
   };
 
@@ -130,7 +133,9 @@ export default function InvitePage() {
           <div className="space-y-3 text-sm text-gray-700 mb-8">
             <div className="flex items-center justify-center gap-2">
               <Calendar className="w-4 h-4 text-[#C4A052]" />
-              <span className="font-medium capitalize">{formatDate(wedding.wedding_date)}</span>
+              <span className="font-medium capitalize">
+                {formatDate(wedding.wedding_date) || "Data a ser confirmada"}
+              </span>
             </div>
             {wedding.ceremony_time && (
               <div className="flex items-center justify-center gap-2">
@@ -168,12 +173,29 @@ export default function InvitePage() {
             </Link>
           )}
 
-          {/* QR to the wedding site */}
+          {/* Wedding site — link first (guest is likely on their phone), QR as a bonus */}
           <div className="mt-8 pt-6 border-t border-[#EADFC9] text-center">
-            <div className="inline-block p-2.5 bg-white rounded-xl border border-[#EADFC9] mb-2">
+            <a
+              href={siteUrl}
+              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-full font-medium text-[#8a6d2e] border border-[#C4A052]/40 bg-[#faf4e8] hover:bg-[#f4e9d3] transition-colors"
+            >
+              <Globe className="w-4 h-4" />
+              Abrir o site do casamento
+            </a>
+            <p className="text-[11px] text-gray-400 mt-2 break-all">
+              {siteUrl.replace(/^https?:\/\//, "")}
+            </p>
+
+            <div className="flex items-center gap-3 my-4">
+              <span className="flex-1 h-px bg-[#EADFC9]" />
+              <span className="text-[11px] text-gray-400 uppercase tracking-wider">ou escaneie</span>
+              <span className="flex-1 h-px bg-[#EADFC9]" />
+            </div>
+
+            <div className="inline-block p-2.5 bg-white rounded-xl border border-[#EADFC9]">
               <QRCodeSVG value={siteUrl} size={104} level="M" fgColor="#5b4a2e" bgColor="#ffffff" />
             </div>
-            <p className="text-xs text-gray-400">Escaneie para ver o site do casamento</p>
+            <p className="text-xs text-gray-400 mt-2">Aponte a câmera de outro celular</p>
           </div>
         </div>
       </motion.div>

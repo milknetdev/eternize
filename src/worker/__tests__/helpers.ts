@@ -159,7 +159,8 @@ CREATE TABLE guest_companions (
   guest_id INTEGER NOT NULL,
   name TEXT NOT NULL,
   is_confirmed BOOLEAN DEFAULT FALSE,
-  is_child BOOLEAN DEFAULT FALSE
+  is_child BOOLEAN DEFAULT FALSE,
+  dietary_restrictions TEXT
 );
 
 CREATE TABLE wedding_tasks (

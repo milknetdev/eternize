@@ -75,7 +75,7 @@ r.get("/api/public/confirm/:code", async (c) => {
 
   // Get companions
   const companions = await c.env.DB.prepare(
-    "SELECT id, name, is_confirmed, is_child FROM guest_companions WHERE guest_id = ?"
+    "SELECT * FROM guest_companions WHERE guest_id = ?"
   ).bind(guest.id).all();
 
   // Mask phone for security (show first 8 digits only)

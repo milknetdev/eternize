@@ -6,6 +6,7 @@ export interface Companion {
   name: string;
   is_confirmed: number;
   is_child?: number;
+  dietary_restrictions?: string | null;
 }
 
 export interface Guest {

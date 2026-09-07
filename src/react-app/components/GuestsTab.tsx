@@ -210,7 +210,7 @@ Aguardamos você! 💕`;
         const tipo = guest.is_child ? "Criança" : "Adulto";
 
         // Main guest row
-        rows.push(`"${guest.name}",${tipo},Confirmado,"${labelInfo?.label || ""}","${confirmedCompanions.map(c => `${c.name}${c.is_child ? " (Criança)" : ""}`).join(", ")}","${tableName}"`);
+        rows.push(`"${guest.name}",${tipo},Confirmado,"${labelInfo?.label || ""}","${confirmedCompanions.map(c => `${c.name}${c.is_child ? " (Criança)" : ""}${c.dietary_restrictions ? ` [${c.dietary_restrictions}]` : ""}`).join(", ")}","${tableName}"`);
       }
 
       const csvContent = rows.join("\n");
@@ -321,7 +321,8 @@ Aguardamos você! 💕`;
               yPos = 20;
             }
             const compTipo = comp.is_child ? " (Criança)" : "";
-            pdf.text(`    • ${comp.name}${compTipo}`, 20, yPos);
+            const compDiet = comp.dietary_restrictions ? ` — ${comp.dietary_restrictions}` : "";
+            pdf.text(`    • ${comp.name}${compTipo}${compDiet}`, 20, yPos);
             yPos += lineHeight - 1;
           }
           pdf.setFontSize(11);
@@ -650,15 +651,15 @@ Aguardamos você! 💕`;
                                 <p className="text-muted-foreground text-xs mb-1">Acompanhantes</p>
                                 <div className="flex flex-wrap gap-2">
                                   {guest.companions.map((comp, idx) => (
-                                    <span 
-                                      key={idx} 
+                                    <span
+                                      key={idx}
                                       className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                        comp.is_confirmed 
-                                          ? 'bg-green-100 text-green-700' 
+                                        comp.is_confirmed
+                                          ? 'bg-green-100 text-green-700'
                                           : 'bg-muted text-muted-foreground'
                                       }`}
                                     >
-                                      {comp.name} 
+                                      {comp.name}
                                       <span className={`ml-1 ${comp.is_child ? 'text-pink-600' : 'text-blue-600'}`}>
                                         {comp.is_child ? '👶' : '👤'}
                                       </span>
@@ -666,6 +667,19 @@ Aguardamos você! 💕`;
                                     </span>
                                   ))}
                                 </div>
+                                {guest.companions.some((c) => c.dietary_restrictions) && (
+                                  <div className="mt-2 space-y-1">
+                                    {guest.companions
+                                      .filter((c) => c.dietary_restrictions)
+                                      .map((c, idx) => (
+                                        <p key={idx} className="text-xs flex items-center gap-1">
+                                          <UtensilsCrossed className="w-3 h-3 text-muted-foreground shrink-0" />
+                                          <span className="font-medium">{c.name}:</span>{" "}
+                                          {c.dietary_restrictions}
+                                        </p>
+                                      ))}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
