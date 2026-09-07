@@ -1,7 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Calendar, MapPin, Check, X, Users, Loader2, AlertCircle, Utensils, MessageSquare, PartyPopper, Gift, ArrowRight } from 'lucide-react';
+import { Heart, Calendar, MapPin, Check, X, Users, Loader2, AlertCircle, Utensils, MessageSquare, PartyPopper, Gift, ArrowRight, Baby, User } from 'lucide-react';
+
+// Small age tag used for the guest and each companion — icon instead of an emoji.
+function AgeTag({ child }: { child?: boolean | number }) {
+  const Icon = child ? Baby : User;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${
+        child
+          ? 'bg-[#FBEEF5] text-[#9D4E7C] border-[#EBD3E1]'
+          : 'bg-[#EEF2FB] text-[#4A6099] border-[#D6DEF0]'
+      }`}
+    >
+      <Icon className="w-3 h-3" />
+      {child ? 'Criança' : 'Adulto'}
+    </span>
+  );
+}
 
 interface GuestData {
   id: number;
@@ -167,13 +184,15 @@ export default function GuestConfirmation() {
     setStep(guest?.hasPhone ? 'verify' : 'confirm');
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('pt-BR', { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return 'Data a ser confirmada';
+    const iso = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr}T12:00:00` : dateStr;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return 'Data a ser confirmada';
+    return date.toLocaleDateString('pt-BR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
     });
   };
 
@@ -301,59 +320,55 @@ export default function GuestConfirmation() {
               <div className="p-6 space-y-6">
                 {/* Guest name */}
                 <div className="text-center pb-4 border-b">
-                  <p className="text-gray-500 text-sm">Convidado</p>
-                  <p className="text-lg font-serif text-gray-900 flex items-center justify-center gap-2">
+                  <p className="text-gray-500 text-xs uppercase tracking-wider">Convite para</p>
+                  <p className="mt-1 text-lg font-serif text-gray-900 flex flex-wrap items-center justify-center gap-2">
                     {guest.name}
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${guest.isChild ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {guest.isChild ? '👶 Criança' : '👤 Adulto'}
-                    </span>
+                    <AgeTag child={guest.isChild} />
                   </p>
                 </div>
 
                 {/* Companions */}
                 {companions.length > 0 && (
                   <div>
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-2 mb-1">
                       <Users className="w-5 h-5 text-[#D4A574]" />
                       <span className="font-medium text-gray-900">Acompanhantes</span>
                     </div>
-                    <div className="space-y-2">
-                      {companions.map((comp) => (
-                        <label
-                          key={comp.id}
-                          className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                            selectedCompanions.includes(comp.id)
-                              ? 'border-[#D4A574] bg-[#D4A574]/5'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedCompanions.includes(comp.id)}
-                            onChange={() => toggleCompanion(comp.id)}
-                            className="sr-only"
-                          />
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                            selectedCompanions.includes(comp.id)
-                              ? 'border-[#D4A574] bg-[#D4A574]'
-                              : 'border-gray-300'
-                          }`}>
-                            {selectedCompanions.includes(comp.id) && (
-                              <Check className="w-3 h-3 text-white" />
-                            )}
-                          </div>
-                          <span className="text-gray-700 flex items-center gap-2">
-                            {comp.name}
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${comp.is_child ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {comp.is_child ? '👶 Criança' : '👤 Adulto'}
-                            </span>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Marque quem vai comparecer. Deixe desmarcado quem não poderá ir.
+                    <p className="text-xs text-gray-500 mb-3">
+                      Marque quem vai comparecer. Os nomes que ficarem desmarcados
+                      serão registrados como ausentes.
                     </p>
+                    <div className="space-y-2">
+                      {companions.map((comp) => {
+                        const checked = selectedCompanions.includes(comp.id);
+                        return (
+                          <label
+                            key={comp.id}
+                            className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                              checked
+                                ? 'border-[#D4A574] bg-[#D4A574]/5'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleCompanion(comp.id)}
+                              className="sr-only"
+                            />
+                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors shrink-0 ${
+                              checked ? 'border-[#D4A574] bg-[#D4A574]' : 'border-gray-300'
+                            }`}>
+                              {checked && <Check className="w-3.5 h-3.5 text-white" />}
+                            </div>
+                            <span className="text-gray-800 flex flex-wrap items-center gap-2">
+                              {comp.name}
+                              <AgeTag child={comp.is_child} />
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
@@ -368,7 +383,7 @@ export default function GuestConfirmation() {
                     type="text"
                     value={dietaryRestrictions}
                     onChange={(e) => setDietaryRestrictions(e.target.value)}
-                    placeholder="Ex: vegetariano, alergia a amendoim..."
+                    placeholder="Ex.: vegetariano, alergia a amendoim, sem lactose"
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#D4A574] focus:ring-0 outline-none text-sm"
                   />
                 </div>
@@ -398,10 +413,10 @@ export default function GuestConfirmation() {
                   <button
                     onClick={handleDecline}
                     disabled={submitting}
-                    className="flex-1 py-3 border-2 border-gray-200 text-gray-600 rounded-full font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-full font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <X className="w-4 h-4" />
-                    Não poderei ir
+                    Não poderei comparecer
                   </button>
                   <button
                     onClick={handleConfirm}
