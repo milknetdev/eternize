@@ -4662,15 +4662,15 @@ r25.get("/api/dashboard/stats", authMiddleware, async (c) => {
     });
   }
   const guestsCount = await c.env.DB.prepare(`
-    SELECT 
+    SELECT
       COUNT(*) as total,
-      SUM(CASE WHEN is_confirmed = TRUE THEN 1 ELSE 0 END) as confirmed
+      SUM(CASE WHEN is_confirmed = TRUE OR rsvp_status = 'confirmed' THEN 1 ELSE 0 END) as confirmed
     FROM guests WHERE wedding_id = ?
   `).bind(wedding.id).first();
   const companionsCount = await c.env.DB.prepare(`
-    SELECT 
+    SELECT
       COUNT(*) as total,
-      SUM(CASE WHEN gc.is_confirmed = TRUE THEN 1 ELSE 0 END) as confirmed
+      SUM(CASE WHEN gc.is_confirmed = TRUE AND g.is_confirmed = TRUE THEN 1 ELSE 0 END) as confirmed
     FROM guest_companions gc
     INNER JOIN guests g ON gc.guest_id = g.id
     WHERE g.wedding_id = ?

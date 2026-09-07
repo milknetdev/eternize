@@ -1,5 +1,6 @@
 import { authFetch } from "@/react-app/lib/api";
 import React, { useState, useEffect, useCallback } from "react";
+import jsPDF from "jspdf";
 import {
   Plus,
   Trash2,
@@ -12,13 +13,18 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
+  Baby,
+  AlertTriangle,
+  Download,
 } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
 
 interface Companion {
   id?: number;
   name: string;
-  is_confirmed: number;
+  is_confirmed: number | boolean;
+  is_child?: number | boolean;
+  dietary_restrictions?: string | null;
 }
 
 interface Guest {
@@ -26,6 +32,8 @@ interface Guest {
   name: string;
   is_confirmed: number | boolean;
   rsvp_status?: string | null;
+  is_child?: number | boolean;
+  dietary_restrictions?: string | null;
   label: string | null;
   table_id: number | null;
   companions: Companion[];
@@ -35,6 +43,43 @@ interface Guest {
 // guest confirmed from the dashboard, which only sets rsvp_status.
 const isGuestConfirmed = (g: Guest) =>
   Boolean(g.is_confirmed) || g.rsvp_status === "confirmed";
+
+const confirmedCompanions = (g: Guest) =>
+  (g.companions || []).filter((c) => c.is_confirmed);
+
+interface SeatPerson {
+  name: string;
+  child: boolean;
+  diet: string | null;
+}
+
+/** The guest plus every confirmed companion, flattened into seated people. */
+function peopleOf(g: Guest): SeatPerson[] {
+  const clean = (d?: string | null) => {
+    const t = (d || "").trim();
+    return t ? t : null;
+  };
+  return [
+    { name: g.name, child: Boolean(g.is_child), diet: clean(g.dietary_restrictions) },
+    ...confirmedCompanions(g).map((c) => ({
+      name: c.name,
+      child: Boolean(c.is_child),
+      diet: clean(c.dietary_restrictions),
+    })),
+  ];
+}
+
+function tableStats(guests: Guest[]) {
+  const people = guests.flatMap(peopleOf);
+  return {
+    total: people.length,
+    children: people.filter((p) => p.child).length,
+    adults: people.filter((p) => !p.child).length,
+    allergies: people
+      .filter((p) => p.diet)
+      .map((p) => ({ name: p.name, diet: p.diet as string })),
+  };
+}
 
 interface Table {
   id: number;
@@ -132,17 +177,88 @@ export default function TablesTab() {
   };
 
   const totalSeats = tables.reduce((sum, t) => sum + t.capacity, 0);
-  
-  // Count guests + their confirmed companions
-  const countGuestWithCompanions = (guest: Guest) => {
-    const confirmedCompanions = guest.companions?.filter(c => c.is_confirmed)?.length || 0;
-    return 1 + confirmedCompanions;
-  };
-  
-  const totalSeated = tables.reduce((sum, t) => 
-    sum + t.guests.reduce((gSum, g) => gSum + countGuestWithCompanions(g), 0), 0);
-  
+
+  const countGuestWithCompanions = (guest: Guest) => peopleOf(guest).length;
+
+  const seatedPeople = tables.flatMap((t) => t.guests.flatMap(peopleOf));
+  const totalSeated = seatedPeople.length;
+  const seatedChildren = seatedPeople.filter((p) => p.child).length;
+  const seatedAllergies = seatedPeople.filter((p) => p.diet).length;
+
   const totalUnassigned = unassignedGuests.reduce((sum, g) => sum + countGuestWithCompanions(g), 0);
+
+  const handleExportPdf = () => {
+    const pdf = new jsPDF();
+    const pageHeight = pdf.internal.pageSize.height;
+    const lh = 6;
+    let y = 18;
+    const line = (text: string, indent = 0, bold = false) => {
+      if (y > pageHeight - 15) {
+        pdf.addPage();
+        y = 18;
+      }
+      pdf.setFont("helvetica", bold ? "bold" : "normal");
+      pdf.text(text, 16 + indent, y);
+      y += lh;
+    };
+
+    pdf.setFontSize(16);
+    line("Mapa de Mesas", 0, true);
+    pdf.setFontSize(10);
+    line(
+      `${tables.length} mesas · ${totalSeated} pessoas sentadas · ${seatedChildren} crianças · ${seatedAllergies} com restrição alimentar`,
+    );
+    y += 3;
+
+    const ordered = [...tables].sort(
+      (a, b) => (a.table_number || 999) - (b.table_number || 999) || a.name.localeCompare(b.name),
+    );
+
+    pdf.setFontSize(11);
+    for (const table of ordered) {
+      const s = tableStats(table.guests);
+      y += 2;
+      line(
+        `${table.table_number ? `Mesa ${table.table_number} — ` : ""}${table.name}   (${s.total}/${table.capacity} lugares · ${s.children} crianças)`,
+        0,
+        true,
+      );
+      if (table.guests.length === 0) {
+        line("sem convidados", 4);
+      }
+      for (const g of table.guests) {
+        const gDiet = (g.dietary_restrictions || "").trim();
+        line(
+          `• ${g.name}${g.is_child ? " (criança)" : ""}${gDiet ? `  [restrição: ${gDiet}]` : ""}`,
+          4,
+        );
+        for (const c of confirmedCompanions(g)) {
+          const cDiet = (c.dietary_restrictions || "").trim();
+          line(
+            `- ${c.name}${c.is_child ? " (criança)" : ""}${cDiet ? `  [restrição: ${cDiet}]` : ""}`,
+            10,
+          );
+        }
+      }
+      if (s.allergies.length > 0) {
+        line(
+          `Restrições nesta mesa: ${s.allergies.map((a) => `${a.name} (${a.diet})`).join("; ")}`,
+          4,
+        );
+      }
+    }
+
+    if (unassignedGuests.length > 0) {
+      y += 4;
+      pdf.setFontSize(11);
+      line("Sem mesa", 0, true);
+      for (const g of unassignedGuests) {
+        line(`• ${g.name}${g.is_child ? " (criança)" : ""} (+${confirmedCompanions(g).length} acomp.)`, 4);
+      }
+    }
+
+    pdf.save("mapa-de-mesas.pdf");
+  };
 
   if (loading) {
     return (
@@ -160,14 +276,25 @@ export default function TablesTab() {
           <h2 className="text-2xl font-serif font-semibold">Sistema de Mesas</h2>
           <p className="text-muted-foreground">Organize seus convidados confirmados nas mesas</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Nova Mesa
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={tables.length === 0}
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Baixar lista
+          </Button>
+          <Button onClick={() => setShowAddModal(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nova Mesa
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
           <p className="text-sm text-muted-foreground">Mesas</p>
           <p className="text-2xl font-semibold">{tables.length}</p>
@@ -179,6 +306,20 @@ export default function TablesTab() {
         <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
           <p className="text-sm text-muted-foreground">Sentados</p>
           <p className="text-2xl font-semibold text-green-600">{totalSeated}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
+          <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <Baby className="w-3.5 h-3.5" /> Crianças
+          </p>
+          <p className="text-2xl font-semibold text-blue-600">{seatedChildren}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
+          <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <AlertTriangle className="w-3.5 h-3.5" /> Restrições
+          </p>
+          <p className={`text-2xl font-semibold ${seatedAllergies > 0 ? "text-amber-600" : ""}`}>
+            {seatedAllergies}
+          </p>
         </div>
         <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
           <p className="text-sm text-muted-foreground">Sem Mesa</p>
@@ -299,12 +440,9 @@ function TableCard({
   const [isDragOver, setIsDragOver] = useState(false);
   const [showAddPicker, setShowAddPicker] = useState(false);
   
-  // Count total people including confirmed companions
-  const totalPeopleAtTable = table.guests.reduce((sum, guest) => {
-    const confirmedCompanions = guest.companions?.filter(c => c.is_confirmed)?.length || 0;
-    return sum + 1 + confirmedCompanions;
-  }, 0);
-  
+  const s = tableStats(table.guests);
+  const totalPeopleAtTable = s.total;
+
   const isFull = totalPeopleAtTable >= table.capacity;
   const ShapeIcon = table.shape === "round" ? Circle : Square;
 
@@ -338,9 +476,17 @@ function TableCard({
             </div>
             <div>
               <h3 className="font-medium">{table.name}</h3>
-              <p className="text-sm text-muted-foreground">
-                {totalPeopleAtTable}/{table.capacity} lugares
-                {table.table_number && ` • Mesa ${table.table_number}`}
+              <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                <span>
+                  {totalPeopleAtTable}/{table.capacity} lugares
+                  {table.table_number && ` • Mesa ${table.table_number}`}
+                </span>
+                {s.children > 0 && (
+                  <span className="inline-flex items-center gap-0.5 text-blue-600">
+                    <Baby className="w-3.5 h-3.5" />
+                    {s.children}
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -381,6 +527,17 @@ function TableCard({
             />
           </div>
         </div>
+
+        {/* Allergy / dietary warning */}
+        {s.allergies.length > 0 && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-2 text-xs text-amber-800">
+            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            <span>
+              <strong>{s.allergies.length}</strong> com restrição alimentar:{" "}
+              {s.allergies.map((a) => `${a.name} (${a.diet})`).join("; ")}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Guests List */}
@@ -392,30 +549,73 @@ function TableCard({
             </p>
           ) : (
             <ul className="space-y-2">
-              {table.guests.map((guest) => (
-                <li
-                  key={guest.id}
-                  className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm ${guest.label ? LABEL_COLORS[guest.label] : ""} px-2 py-0.5 rounded`}>
-                      {guest.name}
-                    </span>
-                    {guest.companions?.filter(c => c.is_confirmed).length > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        +{guest.companions.filter(c => c.is_confirmed).length} acomp.
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => onRemoveGuest(guest.id)}
-                    className="p-1 hover:bg-red-100 rounded transition-colors"
-                    title="Remover da mesa"
+              {table.guests.map((guest) => {
+                const comps = confirmedCompanions(guest);
+                const guestDiet = (guest.dietary_restrictions || "").trim();
+                return (
+                  <li
+                    key={guest.id}
+                    className="flex items-start justify-between py-2 px-3 bg-muted/50 rounded-lg gap-2"
                   >
-                    <UserMinus className="w-4 h-4 text-red-500" />
-                  </button>
-                </li>
-              ))}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {guest.is_child && (
+                          <span title="Criança" className="text-blue-600">
+                            <Baby className="w-3.5 h-3.5" />
+                          </span>
+                        )}
+                        <span className={`text-sm ${guest.label ? LABEL_COLORS[guest.label] : ""} px-2 py-0.5 rounded`}>
+                          {guest.name}
+                        </span>
+                        {comps.length > 0 && (
+                          <span className="text-xs text-muted-foreground">+{comps.length} acomp.</span>
+                        )}
+                      </div>
+
+                      {comps.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {comps.map((c, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-0.5 text-[11px] bg-white border border-border rounded-full px-1.5 py-0.5"
+                            >
+                              {c.is_child && <Baby className="w-3 h-3 text-blue-600" />}
+                              {c.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {(guestDiet || comps.some((c) => (c.dietary_restrictions || "").trim())) && (
+                        <div className="mt-1 space-y-0.5">
+                          {guestDiet && (
+                            <p className="text-[11px] text-amber-700 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3 shrink-0" />
+                              {guest.name}: {guestDiet}
+                            </p>
+                          )}
+                          {comps
+                            .filter((c) => (c.dietary_restrictions || "").trim())
+                            .map((c, i) => (
+                              <p key={i} className="text-[11px] text-amber-700 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3 shrink-0" />
+                                {c.name}: {c.dietary_restrictions}
+                              </p>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => onRemoveGuest(guest.id)}
+                      className="p-1 hover:bg-red-100 rounded transition-colors shrink-0"
+                      title="Remover da mesa"
+                    >
+                      <UserMinus className="w-4 h-4 text-red-500" />
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
 

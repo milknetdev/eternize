@@ -24,19 +24,21 @@ r.get("/api/dashboard/stats", authMiddleware, async (c) => {
     });
   }
 
-  // Count guests from guests table
+  // A guest counts as confirmed via the public RSVP flow (is_confirmed) OR when
+  // the couple flips their status in the dashboard (rsvp_status).
   const guestsCount = await c.env.DB.prepare(`
-    SELECT 
+    SELECT
       COUNT(*) as total,
-      SUM(CASE WHEN is_confirmed = TRUE THEN 1 ELSE 0 END) as confirmed
+      SUM(CASE WHEN is_confirmed = TRUE OR rsvp_status = 'confirmed' THEN 1 ELSE 0 END) as confirmed
     FROM guests WHERE wedding_id = ?
   `).bind(wedding.id).first<{ total: number; confirmed: number }>();
 
-  // Count companions from guest_companions table
+  // A companion only counts as confirmed when its guest actually confirmed AND
+  // that companion was ticked on the RSVP — never on a stale default.
   const companionsCount = await c.env.DB.prepare(`
-    SELECT 
+    SELECT
       COUNT(*) as total,
-      SUM(CASE WHEN gc.is_confirmed = TRUE THEN 1 ELSE 0 END) as confirmed
+      SUM(CASE WHEN gc.is_confirmed = TRUE AND g.is_confirmed = TRUE THEN 1 ELSE 0 END) as confirmed
     FROM guest_companions gc
     INNER JOIN guests g ON gc.guest_id = g.id
     WHERE g.wedding_id = ?
