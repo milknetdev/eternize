@@ -204,7 +204,7 @@ Aguardamos você! 💕`;
       
       for (const guest of confirmedGuests) {
         const labelInfo = GUEST_LABELS.find(l => l.value === guest.label);
-        const confirmedCompanions = guest.companions?.filter(c => c.is_confirmed === 1) || [];
+        const confirmedCompanions = guest.companions?.filter(c => c.is_confirmed) || [];
         const tableId = guestTableMap.get(guest.id);
         const tableName = tableId ? tableMap.get(tableId) || "" : "";
         const tipo = guest.is_child ? "Criança" : "Adulto";
@@ -283,7 +283,7 @@ Aguardamos você! 💕`;
       yPos += 15;
 
       pdf.setFontSize(10);
-      pdf.text(`Total: ${confirmedGuests.length} convidados + ${confirmedGuests.reduce((acc, g) => acc + (g.companions?.filter(c => c.is_confirmed === 1).length || 0), 0)} acompanhantes`, 20, yPos);
+      pdf.text(`Total: ${confirmedGuests.length} convidados + ${confirmedGuests.reduce((acc, g) => acc + (g.companions?.filter(c => c.is_confirmed).length || 0), 0)} acompanhantes`, 20, yPos);
       yPos += 15;
 
       pdf.setFontSize(11);
@@ -295,7 +295,7 @@ Aguardamos você! 💕`;
         }
 
         const labelInfo = GUEST_LABELS.find(l => l.value === guest.label);
-        const confirmedCompanions = guest.companions?.filter(c => c.is_confirmed === 1) || [];
+        const confirmedCompanions = guest.companions?.filter(c => c.is_confirmed) || [];
         const tableId = guestTableMap.get(guest.id);
         const tableName = tableId ? tableMap.get(tableId) : null;
         const tipo = guest.is_child ? " (Criança)" : "";
@@ -618,7 +618,7 @@ Aguardamos você! 💕`;
                               <p className="text-muted-foreground text-xs mb-1">Email</p>
                               <p className="font-medium">{guest.email || '-'}</p>
                             </div>
-                            {guest.is_confirmed === 1 && guest.confirmed_at && (
+                            {guest.is_confirmed && guest.confirmed_at && (
                               <div>
                                 <p className="text-muted-foreground text-xs mb-1">Confirmado em</p>
                                 <p className="font-medium text-green-600">

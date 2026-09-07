@@ -61,7 +61,8 @@ export default function DynamicGifts() {
 
   // Seed a single-item cart and go to the checkout — same contract PublicGiftList uses.
   const presentear = (gift: GiftItem) => {
-    if (demo || !wedding.custom_url) {
+    const slug = wedding.custom_url;
+    if (demo || !slug) {
       setShowPixModal(true);
       return;
     }
@@ -76,9 +77,13 @@ export default function DynamicGifts() {
         quantity: 1,
       },
     ];
-    sessionStorage.setItem(`cart_${wedding.custom_url}`, JSON.stringify(cart));
-    sessionStorage.setItem(`wedding_${wedding.custom_url}`, JSON.stringify(wedding));
-    navigate(`/c/${wedding.custom_url}/checkout`);
+    try {
+      sessionStorage.setItem(`cart_${slug}`, JSON.stringify(cart));
+      sessionStorage.setItem(`wedding_${slug}`, JSON.stringify(wedding));
+    } catch {
+      /* private mode / quota — checkout will send them back to the list */
+    }
+    navigate(`/c/${slug}/checkout`);
   };
 
   const formatCurrency = (value: number) => {

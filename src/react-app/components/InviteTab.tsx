@@ -90,17 +90,30 @@ export function InviteTab({ wedding, onSaved }: InviteTabProps) {
     }
   };
 
-  const weddingUrl = `${window.location.origin}/c/${wedding.custom_url}`;
-  
-  const formatDate = (dateStr: string) => {
+  const hasUrl = !!wedding.custom_url;
+  const weddingUrl = hasUrl
+    ? `${window.location.origin}/c/${wedding.custom_url}`
+    : window.location.origin;
+  // Guests scan the code to RSVP, so send them straight to the confirmation page.
+  const confirmUrl = hasUrl ? `${weddingUrl}/confirmar` : weddingUrl;
+  const shortLink = hasUrl
+    ? `${window.location.host}/c/${wedding.custom_url}`
+    : window.location.host;
+
+  const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return "";
-    const date = new Date(dateStr + "T12:00:00");
+    // wedding_date may arrive as "YYYY-MM-DD" or as a full ISO timestamp.
+    const iso = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr}T12:00:00` : dateStr;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "";
     return date.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "long",
       year: "numeric",
     });
   };
+
+  const prettyDate = formatDate(wedding.wedding_date);
 
   const handleDownload = async () => {
     if (!inviteRef.current) return;
@@ -308,149 +321,192 @@ export function InviteTab({ wedding, onSaved }: InviteTabProps) {
               className="mx-auto max-w-sm"
               style={{
                 backgroundColor: selectedStyle.colors.bg,
-                padding: "2rem",
+                padding: "0.5rem",
                 borderRadius: "1rem",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                boxShadow: "0 10px 40px rgba(0,0,0,0.12)",
               }}
             >
-              {/* Decorative Top */}
-              <div className="text-center mb-6">
-                <div
-                  className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4"
-                  style={{ backgroundColor: `${selectedStyle.colors.accent}20` }}
-                >
+              {/* Inner frame */}
+              <div
+                style={{
+                  border: `1px solid ${selectedStyle.colors.accent}55`,
+                  borderRadius: "0.75rem",
+                  padding: "2rem 1.75rem",
+                }}
+              >
+                {/* Decorative Top */}
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <span
+                    style={{
+                      display: "block",
+                      width: "38px",
+                      height: "1px",
+                      backgroundColor: `${selectedStyle.colors.accent}80`,
+                    }}
+                  />
                   <Heart
-                    className="w-6 h-6"
+                    className="w-4 h-4"
                     style={{ color: selectedStyle.colors.accent }}
                     fill={selectedStyle.colors.accent}
                   />
-                </div>
-              </div>
-
-              {/* Names */}
-              <div className="text-center mb-6">
-                <h2
-                  className="text-3xl mb-2"
-                  style={{
-                    fontFamily: selectedFont.family,
-                    color: selectedStyle.colors.text,
-                  }}
-                >
-                  {wedding.partner1_name}
-                </h2>
-                <div
-                  className="text-xl mb-2"
-                  style={{
-                    fontFamily: selectedFont.family,
-                    color: selectedStyle.colors.accent,
-                  }}
-                >
-                  &
-                </div>
-                <h2
-                  className="text-3xl"
-                  style={{
-                    fontFamily: selectedFont.family,
-                    color: selectedStyle.colors.text,
-                  }}
-                >
-                  {wedding.partner2_name}
-                </h2>
-              </div>
-
-              {/* Message */}
-              <p
-                className="text-center text-sm mb-6 leading-relaxed"
-                style={{ color: selectedStyle.colors.text, opacity: 0.8 }}
-              >
-                {customMessage}
-              </p>
-
-              {/* Date */}
-              <div className="text-center mb-6">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Calendar
-                    className="w-4 h-4"
-                    style={{ color: selectedStyle.colors.accent }}
-                  />
                   <span
-                    className="font-medium"
-                    style={{ color: selectedStyle.colors.text }}
-                  >
-                    {formatDate(wedding.wedding_date)}
-                  </span>
-                </div>
-                
-                {showTime && wedding.ceremony_time && (
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Clock
-                      className="w-4 h-4"
-                      style={{ color: selectedStyle.colors.accent }}
-                    />
-                    <span
-                      className="text-sm"
-                      style={{ color: selectedStyle.colors.text }}
-                    >
-                      {wedding.ceremony_time}
-                    </span>
-                  </div>
-                )}
-
-                {showVenue && (wedding.ceremony_venue || wedding.reception_venue) && (
-                  <div className="flex items-center justify-center gap-2">
-                    <MapPin
-                      className="w-4 h-4"
-                      style={{ color: selectedStyle.colors.accent }}
-                    />
-                    <span
-                      className="text-sm"
-                      style={{ color: selectedStyle.colors.text }}
-                    >
-                      {wedding.ceremony_venue || wedding.reception_venue}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Divider */}
-              <div
-                className="w-16 h-0.5 mx-auto mb-6"
-                style={{ backgroundColor: selectedStyle.colors.accent }}
-              />
-
-              {/* QR Code */}
-              <div className="text-center">
-                <div
-                  className="inline-block p-3 rounded-xl mb-3"
-                  style={{ backgroundColor: "white" }}
-                >
-                  <QRCodeSVG
-                    value={weddingUrl}
-                    size={120}
-                    level="M"
-                    fgColor={selectedStyle.colors.text}
-                    bgColor="white"
+                    style={{
+                      display: "block",
+                      width: "38px",
+                      height: "1px",
+                      backgroundColor: `${selectedStyle.colors.accent}80`,
+                    }}
                   />
                 </div>
-                <p
-                  className="text-xs"
-                  style={{ color: selectedStyle.colors.text, opacity: 0.6 }}
-                >
-                  Escaneie para confirmar presença
-                </p>
-              </div>
 
-              {/* Footer */}
-              <div
-                className="text-center mt-6 pt-4 border-t"
-                style={{ borderColor: `${selectedStyle.colors.accent}30` }}
-              >
+                {/* Eyebrow */}
                 <p
-                  className="text-xs"
-                  style={{ color: selectedStyle.colors.accent }}
+                  className="text-center mb-4"
+                  style={{
+                    color: selectedStyle.colors.accent,
+                    fontSize: "10px",
+                    letterSpacing: "0.32em",
+                    textTransform: "uppercase",
+                  }}
                 >
-                  eternize.mocha.app
+                  Convite de Casamento
                 </p>
+
+                {/* Names */}
+                <div className="text-center mb-5">
+                  <h2
+                    className="text-3xl leading-tight"
+                    style={{
+                      fontFamily: selectedFont.family,
+                      color: selectedStyle.colors.text,
+                    }}
+                  >
+                    {wedding.partner1_name || "Nome 1"}
+                  </h2>
+                  <div
+                    className="text-2xl my-1"
+                    style={{
+                      fontFamily: "'Great Vibes', cursive",
+                      color: selectedStyle.colors.accent,
+                    }}
+                  >
+                    &amp;
+                  </div>
+                  <h2
+                    className="text-3xl leading-tight"
+                    style={{
+                      fontFamily: selectedFont.family,
+                      color: selectedStyle.colors.text,
+                    }}
+                  >
+                    {wedding.partner2_name || "Nome 2"}
+                  </h2>
+                </div>
+
+                {/* Message */}
+                <p
+                  className="text-center text-sm mb-5 leading-relaxed"
+                  style={{ color: selectedStyle.colors.text, opacity: 0.8 }}
+                >
+                  {customMessage}
+                </p>
+
+                {/* Date block */}
+                <div
+                  className="text-center mb-5 py-3"
+                  style={{
+                    borderTop: `1px solid ${selectedStyle.colors.accent}33`,
+                    borderBottom: `1px solid ${selectedStyle.colors.accent}33`,
+                  }}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Calendar
+                      className="w-4 h-4"
+                      style={{ color: selectedStyle.colors.accent }}
+                    />
+                    <span
+                      className="font-medium"
+                      style={{ color: selectedStyle.colors.text }}
+                    >
+                      {prettyDate || "Data a ser confirmada"}
+                    </span>
+                  </div>
+
+                  {showTime && wedding.ceremony_time && (
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <Clock
+                        className="w-4 h-4"
+                        style={{ color: selectedStyle.colors.accent }}
+                      />
+                      <span
+                        className="text-sm"
+                        style={{ color: selectedStyle.colors.text }}
+                      >
+                        {wedding.ceremony_time}
+                      </span>
+                    </div>
+                  )}
+
+                  {showVenue && (wedding.ceremony_venue || wedding.reception_venue) && (
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <MapPin
+                        className="w-4 h-4"
+                        style={{ color: selectedStyle.colors.accent }}
+                      />
+                      <span
+                        className="text-sm"
+                        style={{ color: selectedStyle.colors.text }}
+                      >
+                        {wedding.ceremony_venue || wedding.reception_venue}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* QR Code */}
+                <div className="text-center">
+                  <div
+                    className="inline-block p-3 mb-2"
+                    style={{
+                      backgroundColor: "white",
+                      borderRadius: "0.75rem",
+                      border: `1px solid ${selectedStyle.colors.accent}40`,
+                    }}
+                  >
+                    <QRCodeSVG
+                      value={confirmUrl}
+                      size={116}
+                      level="M"
+                      fgColor={selectedStyle.colors.text}
+                      bgColor="white"
+                    />
+                  </div>
+                  <p
+                    className="text-xs"
+                    style={{ color: selectedStyle.colors.text, opacity: 0.6 }}
+                  >
+                    Aponte a câmera para confirmar presença
+                  </p>
+                </div>
+
+                {/* Footer */}
+                <div
+                  className="text-center mt-5 pt-4"
+                  style={{ borderTop: `1px solid ${selectedStyle.colors.accent}30` }}
+                >
+                  <p
+                    className="text-[11px] mb-0.5"
+                    style={{ color: selectedStyle.colors.text, opacity: 0.55 }}
+                  >
+                    Confirme sua presença em
+                  </p>
+                  <p
+                    className="text-xs font-medium"
+                    style={{ color: selectedStyle.colors.accent }}
+                  >
+                    {shortLink}
+                  </p>
+                </div>
               </div>
             </div>
 

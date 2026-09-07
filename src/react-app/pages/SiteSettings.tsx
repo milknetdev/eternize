@@ -830,7 +830,7 @@ export default function SiteSettings() {
                     </div>
                   )}
                   <div className="p-3">
-                    <p className="text-xs text-green-600 mb-1">eternize.mocha.app</p>
+                    <p className="text-xs text-green-600 mb-1">{window.location.host}</p>
                     <p className="font-semibold text-sm line-clamp-2">
                       {settings.og_title || "Nome1 & Nome2"}
                     </p>

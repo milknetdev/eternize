@@ -24,11 +24,17 @@ interface Companion {
 interface Guest {
   id: number;
   name: string;
-  is_confirmed: number;
+  is_confirmed: number | boolean;
+  rsvp_status?: string | null;
   label: string | null;
   table_id: number | null;
   companions: Companion[];
 }
+
+// Postgres returns BOOLEAN as true/false (not 1/0), and a couple can also mark a
+// guest confirmed from the dashboard, which only sets rsvp_status.
+const isGuestConfirmed = (g: Guest) =>
+  Boolean(g.is_confirmed) || g.rsvp_status === "confirmed";
 
 interface Table {
   id: number;
@@ -66,7 +72,7 @@ export default function TablesTab() {
       const guestsData: Guest[] = await guestsRes.json();
 
       // Only confirmed guests can be assigned to tables
-      const confirmedGuests = guestsData.filter(g => g.is_confirmed === 1);
+      const confirmedGuests = guestsData.filter(isGuestConfirmed);
       
       // Group guests by table
       const tablesWithGuests = (tablesData || []).map((table: any) => ({
