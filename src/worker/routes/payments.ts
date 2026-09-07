@@ -193,34 +193,6 @@ r.post("/api/withdrawals", authMiddleware, async (c) => {
 // PUBLIC — PIX CHARGE (ValidaPay)
 // =====================
 
-// TEMP diagnostic: end-to-end check against ValidaPay. Open in a browser:
-// /api/public/pix-debug?probe=1  → tries auth, then a R$1 charge. No secrets out.
-r.get("/api/public/pix-debug", async (c) => {
-  if (c.req.query("probe") !== "1") return c.json({ error: "add ?probe=1" }, 400);
-  const out: any = {
-    configured: isConfigured(),
-    oauthUrl: process.env.VALIDAPAY_OAUTH_URL || "https://oauth2.validapay.com.br/auth/token",
-    apiUrl: process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br",
-    scope: process.env.VALIDAPAY_SCOPE || "pix.cob/write",
-  };
-  try {
-    const ref = `probe-${Date.now()}`;
-    const charge = await createPixCharge({
-      amount: 1,
-      checkoutRef: ref,
-      customer: { name: "Teste Eternize" },
-    });
-    out.result = "OK";
-    out.chargeId = charge.chargeId;
-    out.hasEmv = !!charge.emv;
-    out.hasQrCode = !!charge.qrCode;
-  } catch (err) {
-    out.result = "ERRO";
-    out.detail = String((err as any)?.message || err).slice(0, 600);
-  }
-  return c.json(out);
-});
-
 // Create one PIX charge for a whole checkout. The gift_orders must already exist
 // (created via /api/public/gift-order with the same checkout_ref).
 r.post("/api/public/pix-charge", async (c) => {

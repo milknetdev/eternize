@@ -3583,31 +3583,6 @@ r15.post("/api/withdrawals", authMiddleware, async (c) => {
   }
   return c.json({ success: true, withdrawalId: result.meta?.last_row_id });
 });
-r15.get("/api/public/pix-debug", async (c) => {
-  if (c.req.query("probe") !== "1") return c.json({ error: "add ?probe=1" }, 400);
-  const out = {
-    configured: isConfigured(),
-    oauthUrl: process.env.VALIDAPAY_OAUTH_URL || "https://oauth2.validapay.com.br/auth/token",
-    apiUrl: process.env.VALIDAPAY_API_URL || "https://api.validapay.com.br",
-    scope: process.env.VALIDAPAY_SCOPE || "pix.cob/write"
-  };
-  try {
-    const ref = `probe-${Date.now()}`;
-    const charge = await createPixCharge({
-      amount: 1,
-      checkoutRef: ref,
-      customer: { name: "Teste Eternize" }
-    });
-    out.result = "OK";
-    out.chargeId = charge.chargeId;
-    out.hasEmv = !!charge.emv;
-    out.hasQrCode = !!charge.qrCode;
-  } catch (err) {
-    out.result = "ERRO";
-    out.detail = String(err?.message || err).slice(0, 600);
-  }
-  return c.json(out);
-});
 r15.post("/api/public/pix-charge", async (c) => {
   if (!isConfigured()) {
     return c.json({ configured: false, error: "Gateway de pagamento n\xE3o configurado" }, 503);
