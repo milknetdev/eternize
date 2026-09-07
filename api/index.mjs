@@ -4675,9 +4675,10 @@ r25.get("/api/dashboard/stats", authMiddleware, async (c) => {
     INNER JOIN guests g ON gc.guest_id = g.id
     WHERE g.wedding_id = ?
   `).bind(wedding.id).first();
+  const n = (v) => Number(v) || 0;
   const guestsStats = {
-    total: (guestsCount?.total || 0) + (companionsCount?.total || 0),
-    confirmed: (guestsCount?.confirmed || 0) + (companionsCount?.confirmed || 0)
+    total: n(guestsCount?.total) + n(companionsCount?.total),
+    confirmed: n(guestsCount?.confirmed) + n(companionsCount?.confirmed)
   };
   const giftsCount = await c.env.DB.prepare(
     "SELECT COUNT(*) as count FROM wedding_gifts WHERE wedding_id = ?"
@@ -4693,10 +4694,10 @@ r25.get("/api/dashboard/stats", authMiddleware, async (c) => {
     "amount"
   );
   return c.json({
-    totalGuests: guestsStats?.total || 0,
-    confirmedGuests: guestsStats?.confirmed || 0,
-    totalGifts: giftsCount?.count || 0,
-    totalMessages: messagesCount?.count || 0,
+    totalGuests: guestsStats.total,
+    confirmedGuests: guestsStats.confirmed,
+    totalGifts: n(giftsCount?.count),
+    totalMessages: n(messagesCount?.count),
     totalAmount
   });
 });
