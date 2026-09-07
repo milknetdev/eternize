@@ -106,13 +106,30 @@ export default function GuestConfirmation() {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     if (phoneLast4.length !== 4) {
       setError('Digite os 4 últimos dígitos do seu telefone');
       return;
     }
     setError('');
-    setStep('confirm');
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/public/confirm/${code}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneLast4 }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'Os últimos 4 dígitos do telefone não conferem');
+        return;
+      }
+      setStep('confirm');
+    } catch {
+      setError('Erro de conexão. Tente novamente.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleConfirm = async () => {
@@ -279,8 +296,10 @@ export default function GuestConfirmation() {
 
                 <button
                   onClick={handleVerify}
-                  className="w-full py-3 bg-[#D4A574] text-white rounded-full font-medium hover:bg-[#C49464] transition-colors"
+                  disabled={submitting || phoneLast4.length !== 4}
+                  className="w-full py-3 bg-[#D4A574] text-white rounded-full font-medium hover:bg-[#C49464] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   Continuar
                 </button>
               </div>

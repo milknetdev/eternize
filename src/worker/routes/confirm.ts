@@ -110,6 +110,31 @@ r.get("/api/public/confirm/:code", async (c) => {
   });
 });
 
+// Check the phone last-4 digits WITHOUT committing anything — lets the UI block
+// the wrong person at the "Continuar" step instead of only at submit.
+r.post("/api/public/confirm/:code/verify", async (c) => {
+  const code = c.req.param("code");
+  const body = await c.req.json().catch(() => ({}));
+  const phoneLast4 = String(body.phoneLast4 || "");
+
+  const guest = await c.env.DB.prepare(
+    "SELECT phone FROM guests WHERE confirmation_code = ?"
+  ).bind(code).first<{ phone: string }>();
+
+  if (!guest) {
+    return c.json({ error: "Invalid confirmation code" }, 404);
+  }
+
+  if (guest.phone) {
+    const actualLast4 = guest.phone.replace(/\D/g, "").slice(-4);
+    if (phoneLast4 !== actualLast4) {
+      return c.json({ ok: false, error: "Os últimos 4 dígitos do telefone não conferem" }, 401);
+    }
+  }
+
+  return c.json({ ok: true });
+});
+
 // Confirm attendance with phone verification
 r.post("/api/public/confirm/:code", async (c) => {
   const code = c.req.param("code");
