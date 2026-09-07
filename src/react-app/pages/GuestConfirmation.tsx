@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Calendar, MapPin, Check, X, Users, Loader2, AlertCircle, Utensils, MessageSquare, PartyPopper, Gift, ArrowRight, Baby, User } from 'lucide-react';
+import { Heart, Calendar, MapPin, Check, Users, Loader2, AlertCircle, Utensils, MessageSquare, PartyPopper, Gift, ArrowRight, Baby, User } from 'lucide-react';
 
 // Small age tag used for the guest and each companion — icon instead of an emoji.
 function AgeTag({ child }: { child?: boolean | number }) {
@@ -409,19 +409,11 @@ export default function GuestConfirmation() {
                 )}
 
                 {/* Actions */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={handleDecline}
-                    disabled={submitting}
-                    className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-full font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    <X className="w-4 h-4" />
-                    Não poderei comparecer
-                  </button>
+                <div className="pt-1 space-y-2">
                   <button
                     onClick={handleConfirm}
                     disabled={submitting}
-                    className="flex-1 py-3 bg-[#D4A574] text-white rounded-full font-medium hover:bg-[#C49464] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full py-3 text-sm font-semibold text-white rounded-full bg-[#D4A574] hover:bg-[#C49464] shadow-md shadow-[#D4A574]/25 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {submitting ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -429,6 +421,13 @@ export default function GuestConfirmation() {
                       <Check className="w-4 h-4" />
                     )}
                     Confirmar presença
+                  </button>
+                  <button
+                    onClick={handleDecline}
+                    disabled={submitting}
+                    className="w-full py-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                  >
+                    Não poderei comparecer
                   </button>
                 </div>
               </div>
