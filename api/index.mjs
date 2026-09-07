@@ -3381,11 +3381,12 @@ async function createPixCharge(input) {
     amount: Math.round(input.amount * 100) / 100,
     externalTxid: input.checkoutRef
   };
-  if (input.customer.name || input.customer.email || input.customer.document) {
+  const doc = (input.customer.document || "").replace(/\D/g, "");
+  const email = input.customer.email || "";
+  if (doc || email) {
     body.customer = {
-      name: input.customer.name || void 0,
-      email: input.customer.email || void 0,
-      documentNumber: (input.customer.document || "").replace(/\D/g, "") || void 0
+      ...doc ? { documentNumber: doc } : {},
+      ...email ? { email } : {}
     };
   }
   const res = await fetch(`${BASE_URL()}${PATH_CREATE}`, {

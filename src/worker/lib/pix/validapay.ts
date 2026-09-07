@@ -112,11 +112,16 @@ export async function createPixCharge(input: CreateChargeInput): Promise<PixChar
     amount: Math.round(input.amount * 100) / 100,
     externalTxid: input.checkoutRef,
   };
-  if (input.customer.name || input.customer.email || input.customer.document) {
+  // Immediate charge (COB): ValidaPay only accepts `customer.name`/`cep` together
+  // with an `expiration` (that turns it into a COBV and makes the whole
+  // documentNumber+name+cep trio mandatory). For phase 1 we keep it a plain COB,
+  // so we send only the payer's document (CPF) and email when provided.
+  const doc = (input.customer.document || "").replace(/\D/g, "");
+  const email = input.customer.email || "";
+  if (doc || email) {
     body.customer = {
-      name: input.customer.name || undefined,
-      email: input.customer.email || undefined,
-      documentNumber: (input.customer.document || "").replace(/\D/g, "") || undefined,
+      ...(doc ? { documentNumber: doc } : {}),
+      ...(email ? { email } : {}),
     };
   }
 
